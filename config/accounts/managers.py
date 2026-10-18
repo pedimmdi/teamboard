@@ -12,6 +12,11 @@ class UserManager(BaseUserManager):
         email = BaseUserManager.normalize_email(email.strip())
         return email.casefold()
 
+    def get_by_natural_key(self, username):
+        return self.get(**{
+            f"{self.model.USERNAME_FIELD}__iexact": self.normalize_email(username),
+        })
+
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required.")

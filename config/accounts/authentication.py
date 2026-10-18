@@ -18,7 +18,7 @@ class SessionJWTAuthentication(JWTAuthentication):
             raise AuthenticationFailed("Session is no longer valid.")
 
         try:
-            session = UserSession.objects.get(
+            session = UserSession.objects.select_related("user").get(
                 id=session_id,
                 user=user,
             )

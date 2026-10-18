@@ -33,6 +33,9 @@ from .serializers import (
     ResendVerificationEmailSerializer,
     UserSessionSerializer,
 )
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 def invalidate_user_sessions(user):
@@ -80,6 +83,9 @@ class CurrentUserView(generics.RetrieveUpdateAPIView):
     serializer_class = CurrentUserSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "patch", "head", "options"]
+
+    def get_queryset(self):
+        return User.objects.select_related("profile")
 
     def get_object(self):
         return self.request.user
@@ -163,6 +169,9 @@ class LogoutView(APIView):
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            serializer.save()
 
         return Response(
             {"detail": "Logout successful."},
@@ -360,8 +369,10 @@ class SessionListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return UserSession.objects.filter(
-            user=self.request.user
+        return UserSession.objects.select_related("user").filter(
+            user=self.request.user,
+            revoked_at__isnull=True,
+            expires_at__gt=timezone.now(),
         ).order_by("-last_seen_at")
 
     def get_serializer_context(self):
@@ -449,28 +460,6 @@ class RevokeOtherSessionsView(APIView):
             "while keeping the current session active."
         ),
         request=None,
-        responses={
-            200: inline_serializer(
-                name="RevokeOtherSessionsResponse",
-                fields={
-                    "detail": serializers.CharField(),
-                    "revoked_count": serializers.IntegerField(),
-                },
-            ),
-            400: OpenApiResponse(
-                description="The current token is not associated with a session."
-            ),
-            401: OpenApiResponse(
-                description="Authentication credentials are missing or invalid."
-            ),
-        },
-    )
-    @extend_schema(
-        summary="Revoke other sessions",
-        description=(
-            "Revokes the authenticated user's other active sessions "
-            "while keeping the current session active."
-        ),
         responses={
             200: inline_serializer(
                 name="RevokeOtherSessionsResponse",

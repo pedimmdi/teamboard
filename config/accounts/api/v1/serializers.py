@@ -1,27 +1,57 @@
 from datetime import datetime, timezone as dt_timezone
-from django.contrib.auth import get_user_model, password_validation, authenticate
-from django.core.exceptions import ValidationError as DjangoValidationError
 from django.conf import settings
+from django.contrib.auth import (
+    authenticate,
+    get_user_model,
+    password_validation,
+)
 from django.contrib.auth.tokens import (
     PasswordResetTokenGenerator,
-    default_token_generator
+    default_token_generator,
 )
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
-from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import User, UserSession
 
 User = get_user_model()
+
+
+def send_verification_email(user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+
+    verification_url = (
+        f"{settings.FRONTEND_URL.rstrip('/')}/verify-email/"
+        f"?uid={uid}&token={token}"
+    )
+
+    message = (
+        "Hello,\n\n"
+        "Welcome to TeamBoard.\n\n"
+        "Please verify your email address by opening the following link:\n"
+        f"{verification_url}\n\n"
+        "If you did not create this account, you can ignore this email."
+    )
+
+    send_mail(
+        subject="Verify your TeamBoard email address",
+        message=message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -60,34 +90,18 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop("password_confirm")
 
-        with transaction.atomic():
-            user = User.objects.create_user(**validated_data)
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(**validated_data)
 
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-
-            verification_url = (
-                f"{settings.FRONTEND_URL.rstrip('/')}/verify-email/"
-                f"?uid={uid}&token={token}"
-            )
-
-            message = (
-                "Hello,\n\n"
-                "Welcome to TeamBoard.\n\n"
-                "Please verify your email address by opening the following link:\n"
-                f"{verification_url}\n\n"
-                "If you did not create this account, you can ignore this email."
-            )
-
-            transaction.on_commit(
-                lambda: send_mail(
-                    subject="Verify your TeamBoard email address",
-                    message=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
+                transaction.on_commit(
+                    lambda: send_verification_email(user),
+                    robust=True,
                 )
-            )
+        except IntegrityError:
+            raise serializers.ValidationError({
+                "email": "A user with this email already exists."
+            })
 
         return user
 
@@ -112,24 +126,25 @@ class LoginSerializer(TokenObtainPairSerializer):
         if not user.is_email_verified:
             raise PermissionDenied("Email address is not verified.")
 
-        refresh = RefreshToken.for_user(user)
+        with transaction.atomic():
+            refresh = RefreshToken.for_user(user)
 
-        session = UserSession.objects.create(
-            user=user,
-            expires_at=datetime.fromtimestamp(
-                refresh["exp"],
-                tz=dt_timezone.utc,
-            ),
-            ip_address=self._get_client_ip(request),
-            user_agent=request.META.get("HTTP_USER_AGENT", "")[:512]
-            if request
-            else "",
-            refresh_token_jti=str(refresh["jti"]),
-        )
+            session = UserSession.objects.create(
+                user=user,
+                expires_at=datetime.fromtimestamp(
+                    refresh["exp"],
+                    tz=dt_timezone.utc,
+                ),
+                ip_address=self._get_client_ip(request),
+                user_agent=request.META.get("HTTP_USER_AGENT", "")[:512]
+                if request
+                else "",
+                refresh_token_jti=str(refresh["jti"]),
+            )
 
-        refresh["session_id"] = str(session.id)
+            refresh["session_id"] = str(session.id)
 
-        access = refresh.access_token
+            access = refresh.access_token
 
         return {
             "refresh": str(refresh),
@@ -165,10 +180,11 @@ class SessionRefreshTokenSerializer(TokenRefreshSerializer):
         ):
             raise AuthenticationFailed("Session is no longer valid.")
 
-        data = super().validate(attrs)
+        with transaction.atomic():
+            data = super().validate(attrs)
 
-        session.last_seen_at = timezone.now()
-        session.save(update_fields=["last_seen_at"])
+            session.last_seen_at = timezone.now()
+            session.save(update_fields=["last_seen_at"])
 
         return data
 
@@ -178,11 +194,13 @@ class CurrentUserSerializer(serializers.ModelSerializer):
         source="profile.first_name",
         required=False,
         allow_blank=True,
+        max_length=150,
     )
     last_name = serializers.CharField(
         source="profile.last_name",
         required=False,
         allow_blank=True,
+        max_length=150,
     )
 
     class Meta:
@@ -268,33 +286,40 @@ class LogoutSerializer(serializers.Serializer):
     def validate(self, attrs):
         try:
             token = RefreshToken(attrs["refresh"])
-            request = self.context["request"]
-
-            if str(token["user_id"]) != str(request.user.pk):
-                raise serializers.ValidationError(
-                    {"refresh": "This token does not belong to this user."}
-                )
-
-            token.blacklist()
-
-            session_id = token.get("session_id")
-
-            if session_id:
-                session = UserSession.objects.filter(
-                    id=session_id,
-                    user=request.user,
-                ).first()
-
-                if session and session.revoked_at is None:
-                    session.revoked_at = timezone.now()
-                    session.save(update_fields=["revoked_at"])
-
         except TokenError:
             raise serializers.ValidationError(
                 {"refresh": "Invalid or revoked refresh token."}
             )
 
+        request = self.context["request"]
+
+        if str(token["user_id"]) != str(request.user.pk):
+            raise serializers.ValidationError(
+                {"refresh": "This token does not belong to this user."}
+            )
+
+        attrs["token"] = token
         return attrs
+
+    def save(self, **kwargs):
+        token = self.validated_data["token"]
+        request = self.context["request"]
+
+        token.blacklist()
+
+        session_id = token.get("session_id")
+
+        if session_id:
+            session = UserSession.objects.filter(
+                id=session_id,
+                user=request.user,
+            ).first()
+
+            if session and session.revoked_at is None:
+                session.revoked_at = timezone.now()
+                session.save(update_fields=["revoked_at"])
+
+        return token
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -326,12 +351,15 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             "If you did not request this, you can ignore this email."
         )
 
-        send_mail(
-            subject="Reset your TeamBoard password",
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+        transaction.on_commit(
+            lambda: send_mail(
+                subject="Reset your TeamBoard password",
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            ),
+            robust=True,
         )
 
 
@@ -456,28 +484,9 @@ class ResendVerificationEmailSerializer(serializers.Serializer):
         if user is None:
             return
 
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
-
-        verification_url = (
-            f"{settings.FRONTEND_URL.rstrip('/')}/verify-email/"
-            f"?uid={uid}&token={token}"
-        )
-
-        message = (
-            "Hello,\n\n"
-            "Welcome to TeamBoard.\n\n"
-            "Please verify your email address by opening the following link:\n"
-            f"{verification_url}\n\n"
-            "If you did not create this account, you can ignore this email."
-        )
-
-        send_mail(
-            subject="Verify your TeamBoard email address",
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+        transaction.on_commit(
+            lambda: send_verification_email(user),
+            robust=True,
         )
 
 

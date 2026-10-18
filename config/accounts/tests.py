@@ -398,11 +398,12 @@ class PasswordResetAPITests(APITestCase):
         )
 
     def request_reset(self, email):
-        return self.client.post(
-            self.request_url,
-            {"email": email},
-            format="json",
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            return self.client.post(
+                self.request_url,
+                {"email": email},
+                format="json",
+            )
 
     def test_reset_request_sends_email_for_existing_user(self):
         response = self.request_reset(self.user.email)
@@ -893,11 +894,12 @@ class EmailVerificationTests(APITestCase):
             password="StrongPassword123!",
         )
 
-        response = self.client.post(
-            reverse("accounts_api_v1:email_resend"),
-            {"email": user.email},
-            format="json",
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("accounts_api_v1:email_resend"),
+                {"email": user.email},
+                format="json",
+            )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(mail.outbox), 1)

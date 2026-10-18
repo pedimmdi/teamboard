@@ -22,6 +22,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Meta:
         ordering = ["-date_joined"]
 
+    def save(self, *args, **kwargs):
+        self.email = type(self).objects.normalize_email(self.email)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.email
 

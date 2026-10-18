@@ -1,0 +1,647 @@
+openapi: 3.0.3
+info:
+  title: TeamBoard API
+  version: 1.0.0
+  description: REST API documentation for TeamBoard, including account management
+    and authentication.
+paths:
+  /api/v1/accounts/email/resend/:
+    post:
+      operationId: v1_accounts_email_resend_create
+      description: Requests a new verification email without revealing whether the
+        email address is registered or already verified.
+      summary: Resend email verification
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationEmail'
+        required: true
+      security:
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResendVerificationEmailResponse'
+          description: ''
+        '400':
+          description: Invalid request data.
+        '429':
+          description: Too many requests.
+  /api/v1/accounts/email/verify/:
+    get:
+      operationId: v1_accounts_email_verify_retrieve
+      description: Verifies an email address using the supplied verification token.
+      summary: Verify email address
+      parameters:
+      - in: query
+        name: token
+        schema:
+          type: string
+        description: Email verification token.
+        required: true
+      - in: query
+        name: uid
+        schema:
+          type: string
+        description: Encoded user identifier.
+        required: true
+      tags:
+      - v1
+      security:
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerificationResponse'
+          description: ''
+        '400':
+          description: Invalid or expired verification data.
+        '429':
+          description: Too many requests.
+  /api/v1/accounts/login/:
+    post:
+      operationId: v1_accounts_login_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+          description: ''
+  /api/v1/accounts/logout/:
+    post:
+      operationId: v1_accounts_logout_create
+      description: Logs out the authenticated session.
+      summary: Log out
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Logout'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+          description: ''
+        '400':
+          description: Invalid logout request.
+        '401':
+          description: Authentication credentials are missing or invalid.
+  /api/v1/accounts/me/:
+    get:
+      operationId: v1_accounts_me_retrieve
+      tags:
+      - v1
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+          description: ''
+    patch:
+      operationId: v1_accounts_me_partial_update
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCurrentUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCurrentUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCurrentUser'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+          description: ''
+  /api/v1/accounts/password/change/:
+    post:
+      operationId: v1_accounts_password_change_create
+      description: Changes the authenticated user's password. Existing sessions are
+        invalidated after a successful change.
+      summary: Change password
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePasswordResponse'
+          description: ''
+        '400':
+          description: Invalid request data or current password.
+        '401':
+          description: Authentication credentials are missing or invalid.
+  /api/v1/accounts/password/reset/:
+    post:
+      operationId: v1_accounts_password_reset_create
+      description: Requests password reset instructions. The response does not reveal
+        whether the email exists.
+      summary: Request password reset
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetRequestResponse'
+          description: ''
+        '400':
+          description: Invalid request data.
+        '429':
+          description: Too many requests.
+  /api/v1/accounts/password/reset/confirm/:
+    post:
+      operationId: v1_accounts_password_reset_confirm_create
+      description: Resets the password using a valid password-reset token and invalidates
+        the user's existing sessions.
+      summary: Confirm password reset
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+        required: true
+      security:
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetConfirmResponse'
+          description: ''
+        '400':
+          description: Invalid, expired, or incomplete reset data.
+        '429':
+          description: Too many requests.
+  /api/v1/accounts/refresh/:
+    post:
+      operationId: v1_accounts_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionRefreshToken'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SessionRefreshToken'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SessionRefreshToken'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionRefreshToken'
+          description: ''
+  /api/v1/accounts/register/:
+    post:
+      operationId: v1_accounts_register_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - BearerAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Register'
+          description: ''
+  /api/v1/accounts/sessions/:
+    get:
+      operationId: v1_accounts_sessions_list
+      tags:
+      - v1
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSession'
+          description: ''
+  /api/v1/accounts/sessions/{session_id}/:
+    delete:
+      operationId: v1_accounts_sessions_destroy
+      description: Revokes a session belonging to the authenticated user.
+      summary: Revoke a session
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: string
+        description: ID of the session to revoke.
+        required: true
+      tags:
+      - v1
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionRevokeResponse'
+          description: ''
+        '401':
+          description: Authentication credentials are missing or invalid.
+        '404':
+          description: The session does not exist or does not belong to the user.
+  /api/v1/accounts/sessions/revoke-others/:
+    post:
+      operationId: v1_accounts_sessions_revoke_others_create
+      description: Revokes the authenticated user's other active sessions while keeping
+        the current session active.
+      summary: Revoke other sessions
+      tags:
+      - v1
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeOtherSessionsResponse'
+          description: ''
+        '400':
+          description: The current token is not associated with a session.
+        '401':
+          description: Authentication credentials are missing or invalid.
+components:
+  schemas:
+    ChangePassword:
+      type: object
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+        new_password:
+          type: string
+          writeOnly: true
+        password_confirm:
+          type: string
+          writeOnly: true
+      required:
+      - current_password
+      - new_password
+      - password_confirm
+    ChangePasswordResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    CurrentUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        is_email_verified:
+          type: boolean
+          readOnly: true
+      required:
+      - date_joined
+      - email
+      - id
+      - is_email_verified
+    EmailVerificationResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    Logout:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - refresh
+    LogoutResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    PasswordResetConfirm:
+      type: object
+      properties:
+        uid:
+          type: string
+        token:
+          type: string
+        new_password:
+          type: string
+          writeOnly: true
+        password_confirm:
+          type: string
+          writeOnly: true
+      required:
+      - new_password
+      - password_confirm
+      - token
+      - uid
+    PasswordResetConfirmResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    PasswordResetRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    PasswordResetRequestResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    PatchedCurrentUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        is_email_verified:
+          type: boolean
+          readOnly: true
+    Register:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+        password_confirm:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+      - password_confirm
+    ResendVerificationEmail:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    ResendVerificationEmailResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    RevokeOtherSessionsResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        revoked_count:
+          type: integer
+      required:
+      - detail
+      - revoked_count
+    SessionRefreshToken:
+      type: object
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    SessionRevokeResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    UserSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        last_seen_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ip_address:
+          type: string
+          readOnly: true
+          nullable: true
+        user_agent:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        is_current:
+          type: boolean
+          readOnly: true
+      required:
+      - created_at
+      - expires_at
+      - id
+      - ip_address
+      - is_active
+      - is_current
+      - last_seen_at
+      - user_agent
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "rest_framework",
+    "corsheaders",
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "drf_spectacular_sidecar",
@@ -51,6 +52,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -180,6 +182,10 @@ FRONTEND_URL = env(
     "FRONTEND_URL",
     default="http://localhost:3000",
 )
+
+CORS_ALLOWED_ORIGINS = [
+    FRONTEND_URL,
+]
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "TeamBoard API",
