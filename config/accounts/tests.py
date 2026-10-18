@@ -5,6 +5,7 @@ from django.core.cache import cache
 from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
@@ -65,6 +66,51 @@ class UserModelTests(TestCase):
         )
 
         self.assertEqual(user.email, "test.user@example.com")
+
+    def test_profile_full_name_with_first_name_only(self):
+        user = User.objects.create_user(
+            email="first-only@example.com",
+            password="Test-password-2026!",
+        )
+
+        user.profile.first_name = "Alex"
+        user.profile.last_name = ""
+        user.profile.save()
+
+        self.assertEqual(
+            user.profile.full_name,
+            "Alex",
+        )
+
+    def test_profile_full_name_with_last_name_only(self):
+        user = User.objects.create_user(
+            email="last-only@example.com",
+            password="Test-password-2026!",
+        )
+
+        user.profile.first_name = ""
+        user.profile.last_name = "Morgan"
+        user.profile.save()
+
+        self.assertEqual(
+            user.profile.full_name,
+            "Morgan",
+        )
+
+    def test_profile_full_name_with_empty_names(self):
+        user = User.objects.create_user(
+            email="empty-name@example.com",
+            password="Test-password-2026!",
+        )
+
+        user.profile.first_name = ""
+        user.profile.last_name = ""
+        user.profile.save()
+
+        self.assertEqual(
+            user.profile.full_name,
+            "",
+        )
 
 
 class RegisterAPITests(APITestCase):
@@ -379,7 +425,6 @@ class AccountEndpointTests(APITestCase):
         )
 
 
-
 @override_settings(
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
     FRONTEND_URL="http://localhost:3000",
@@ -631,6 +676,29 @@ class PasswordResetAPITests(APITestCase):
             refresh_response.status_code,
             status.HTTP_401_UNAUTHORIZED,
         )
+
+    def test_reset_request_is_case_insensitive_for_email(self):
+        response = self.request_reset(
+            self.user.email.upper()
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_reset_request_does_not_send_email_for_inactive_user(self):
+        self.user.is_active = False
+        self.user.save(update_fields=["is_active"])
+
+        response = self.request_reset(self.user.email)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(len(mail.outbox), 0)
 
 
 class ProfileAndPasswordAPITests(APITestCase):
@@ -1198,4 +1266,415 @@ class SessionManagementAPITests(APITestCase):
         self.assertEqual(
             response.status_code,
             status.HTTP_401_UNAUTHORIZED,
+        )
+
+
+class SecurityAndEdgeCaseAPITests(APITestCase):
+    login_url = "/api/v1/accounts/login/"
+    refresh_url = "/api/v1/accounts/refresh/"
+    logout_url = "/api/v1/accounts/logout/"
+    me_url = "/api/v1/accounts/me/"
+    password_change_url = "/api/v1/accounts/password/change/"
+    sessions_url = "/api/v1/accounts/sessions/"
+
+    def setUp(self):
+        cache.clear()
+
+        self.password = "Strong-password-2026!"
+        self.user = User.objects.create_user(
+            email="security@example.com",
+            password=self.password,
+            is_email_verified=True,
+        )
+
+    def login(self, email=None, password=None):
+        response = self.client.post(
+            self.login_url,
+            {
+                "email": email or self.user.email,
+                "password": password or self.password,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response.data
+
+    def authenticate_with(self, access_token):
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {access_token}"
+        )
+
+    def test_inactive_user_cannot_login(self):
+        self.user.is_active = False
+        self.user.save(update_fields=["is_active"])
+
+        response = self.client.post(
+            self.login_url,
+            {
+                "email": self.user.email,
+                "password": self.password,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_login_is_case_insensitive_for_email(self):
+        response = self.client.post(
+            self.login_url,
+            {
+                "email": self.user.email.upper(),
+                "password": self.password,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+        self.assertIn("refresh", response.data)
+
+    def test_login_creates_session_with_matching_token_claims(self):
+        tokens = self.login()
+
+        refresh = RefreshToken(tokens["refresh"])
+        access = AccessToken(tokens["access"])
+
+        session = UserSession.objects.get(user=self.user)
+
+        self.assertEqual(
+            str(refresh["session_id"]),
+            str(session.id),
+        )
+        self.assertEqual(
+            str(access["session_id"]),
+            str(session.id),
+        )
+        self.assertEqual(
+            str(refresh["jti"]),
+            session.refresh_token_jti,
+        )
+
+    def test_multiple_logins_create_independent_sessions(self):
+        first_tokens = self.login()
+        second_tokens = self.login()
+
+        first_refresh = RefreshToken(first_tokens["refresh"])
+        second_refresh = RefreshToken(second_tokens["refresh"])
+
+        self.assertNotEqual(
+            first_refresh["session_id"],
+            second_refresh["session_id"],
+        )
+
+        self.assertEqual(
+            UserSession.objects.filter(
+                user=self.user,
+                revoked_at__isnull=True,
+            ).count(),
+            2,
+        )
+
+    def test_refresh_rejects_session_with_mismatched_jti(self):
+        tokens = self.login()
+
+        session = UserSession.objects.get(user=self.user)
+
+        session.refresh_token_jti = "different-jti"
+        session.save(update_fields=["refresh_token_jti"])
+
+        response = self.client.post(
+            self.refresh_url,
+            {"refresh": tokens["refresh"]},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_refresh_rejects_revoked_session(self):
+        tokens = self.login()
+
+        session = UserSession.objects.get(user=self.user)
+        session.revoked_at = timezone.now()
+        session.save(update_fields=["revoked_at"])
+
+        response = self.client.post(
+            self.refresh_url,
+            {"refresh": tokens["refresh"]},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_refresh_rejects_expired_session(self):
+        tokens = self.login()
+
+        session = UserSession.objects.get(user=self.user)
+        session.expires_at = timezone.now() - timezone.timedelta(minutes=1)
+        session.save(update_fields=["expires_at"])
+
+        response = self.client.post(
+            self.refresh_url,
+            {"refresh": tokens["refresh"]},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_logout_rejects_invalid_refresh_token(self):
+        tokens = self.login()
+        self.authenticate_with(tokens["access"])
+
+        response = self.client.post(
+            self.logout_url,
+            {"refresh": "invalid-refresh-token"},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_logout_is_idempotently_rejected_for_already_revoked_token(self):
+        tokens = self.login()
+        self.authenticate_with(tokens["access"])
+
+        first_response = self.client.post(
+            self.logout_url,
+            {"refresh": tokens["refresh"]},
+            format="json",
+        )
+
+        self.assertEqual(
+            first_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        second_response = self.client.post(
+            self.logout_url,
+            {"refresh": tokens["refresh"]},
+            format="json",
+        )
+
+        self.assertEqual(
+            second_response.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_password_change_rejects_same_password(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.password_change_url,
+            {
+                "current_password": self.password,
+                "new_password": self.password,
+                "password_confirm": self.password,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_password_change_rejects_weak_password(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.password_change_url,
+            {
+                "current_password": self.password,
+                "new_password": "123",
+                "password_confirm": "123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.user.refresh_from_db()
+
+        self.assertTrue(
+            self.user.check_password(self.password)
+        )
+
+    def test_password_change_invalidates_existing_session(self):
+        tokens = self.login()
+
+        self.authenticate_with(tokens["access"])
+
+        response = self.client.post(
+            self.password_change_url,
+            {
+                "current_password": self.password,
+                "new_password": "NewStrong-password-2026!",
+                "password_confirm": "NewStrong-password-2026!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        session = UserSession.objects.get(user=self.user)
+
+        self.assertIsNotNone(session.revoked_at)
+
+        refresh_response = self.client.post(
+            self.refresh_url,
+            {"refresh": tokens["refresh"]},
+            format="json",
+        )
+
+        self.assertEqual(
+            refresh_response.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+        self.authenticate_with(tokens["access"])
+
+        me_response = self.client.get(self.me_url)
+
+        self.assertEqual(
+            me_response.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_password_change_requires_authentication(self):
+        response = self.client.post(
+            self.password_change_url,
+            {
+                "current_password": self.password,
+                "new_password": "NewStrong-password-2026!",
+                "password_confirm": "NewStrong-password-2026!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_session_list_excludes_revoked_sessions(self):
+        self.login()
+        active_tokens = self.login()
+
+        sessions = list(
+            UserSession.objects.filter(user=self.user).order_by("created_at")
+        )
+        revoked_session = sessions[0]
+
+        revoked_session.revoked_at = timezone.now()
+        revoked_session.save(update_fields=["revoked_at"])
+
+        self.authenticate_with(active_tokens["access"])
+
+        response = self.client.get(self.sessions_url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            str(response.data[0]["id"]),
+            str(sessions[1].id),
+        )
+
+    def test_session_list_excludes_expired_sessions(self):
+        self.login()
+        active_tokens = self.login()
+
+        sessions = list(
+            UserSession.objects.filter(user=self.user).order_by("created_at")
+        )
+        expired_session = sessions[0]
+
+        expired_session.expires_at = (
+            timezone.now() - timezone.timedelta(minutes=1)
+        )
+        expired_session.save(update_fields=["expires_at"])
+
+        self.authenticate_with(active_tokens["access"])
+
+        response = self.client.get(self.sessions_url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            str(response.data[0]["id"]),
+            str(sessions[1].id),
+        )
+
+    def test_session_list_marks_only_current_session(self):
+        first_tokens = self.login()
+        second_tokens = self.login()
+
+        self.authenticate_with(second_tokens["access"])
+
+        response = self.client.get(self.sessions_url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(len(response.data), 2)
+
+        current_sessions = [
+            item for item in response.data
+            if item["is_current"]
+        ]
+
+        self.assertEqual(len(current_sessions), 1)
+
+        current_session_id = current_sessions[0]["id"]
+        second_session = UserSession.objects.get(
+            user=self.user,
+            refresh_token_jti=str(
+                RefreshToken(second_tokens["refresh"])["jti"]
+            ),
+        )
+
+        self.assertEqual(
+            str(current_session_id),
+            str(second_session.id),
+        )
+
+    def test_session_revoke_rejects_invalid_uuid(self):
+        tokens = self.login()
+
+        self.authenticate_with(tokens["access"])
+
+        response = self.client.delete(
+            "/api/v1/accounts/sessions/"
+            "00000000-0000-0000-0000-000000000000/"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
         )
