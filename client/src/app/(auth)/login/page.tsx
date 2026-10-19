@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { login } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { setTokens } = useAuth();
+  const router = useRouter();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +27,7 @@ export default function LoginPage() {
 
       setTokens(data.access, data.refresh);
 
-      window.location.href = "/dashboard";
+      router.replace("/dashboard");
     } catch (err) {
       setError(
         err instanceof Error
