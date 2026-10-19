@@ -1,0 +1,115 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import Link from "next/link";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import { login } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { setTokens } = useAuth();
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const data = await login(email, password);
+
+      setTokens(data.access, data.refresh);
+
+      window.location.href = "/dashboard";
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to sign in.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="auth-page">
+      <section className="auth-brand-panel">
+        <div className="brand-content">
+          <div className="brand-mark">T</div>
+
+          <h1>TeamBoard</h1>
+
+          <p>
+            Organize your work, collaborate with your team,
+            and keep everything in one place.
+          </p>
+        </div>
+      </section>
+
+      <section className="auth-form-panel">
+        <div className="auth-card">
+          <div className="auth-header">
+            <h2>Welcome back</h2>
+            <p>Sign in to your TeamBoard account</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+
+            <div className="password-field">
+              <div className="password-label-row">
+                <label htmlFor="password">Password</label>
+
+                <Link href="/forgot-password">
+                  Forgot password?
+                </Link>
+              </div>
+
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </div>
+
+            {error && <div className="form-error">{error}</div>}
+
+            <Button
+              type="submit"
+              loading={loading}
+              className="primary-button"
+            >
+              Sign in
+            </Button>
+          </form>
+
+          <p className="auth-footer">
+            Don&apos;t have an account?{" "}
+            <Link href="/register">Create an account</Link>
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
