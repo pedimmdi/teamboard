@@ -4,7 +4,10 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { login } from "@/lib/api";
+import {
+  getCurrentUser,
+  login,
+} from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
@@ -24,8 +27,9 @@ export default function LoginPage() {
 
     try {
       const data = await login(email, password);
+      const user = await getCurrentUser(data.access);
 
-      setTokens(data.access, data.refresh);
+      setTokens(data.access, data.refresh, user);
 
       router.replace("/dashboard");
     } catch (err) {

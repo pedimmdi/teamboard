@@ -19,7 +19,11 @@ type AuthContextValue = {
   user: CurrentUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setTokens: (access: string, refresh: string) => void;
+  setTokens: (
+    access: string,
+    refresh: string,
+    user: CurrentUser,
+  ) => void;
   logout: () => Promise<void>;
 };
 
@@ -47,11 +51,16 @@ export function AuthProvider({
   }, []);
 
   const setTokens = useCallback(
-    (access: string, refresh: string) => {
+    (
+      access: string,
+      refresh: string,
+      currentUser: CurrentUser,
+    ) => {
       localStorage.setItem("access_token", access);
       localStorage.setItem("refresh_token", refresh);
 
       setAccessToken(access);
+      setUser(currentUser);
     },
     [],
   );
