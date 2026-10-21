@@ -2,41 +2,39 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import {
-  getCurrentUser,
-  login,
-} from "@/lib/api";
+import { ApiError, getCurrentUser, login } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const { setTokens } = useAuth();
   const router = useRouter();
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
-
     setError("");
     setLoading(true);
 
     try {
-      const data = await login(email, password);
+      const data = await login(email.trim(), password);
       const user = await getCurrentUser(data.access);
 
       setTokens(data.access, data.refresh, user);
-
       router.replace("/dashboard");
     } catch (err) {
       setError(
-        err instanceof Error
+        err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Unable to sign in.",
+          : "Unable to sign in. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -48,9 +46,7 @@ export default function LoginPage() {
       <section className="auth-brand-panel">
         <div className="brand-content">
           <div className="brand-mark">T</div>
-
           <h1>TeamBoard</h1>
-
           <p>
             Organize your work, collaborate with your team,
             and keep everything in one place.
@@ -81,7 +77,6 @@ export default function LoginPage() {
             <div className="password-field">
               <div className="password-label-row">
                 <label htmlFor="password">Password</label>
-
                 <Link href="/forgot-password">
                   Forgot password?
                 </Link>
@@ -94,12 +89,26 @@ export default function LoginPage() {
                 placeholder="Enter your password"
                 autoComplete="current-password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
                 required
               />
             </div>
 
-            {error && <div className="form-error">{error}</div>}
+            {error && (
+              <div className="form-error" role="alert">
+                {error}
+                {error.toLowerCase().includes("not verified") && (
+                  <>
+                    {" "}
+                    <Link href="/verify-email">
+                      Verify your email
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"

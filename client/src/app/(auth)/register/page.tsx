@@ -4,37 +4,84 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { register } from "@/lib/api";
+import {
+  ApiError,
+  register,
+} from "@/lib/api";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<
+    Record<string, string>
+  >({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     setError("");
+    setFieldErrors({});
 
     if (password !== passwordConfirm) {
-      setError("Passwords do not match.");
+      setFieldErrors({
+        password_confirm: "Passwords do not match.",
+      });
       return;
     }
 
     setLoading(true);
 
     try {
-      await register(email, password, passwordConfirm);
+      await register(
+        email.trim(),
+        password,
+        passwordConfirm,
+      );
+
       setSuccess(true);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to create your account.",
-      );
+      if (err instanceof ApiError) {
+        const errors = err.errors ?? {};
+
+        setFieldErrors({
+          email:
+            typeof errors.email === "string"
+              ? errors.email
+              : errors.email?.[0] ?? "",
+          password:
+            typeof errors.password === "string"
+              ? errors.password
+              : errors.password?.[0] ?? "",
+          password_confirm:
+            typeof errors.password_confirm === "string"
+              ? errors.password_confirm
+              : errors.password_confirm?.[0] ?? "",
+        });
+
+        const nonFieldError =
+          typeof errors.non_field_errors === "string"
+            ? errors.non_field_errors
+            : errors.non_field_errors?.[0];
+
+        setError(
+          nonFieldError ||
+            (Object.keys(errors).length === 0
+              ? err.message
+              : ""),
+        );
+      } else {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to create your account.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -46,9 +93,12 @@ export default function RegisterPage() {
         <section className="auth-brand-panel">
           <div className="brand-content">
             <div className="brand-mark">T</div>
+
             <h1>TeamBoard</h1>
+
             <p>
-              Organize your work and collaborate with your team.
+              Organize your work and collaborate with
+              your team.
             </p>
           </div>
         </section>
@@ -57,6 +107,7 @@ export default function RegisterPage() {
           <div className="auth-card">
             <div className="auth-header">
               <h2>Check your email</h2>
+
               <p>
                 We&apos;ve sent a verification link to{" "}
                 <strong>{email}</strong>.
@@ -95,7 +146,10 @@ export default function RegisterPage() {
             <p>Get started with TeamBoard</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="auth-form">
+          <form
+            onSubmit={handleSubmit}
+            className="auth-form"
+          >
             <Input
               id="email"
               name="email"
@@ -104,9 +158,17 @@ export default function RegisterPage() {
               placeholder="you@example.com"
               autoComplete="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) =>
+                setEmail(event.target.value)
+              }
               required
             />
+
+            {fieldErrors.email && (
+              <div className="form-error">
+                {fieldErrors.email}
+              </div>
+            )}
 
             <Input
               id="password"
@@ -116,9 +178,17 @@ export default function RegisterPage() {
               placeholder="Create a password"
               autoComplete="new-password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) =>
+                setPassword(event.target.value)
+              }
               required
             />
+
+            {fieldErrors.password && (
+              <div className="form-error">
+                {fieldErrors.password}
+              </div>
+            )}
 
             <Input
               id="password-confirm"
@@ -134,7 +204,15 @@ export default function RegisterPage() {
               required
             />
 
-            {error && <div className="form-error">{error}</div>}
+            {fieldErrors.password_confirm && (
+              <div className="form-error">
+                {fieldErrors.password_confirm}
+              </div>
+            )}
+
+            {error && (
+              <div className="form-error">{error}</div>
+            )}
 
             <Button
               type="submit"
