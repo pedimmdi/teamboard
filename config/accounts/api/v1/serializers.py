@@ -17,7 +17,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
-from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
@@ -160,7 +160,12 @@ class LoginSerializer(TokenObtainPairSerializer):
 
 class SessionRefreshTokenSerializer(TokenRefreshSerializer):
     def validate(self, attrs):
-        refresh = RefreshToken(attrs["refresh"])
+        try:
+            refresh = RefreshToken(attrs["refresh"])
+        except TokenError as exc:
+            raise InvalidToken(
+                "Refresh token is invalid, expired, or revoked."
+            ) from exc
         session_id = refresh.get("session_id")
 
         if not session_id:
@@ -184,7 +189,31 @@ class SessionRefreshTokenSerializer(TokenRefreshSerializer):
             data = super().validate(attrs)
 
             session.last_seen_at = timezone.now()
-            session.save(update_fields=["last_seen_at"])
+
+            # With refresh-token rotation enabled, SimpleJWT
+            # returns a new refresh token. Keep our server-side
+            # session record synchronized with the new JTI.
+            new_refresh = data.get("refresh")
+
+            if new_refresh:
+                rotated_refresh = RefreshToken(new_refresh)
+
+                session.refresh_token_jti = str(
+                    rotated_refresh["jti"]
+                )
+
+                session.expires_at = datetime.fromtimestamp(
+                    rotated_refresh["exp"],
+                    tz=dt_timezone.utc,
+                )
+
+            session.save(
+                update_fields=[
+                    "last_seen_at",
+                    "refresh_token_jti",
+                    "expires_at",
+                ]
+            )
 
         return data
 
@@ -281,21 +310,28 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class LogoutSerializer(serializers.Serializer):
-    refresh = serializers.CharField(write_only=True)
-
     def validate(self, attrs):
-        try:
-            token = RefreshToken(attrs["refresh"])
-        except TokenError:
+        request = self.context["request"]
+
+        refresh_value = request.COOKIES.get(
+            settings.REFRESH_TOKEN_COOKIE_NAME
+        )
+
+        if not refresh_value:
             raise serializers.ValidationError(
-                {"refresh": "Invalid or revoked refresh token."}
+                "Refresh token cookie is missing."
             )
 
-        request = self.context["request"]
+        try:
+            token = RefreshToken(refresh_value)
+        except TokenError:
+            raise serializers.ValidationError(
+                "Invalid or revoked refresh token."
+            )
 
         if str(token["user_id"]) != str(request.user.pk):
             raise serializers.ValidationError(
-                {"refresh": "This token does not belong to this user."}
+                "This token does not belong to this user."
             )
 
         attrs["token"] = token
@@ -317,7 +353,9 @@ class LogoutSerializer(serializers.Serializer):
 
             if session and session.revoked_at is None:
                 session.revoked_at = timezone.now()
-                session.save(update_fields=["revoked_at"])
+                session.save(
+                    update_fields=["revoked_at"]
+                )
 
         return token
 

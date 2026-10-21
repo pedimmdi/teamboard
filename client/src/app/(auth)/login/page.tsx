@@ -28,7 +28,10 @@ export default function LoginPage() {
       const data = await login(email.trim(), password);
       const user = await getCurrentUser(data.access);
 
-      setTokens(data.access, data.refresh, user);
+      setTokens(
+        data.access,
+        user,
+      );
       router.replace("/dashboard");
     } catch (err) {
       setError(

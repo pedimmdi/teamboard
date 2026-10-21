@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -72,11 +73,80 @@ class LoginView(TokenObtainPairView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
 
+    def post(self, request, *args, **kwargs):
+        response = super().post(
+            request,
+            *args,
+            **kwargs,
+        )
+
+        refresh_token = response.data.pop("refresh", None)
+
+        if refresh_token:
+            response.set_cookie(
+                key=settings.REFRESH_TOKEN_COOKIE_NAME,
+                value=refresh_token,
+                max_age=int(
+                    settings.SIMPLE_JWT[
+                        "REFRESH_TOKEN_LIFETIME"
+                    ].total_seconds()
+                ),
+                path=settings.REFRESH_TOKEN_COOKIE_PATH,
+                secure=settings.REFRESH_TOKEN_COOKIE_SECURE,
+                httponly=True,
+                samesite=settings.REFRESH_TOKEN_COOKIE_SAMESITE,
+            )
+
+        return response
+
 
 class RefreshTokenView(TokenRefreshView):
     serializer_class = SessionRefreshTokenSerializer
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "token_refresh"
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get(
+            settings.REFRESH_TOKEN_COOKIE_NAME
+        )
+
+        if not refresh_token:
+            return Response(
+                {"detail": "Refresh token cookie is missing."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        serializer = self.get_serializer(
+            data={"refresh": refresh_token}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        response = Response(
+            serializer.validated_data,
+            status=status.HTTP_200_OK,
+        )
+
+        new_refresh_token = response.data.pop(
+            "refresh",
+            None,
+        )
+
+        if new_refresh_token:
+            response.set_cookie(
+                key=settings.REFRESH_TOKEN_COOKIE_NAME,
+                value=new_refresh_token,
+                max_age=int(
+                    settings.SIMPLE_JWT[
+                        "REFRESH_TOKEN_LIFETIME"
+                    ].total_seconds()
+                ),
+                path=settings.REFRESH_TOKEN_COOKIE_PATH,
+                secure=settings.REFRESH_TOKEN_COOKIE_SECURE,
+                httponly=True,
+                samesite=settings.REFRESH_TOKEN_COOKIE_SAMESITE,
+            )
+
+        return response
 
 
 class CurrentUserView(generics.RetrieveUpdateAPIView):
@@ -147,7 +217,7 @@ class LogoutView(APIView):
     @extend_schema(
         summary="Log out",
         description="Logs out the authenticated session.",
-        request=LogoutSerializer,
+        request=None,
         responses={
             200: inline_serializer(
                 name="LogoutResponse",
@@ -159,13 +229,16 @@ class LogoutView(APIView):
                 description="Invalid logout request."
             ),
             401: OpenApiResponse(
-                description="Authentication credentials are missing or invalid."
+                description=(
+                    "Authentication credentials are missing "
+                    "or invalid."
+                )
             ),
         },
     )
     def post(self, request):
         serializer = LogoutSerializer(
-            data=request.data,
+            data={},
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
@@ -173,10 +246,17 @@ class LogoutView(APIView):
         with transaction.atomic():
             serializer.save()
 
-        return Response(
+        response = Response(
             {"detail": "Logout successful."},
             status=status.HTTP_200_OK,
         )
+
+        response.delete_cookie(
+            key=settings.REFRESH_TOKEN_COOKIE_NAME,
+            path=settings.REFRESH_TOKEN_COOKIE_PATH,
+        )
+
+        return response
 
 
 class PasswordResetRequestView(APIView):

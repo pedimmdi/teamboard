@@ -5,12 +5,9 @@ type ApiOptions = RequestInit & {
   token?: string;
 };
 
-type TokenResponse = {
+export type LoginResponse = {
   access: string;
-  refresh: string;
 };
-
-export type LoginResponse = TokenResponse;
 
 export type RegisterResponse = {
   detail: string;
@@ -122,6 +119,7 @@ export async function apiFetch<T>(
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...requestOptions,
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...(token
@@ -186,14 +184,11 @@ export function register(
   );
 }
 
-export function refreshToken(refresh: string) {
-  return apiFetch<TokenResponse>(
+export function refreshToken() {
+  return apiFetch<LoginResponse>(
     "/api/v1/accounts/refresh/",
     {
       method: "POST",
-      body: JSON.stringify({
-        refresh,
-      }),
     },
   );
 }
@@ -208,18 +203,12 @@ export function getCurrentUser(token: string) {
   );
 }
 
-export function logout(
-  token: string,
-  refresh: string,
-) {
+export function logout(token: string) {
   return apiFetch<{ detail: string }>(
     "/api/v1/accounts/logout/",
     {
       method: "POST",
       token,
-      body: JSON.stringify({
-        refresh,
-      }),
     },
   );
 }

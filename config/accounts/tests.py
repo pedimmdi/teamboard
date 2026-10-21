@@ -8,13 +8,19 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-from rest_framework import status
+from rest_framework import response, status
 from rest_framework.test import APITestCase
 from urllib.parse import parse_qs, urlparse
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from .models import Profile, UserSession
 
 User = get_user_model()
+
+REFRESH_COOKIE_NAME = "teamboard_refresh"
+
+
+def get_refresh_token(response):
+    return response.cookies[REFRESH_COOKIE_NAME].value
 
 
 class UserModelTests(TestCase):
@@ -218,7 +224,7 @@ class JWTAuthenticationTests(APITestCase):
             is_email_verified=True,
         )
 
-    def test_login_returns_access_and_refresh_tokens(self):
+    def test_login_returns_access_and_sets_refresh_cookie(self):
         response = self.client.post(
             self.token_url,
             {
@@ -230,7 +236,14 @@ class JWTAuthenticationTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
-        self.assertIn("refresh", response.data)
+        self.assertNotIn("refresh", response.data)
+
+        self.assertIn(REFRESH_COOKIE_NAME, response.cookies)
+
+        cookie = response.cookies[REFRESH_COOKIE_NAME]
+        self.assertTrue(cookie.value)
+        self.assertTrue(cookie["httponly"])
+        self.assertEqual(cookie["path"], "/api/v1/accounts/")
 
     def test_login_rejects_invalid_password(self):
         response = self.client.post(
@@ -259,14 +272,12 @@ class JWTAuthenticationTests(APITestCase):
             status.HTTP_200_OK,
         )
 
-        response = self.client.post(
-            self.refresh_url,
-            {"refresh": login_response.data["refresh"]},
-            format="json",
-        )
+        response = self.client.post(self.refresh_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
+        self.assertNotIn("refresh", response.data)
+        self.assertIn(REFRESH_COOKIE_NAME, response.cookies)
 
     def test_login_uses_remote_addr_instead_of_forwarded_header(self):
         response = self.client.post(
@@ -349,31 +360,36 @@ class AccountEndpointTests(APITestCase):
             login_response.status_code,
             status.HTTP_200_OK,
         )
+        self.assertIn("access", login_response.data)
 
         access_token = login_response.data["access"]
-        refresh_token = login_response.data["refresh"]
+        refresh_token = get_refresh_token(login_response)
 
         self.client.credentials(
             HTTP_AUTHORIZATION=f"Bearer {access_token}"
         )
+        self.client.cookies[REFRESH_COOKIE_NAME] = refresh_token
 
-        response = self.client.post(
-            self.logout_url,
-            {"refresh": refresh_token},
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        refresh_response = self.client.post(
-            "/api/v1/accounts/refresh/",
-            {"refresh": refresh_token},
-            format="json",
-        )
+        logout_response = self.client.post(self.logout_url)
 
         self.assertEqual(
+            logout_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        # Reuse the original refresh token to verify that it was revoked.
+        self.client.cookies[REFRESH_COOKIE_NAME] = refresh_token
+
+        refresh_response = self.client.post(
+            "/api/v1/accounts/refresh/"
+        )
+
+        self.assertIn(
             refresh_response.status_code,
-            status.HTTP_401_UNAUTHORIZED,
+            [
+                status.HTTP_400_BAD_REQUEST,
+                status.HTTP_401_UNAUTHORIZED,
+            ],
         )
 
     def test_logout_rejects_another_users_refresh_token(self):
@@ -392,6 +408,11 @@ class AccountEndpointTests(APITestCase):
             format="json",
         )
 
+        self.assertEqual(
+            own_login.status_code,
+            status.HTTP_200_OK,
+        )
+
         another_login = self.client.post(
             "/api/v1/accounts/login/",
             {
@@ -401,23 +422,22 @@ class AccountEndpointTests(APITestCase):
             format="json",
         )
 
-        self.assertEqual(own_login.status_code, status.HTTP_200_OK)
         self.assertEqual(
             another_login.status_code,
             status.HTTP_200_OK,
         )
 
+        own_access_token = own_login.data["access"]
+        another_refresh_token = get_refresh_token(another_login)
+
         self.client.credentials(
-            HTTP_AUTHORIZATION=(
-                f"Bearer {own_login.data['access']}"
-            )
+            HTTP_AUTHORIZATION=f"Bearer {own_access_token}"
+        )
+        self.client.cookies[REFRESH_COOKIE_NAME] = (
+            another_refresh_token
         )
 
-        response = self.client.post(
-            self.logout_url,
-            {"refresh": another_login.data["refresh"]},
-            format="json",
-        )
+        response = self.client.post(self.logout_url)
 
         self.assertEqual(
             response.status_code,
@@ -919,7 +939,8 @@ class EmailVerificationTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("access", response.data)
-        self.assertIn("refresh", response.data)
+        self.assertNotIn("refresh", response.data)
+        self.assertIn(REFRESH_COOKIE_NAME, response.cookies)
 
     def test_email_verification_link_cannot_be_reused(self):
         user = User.objects.create_user(
@@ -1028,7 +1049,10 @@ class SessionManagementAPITests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        return response.data
+        return {
+            **response.data,
+            "refresh": get_refresh_token(response),
+        }
 
     def authenticate_with(self, access_token):
         self.client.credentials(
@@ -1193,11 +1217,7 @@ class SessionManagementAPITests(APITestCase):
 
         self.authenticate_with(tokens["access"])
 
-        response = self.client.post(
-            "/api/v1/accounts/logout/",
-            {"refresh": tokens["refresh"]},
-            format="json",
-        )
+        response = self.client.post("/api/v1/accounts/logout/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -1205,9 +1225,7 @@ class SessionManagementAPITests(APITestCase):
         self.assertIsNotNone(session.revoked_at)
 
         refresh_response = self.client.post(
-            "/api/v1/accounts/refresh/",
-            {"refresh": tokens["refresh"]},
-            format="json",
+            "/api/v1/accounts/refresh/"
         )
 
         self.assertEqual(
@@ -1257,10 +1275,10 @@ class SessionManagementAPITests(APITestCase):
         refresh_token = RefreshToken(tokens["refresh"])
         del refresh_token["session_id"]
 
+        self.client.cookies[REFRESH_COOKIE_NAME] = str(refresh_token)
+
         response = self.client.post(
-            "/api/v1/accounts/refresh/",
-            {"refresh": str(refresh_token)},
-            format="json",
+            "/api/v1/accounts/refresh/"
         )
 
         self.assertEqual(
@@ -1298,7 +1316,10 @@ class SecurityAndEdgeCaseAPITests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        return response.data
+        return {
+            **response.data,
+            "refresh": get_refresh_token(response),
+        }
 
     def authenticate_with(self, access_token):
         self.client.credentials(
@@ -1335,7 +1356,8 @@ class SecurityAndEdgeCaseAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
-        self.assertIn("refresh", response.data)
+        self.assertNotIn("refresh", response.data)
+        self.assertIn(REFRESH_COOKIE_NAME, response.cookies)
 
     def test_login_creates_session_with_matching_token_claims(self):
         tokens = self.login()
@@ -1437,11 +1459,11 @@ class SecurityAndEdgeCaseAPITests(APITestCase):
         tokens = self.login()
         self.authenticate_with(tokens["access"])
 
-        response = self.client.post(
-            self.logout_url,
-            {"refresh": "invalid-refresh-token"},
-            format="json",
+        self.client.cookies[REFRESH_COOKIE_NAME] = (
+            "invalid-refresh-token"
         )
+
+        response = self.client.post(self.logout_url)
 
         self.assertEqual(
             response.status_code,
@@ -1540,11 +1562,9 @@ class SecurityAndEdgeCaseAPITests(APITestCase):
 
         self.assertIsNotNone(session.revoked_at)
 
-        refresh_response = self.client.post(
-            self.refresh_url,
-            {"refresh": tokens["refresh"]},
-            format="json",
-        )
+        self.client.cookies[REFRESH_COOKIE_NAME] = tokens["refresh"]
+
+        refresh_response = self.client.post(self.refresh_url)
 
         self.assertEqual(
             refresh_response.status_code,

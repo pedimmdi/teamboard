@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
+
 import {
   getCurrentUser,
   logout as logoutApi,
@@ -21,31 +22,30 @@ type AuthContextValue = {
   isLoading: boolean;
   setTokens: (
     access: string,
-    refresh: string,
     user: CurrentUser,
   ) => void;
   logout: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextValue | undefined>(
-  undefined,
-);
+const AuthContext = createContext<
+  AuthContextValue | undefined
+>(undefined);
 
 export function AuthProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [accessToken, setAccessToken] = useState<string | null>(
-    null,
-  );
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [accessToken, setAccessToken] =
+    useState<string | null>(null);
+
+  const [user, setUser] =
+    useState<CurrentUser | null>(null);
+
+  const [isLoading, setIsLoading] =
+    useState(true);
 
   const clearAuth = useCallback(() => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-
     setAccessToken(null);
     setUser(null);
   }, []);
@@ -53,12 +53,8 @@ export function AuthProvider({
   const setTokens = useCallback(
     (
       access: string,
-      refresh: string,
       currentUser: CurrentUser,
     ) => {
-      localStorage.setItem("access_token", access);
-      localStorage.setItem("refresh_token", refresh);
-
       setAccessToken(access);
       setUser(currentUser);
     },
@@ -67,42 +63,24 @@ export function AuthProvider({
 
   useEffect(() => {
     async function restoreSession() {
-      const access = localStorage.getItem("access_token");
-      const refresh = localStorage.getItem("refresh_token");
-
-      if (!access || !refresh) {
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const currentUser = await getCurrentUser(access);
+        /*
+         * The refresh token lives in an HttpOnly cookie.
+         * JavaScript cannot read it.
+         *
+         * We therefore ask the backend for a fresh access token.
+         * The browser automatically includes the refresh cookie.
+         */
+        const tokens = await refreshToken();
 
-        setAccessToken(access);
+        const currentUser = await getCurrentUser(
+          tokens.access,
+        );
+
+        setAccessToken(tokens.access);
         setUser(currentUser);
       } catch {
-        try {
-          const tokens = await refreshToken(refresh);
-
-          localStorage.setItem(
-            "access_token",
-            tokens.access,
-          );
-
-          localStorage.setItem(
-            "refresh_token",
-            tokens.refresh,
-          );
-
-          const currentUser = await getCurrentUser(
-            tokens.access,
-          );
-
-          setAccessToken(tokens.access);
-          setUser(currentUser);
-        } catch {
-          clearAuth();
-        }
+        clearAuth();
       } finally {
         setIsLoading(false);
       }
@@ -112,24 +90,23 @@ export function AuthProvider({
   }, [clearAuth]);
 
   const logout = useCallback(async () => {
-    const access = localStorage.getItem("access_token");
-    const refresh = localStorage.getItem("refresh_token");
-
     try {
-      if (access && refresh) {
-        await logoutApi(access, refresh);
+      if (accessToken) {
+        await logoutApi(accessToken);
       }
     } finally {
       clearAuth();
     }
-  }, [clearAuth]);
+  }, [accessToken, clearAuth]);
 
   return (
     <AuthContext.Provider
       value={{
         accessToken,
         user,
-        isAuthenticated: Boolean(accessToken && user),
+        isAuthenticated: Boolean(
+          accessToken && user,
+        ),
         isLoading,
         setTokens,
         logout,

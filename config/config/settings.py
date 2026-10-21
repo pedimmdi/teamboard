@@ -169,6 +169,10 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "AUTH_HEADER_TYPES": ("Bearer",),
+
+    # Refresh token rotation.
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 EMAIL_BACKEND = env(
@@ -186,9 +190,33 @@ FRONTEND_URL = env(
     default="http://localhost:3000",
 )
 
+# Authentication cookie settings
+
+REFRESH_TOKEN_COOKIE_NAME = env(
+    "REFRESH_TOKEN_COOKIE_NAME",
+    default="teamboard_refresh",
+)
+
+REFRESH_TOKEN_COOKIE_PATH = env(
+    "REFRESH_TOKEN_COOKIE_PATH",
+    default="/api/v1/accounts/",
+)
+
+REFRESH_TOKEN_COOKIE_SECURE = env.bool(
+    "REFRESH_TOKEN_COOKIE_SECURE",
+    default=False,
+)
+
+REFRESH_TOKEN_COOKIE_SAMESITE = env(
+    "REFRESH_TOKEN_COOKIE_SAMESITE",
+    default="Lax",
+)
+
 CORS_ALLOWED_ORIGINS = [
     FRONTEND_URL,
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "TeamBoard API",
