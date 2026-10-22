@@ -15,6 +15,8 @@ import {
   refreshToken,
 } from "@/lib/api";
 
+import { useRouter } from "next/navigation";
+
 type AuthContextValue = {
   accessToken: string | null;
   user: CurrentUser | null;
@@ -50,6 +52,8 @@ export function AuthProvider({
     setUser(null);
   }, []);
 
+  const router = useRouter();
+
   const setTokens = useCallback(
     (
       access: string,
@@ -65,12 +69,12 @@ export function AuthProvider({
     async function restoreSession() {
       try {
         /*
-         * The refresh token lives in an HttpOnly cookie.
-         * JavaScript cannot read it.
-         *
-         * We therefore ask the backend for a fresh access token.
-         * The browser automatically includes the refresh cookie.
-         */
+        * The refresh token lives in an HttpOnly cookie.
+        * JavaScript cannot read it.
+        *
+        * We therefore ask the backend for a fresh access token.
+        * The browser automatically includes the refresh cookie.
+        */
         const tokens = await refreshToken();
 
         const currentUser = await getCurrentUser(
@@ -86,8 +90,51 @@ export function AuthProvider({
       }
     }
 
+    function handleTokenRefreshed(
+      event: Event,
+    ) {
+      const customEvent =
+        event as CustomEvent<{
+          accessToken: string;
+        }>;
+
+      const newAccessToken =
+        customEvent.detail?.accessToken;
+
+      if (newAccessToken) {
+        setAccessToken(newAccessToken);
+      }
+    }
+
+    function handleAuthLogout() {
+      clearAuth();
+      router.push("/login");
+    }
+
+    window.addEventListener(
+      "teamboard:auth-refreshed",
+      handleTokenRefreshed,
+    );
+
+    window.addEventListener(
+      "teamboard:auth-logout",
+      handleAuthLogout,
+    );
+
     restoreSession();
-  }, [clearAuth]);
+
+    return () => {
+      window.removeEventListener(
+        "teamboard:auth-refreshed",
+        handleTokenRefreshed,
+      );
+
+      window.removeEventListener(
+        "teamboard:auth-logout",
+        handleAuthLogout,
+      );
+    };
+  }, [clearAuth, router]);
 
   const logout = useCallback(async () => {
     try {

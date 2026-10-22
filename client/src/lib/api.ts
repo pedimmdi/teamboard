@@ -27,6 +27,90 @@ export type ApiValidationErrors = Record<
   string[] | string
 >;
 
+let refreshPromise: Promise<string> | null = null;
+
+function notifyAuthLogout() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new Event("teamboard:auth-logout"),
+    );
+  }
+}
+
+function refreshAccessToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      let response: Response;
+
+      try {
+        response = await fetch(
+          `${API_URL}/api/v1/accounts/refresh/`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+      } catch {
+        notifyAuthLogout();
+
+        throw new ApiError(
+          "Your session has expired. Please log in again.",
+          401,
+        );
+      }
+
+      let data: unknown;
+
+      try {
+        data = await parseResponse(response);
+      } catch {
+        notifyAuthLogout();
+
+        throw new ApiError(
+          "Your session has expired. Please log in again.",
+          401,
+        );
+      }
+
+      if (!response.ok) {
+        notifyAuthLogout();
+
+        throw new ApiError(
+          getErrorMessage(data),
+          response.status,
+          getValidationErrors(data),
+        );
+      }
+
+      const access =
+        typeof data === "object" &&
+        data !== null &&
+        "access" in data &&
+        typeof data.access === "string"
+          ? data.access
+          : null;
+
+      if (!access) {
+        notifyAuthLogout();
+
+        throw new ApiError(
+          "Your session has expired. Please log in again.",
+          401,
+        );
+      }
+
+      return access;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
+}
+
 export class ApiError extends Error {
   status: number;
   errors: ApiValidationErrors | null;
@@ -112,29 +196,71 @@ export async function apiFetch<T>(
   path: string,
   options: ApiOptions = {},
 ): Promise<T> {
-  const { token, headers, ...requestOptions } = options;
+  const {
+    token,
+    headers,
+    ...requestOptions
+  } = options;
 
-  let response: Response;
+  async function makeRequest(
+    requestToken?: string,
+  ): Promise<Response> {
+    try {
+      return await fetch(`${API_URL}${path}`, {
+        ...requestOptions,
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(requestToken
+            ? {
+                Authorization: `Bearer ${requestToken}`,
+              }
+            : {}),
+          ...headers,
+        },
+      });
+    } catch {
+      throw new ApiError(
+        "Unable to connect to the server. Please try again.",
+        0,
+      );
+    }
+  }
 
-  try {
-    response = await fetch(`${API_URL}${path}`, {
-      ...requestOptions,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : {}),
-        ...headers,
-      },
-    });
-  } catch {
-    throw new ApiError(
-      "Unable to connect to the server. Please try again.",
-      0,
-    );
+  let response = await makeRequest(token);
+
+  /*
+   * Only authenticated API requests should be retried.
+   * The refresh endpoint itself must never recursively
+   * try to refresh again.
+   */
+  const isRefreshRequest =
+    path === "/api/v1/accounts/refresh/";
+
+  if (
+    response.status === 401 &&
+    token &&
+    !isRefreshRequest
+  ) {
+    const newAccessToken = await refreshAccessToken();
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("teamboard:auth-refreshed", {
+          detail: {
+            accessToken: newAccessToken,
+          },
+        }),
+      );
+    }
+
+    // Retry the original request only once.
+    response = await makeRequest(newAccessToken);
+
+    // If the new token is also rejected, end the session.
+    if (response.status === 401) {
+      notifyAuthLogout();
+    }
   }
 
   const data = await parseResponse(response);
