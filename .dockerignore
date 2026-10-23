@@ -1,12 +1,42 @@
+# Git
+.git/
+.github/
 
-venv/
-.venv/
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
 *.py[cod]
-.env
-.git/
-.idea/
-.vscode/
+*.pyo
+*.pyd
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+
+# Django
+*.sqlite3
+staticfiles/
+
+# Node
+client/node_modules/
+client/.next/
+client/.turbo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
