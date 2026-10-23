@@ -81,11 +81,13 @@ teamboard/
 │   ├── accounts/
 │   │   ├── api/
 │   │   │   └── v1/
+                ├── serializers.py
+│   │   │       ├── urls.py
+│   │   │       └── views.py
 │   │   ├── migrations/
 │   │   ├── admin.py
 │   │   ├── authentication.py
 │   │   ├── models.py
-│   │   ├── serializers.py
 │   │   └── tests.py
 │   ├── config/
 │   │   ├── settings.py
@@ -233,11 +235,11 @@ All application API endpoints are currently versioned under `/api/v1/`.
 | Retrieve or update current user | `GET/PATCH /api/v1/accounts/me/` |
 | List sessions | `GET /api/v1/accounts/sessions/` |
 | Revoke other sessions | `POST /api/v1/accounts/sessions/revoke-others/` |
-| Revoke a specific session | `/api/v1/accounts/sessions/<session_id>/` |
+| Revoke a specific session | `DELETE /api/v1/accounts/sessions/<session_id>/` |
 | Change password | `POST /api/v1/accounts/password/change/` |
 | Request password reset | `POST /api/v1/accounts/password/reset/` |
 | Confirm password reset | `POST /api/v1/accounts/password/reset/confirm/` |
-| Verify email | `POST /api/v1/accounts/email/verify/` |
+| Verify email | `GET /api/v1/accounts/email/verify/` |
 | Resend verification email | `POST /api/v1/accounts/email/resend/` |
 
 Use Swagger UI to inspect request payloads, supported HTTP methods, authentication requirements, and response schemas.
