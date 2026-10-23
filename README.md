@@ -1,69 +1,143 @@
 # TeamBoard
 
-TeamBoard is a multi-tenant SaaS project management platform designed for task tracking, team collaboration, role-based access control, and secure REST APIs.
+TeamBoard is a project management platform in development, built with Django REST Framework and Next.js. It is designed to support team collaboration, task management, and secure account access through a versioned REST API.
 
-## Features
+The current implementation focuses on account management, authentication, session security, and the frontend foundation. Workspace, team, and task management modules are planned for subsequent development.
 
-### Accounts and Authentication
+## Current Features
+
+### Backend
+
 - Custom user model with email-based identification
 - User profile management
-- JWT-based authentication
-- Access and refresh token lifecycle management
-- Session tracking and session revocation
-- Password change and password reset endpoints
-- Email verification endpoints
-- Request throttling for sensitive authentication operations
-- Django Admin integration for account and session management
+- JWT authentication with short-lived access tokens
+- Refresh token rotation using an HttpOnly cookie
+- Session tracking, session revocation, and active-session management
+- Email verification
+- Password change and password reset flows
+- Request throttling for sensitive authentication endpoints
+- Django Admin integration for users, profiles, and sessions
+- Versioned REST API
+- OpenAPI schema, Swagger UI, and ReDoc documentation
 
-### API Documentation
-- OpenAPI schema
-- Swagger UI
-- ReDoc
+### Frontend
+
+- Next.js App Router with TypeScript
+- Account registration and login
+- Email verification flow
+- Forgot-password and reset-password pages
+- Authenticated account dashboard
+- Profile editing
+- Password and security settings
+- Active session management and session revocation
+- Automatic access-token refresh and session handling
+- Shared API client and reusable UI components
 
 ## Tech Stack
 
-- Python
-- Django
-- Django REST Framework
-- PostgreSQL
-- Simple JWT
-- Docker and Docker Compose
-- drf-spectacular
+| Area | Technologies |
+|---|---|
+| Backend | Python 3.14, Django 5.2, Django REST Framework |
+| Authentication | Simple JWT, HttpOnly refresh-token cookies |
+| Database | PostgreSQL 17 |
+| API documentation | drf-spectacular, Swagger UI, ReDoc |
+| Frontend | Next.js 16, React 19, TypeScript |
+| Code quality | ESLint, TypeScript checks during production builds |
+| Containers | Docker, Docker Compose |
+| CI | GitHub Actions |
+
+## Project Structure
+
+```text
+teamboard/
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+├── client/
+│   ├── public/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── (auth)/
+│   │   │   │   ├── forgot-password/
+│   │   │   │   ├── login/
+│   │   │   │   ├── register/
+│   │   │   │   ├── reset-password/
+│   │   │   │   └── verify-email/
+│   │   │   ├── dashboard/
+│   │   │   │   ├── security/
+│   │   │   │   └── sessions/
+│   │   │   ├── globals.css
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── components/
+│   │   │   └── ui/
+│   │   └── lib/
+│   │       ├── api.ts
+│   │       └── auth.tsx
+│   ├── package.json
+│   ├── package-lock.json
+│   └── next.config.ts
+├── config/
+│   ├── accounts/
+│   │   ├── api/
+│   │   │   └── v1/
+│   │   ├── migrations/
+│   │   ├── admin.py
+│   │   ├── authentication.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   └── tests.py
+│   ├── config/
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── api_v1_urls.py
+│   ├── manage.py
+│   └── pytest.ini
+├── docker/
+│   ├── backend.Dockerfile
+│   └── frontend.Dockerfile
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+├── requirements.txt
+├── LICENSE
+└── README.md
+```
 
 ## Prerequisites
 
-Install the following tools before running the project:
+For the Docker-based setup, install:
 
 - Git
 - Docker Desktop with Docker Compose
-- A code editor
 
-Docker Compose runs the backend and PostgreSQL database in containers.
+For running the frontend directly on your machine, you will also need Node.js 22 and npm.
 
-## Getting Started
+## Getting Started with Docker
 
-### 1. Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/pedimmdi/teamboard.git
 cd teamboard
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure environment variables
 
-Create a local environment file from the example:
+Create a local environment file from the example.
 
-On Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Open `.env` and replace the placeholder values, especially `SECRET_KEY` and `POSTGRES_PASSWORD`, with your own development values.
+Open `.env` and replace placeholder values, especially `SECRET_KEY` and `POSTGRES_PASSWORD`, with suitable local development values.
 
-Never commit `.env` or expose real credentials in source control.
+The example configuration is intended for local development. Do not reuse its placeholder secrets in a deployed environment, and never commit `.env`.
 
-### 3. Build and Start the Services
+### 3. Build and start the services
 
 ```bash
 docker compose up -d --build
@@ -75,58 +149,102 @@ Check the service status:
 docker compose ps
 ```
 
-### 4. Apply Database Migrations
+The stack contains three services:
+
+| Service | Purpose | Local address |
+|---|---|---|
+| `frontend` | Next.js web application | http://localhost:3000 |
+| `backend` | Django REST API and admin | http://localhost:8000 |
+| `db` | PostgreSQL database | `localhost:5432` |
+
+The service ports are bound to the local machine.
+
+### 4. Apply database migrations
 
 ```bash
 docker compose exec backend python manage.py migrate
 ```
 
-### 5. Create an Admin User
+Run migrations before using the application against a newly initialized database.
+
+### 5. Create an administrator account
 
 ```bash
 docker compose exec backend python manage.py createsuperuser
 ```
 
-Follow the prompts to create your administrator account.
+Follow the prompts to create the Django administrator account.
 
-### 6. Open the Application
+### 6. Open TeamBoard
 
+- Frontend: http://localhost:3000
 - Django Admin: http://localhost:8000/admin/
 - Swagger UI: http://localhost:8000/api/docs/
-- OpenAPI Schema: http://localhost:8000/api/schema/
+- OpenAPI schema: http://localhost:8000/api/schema/
 - ReDoc: http://localhost:8000/api/redoc/
 
-The API documentation pages allow you to explore available endpoints and inspect their request and response schemas.
+The root frontend route redirects to the login page.
+
+## Running the Frontend Locally
+
+To run Next.js outside Docker while keeping the backend and database in Docker, first start the stack and apply migrations as described above.
+
+Stop the Docker frontend service to free port 3000:
+
+```bash
+docker compose stop frontend
+```
+
+Then open a separate terminal:
+
+```powershell
+cd client
+npm ci
+npm run dev
+```
+
+Open http://localhost:3000.
+
+The frontend reads `NEXT_PUBLIC_API_URL` at build time, with `http://localhost:8000` as its fallback. For local development, that default points to the Django API exposed by Docker.
+
+To validate the frontend before committing changes:
+
+```bash
+cd client
+npm ci
+npm run lint
+npm run build
+```
+
+The production build includes TypeScript validation.
 
 ## API Overview
 
-The API is versioned under `/api/v1/`.
+All application API endpoints are currently versioned under `/api/v1/`.
 
-### Accounts
-
-The accounts API includes endpoints for:
+### Accounts and authentication
 
 | Functionality | Endpoint |
 |---|---|
-| Registration | `/api/v1/accounts/register/` |
-| Login | `/api/v1/accounts/login/` |
-| Token refresh | `/api/v1/accounts/refresh/` |
-| Logout | `/api/v1/accounts/logout/` |
-| Current user | `/api/v1/accounts/me/` |
-| List sessions | `/api/v1/accounts/sessions/` |
-| Revoke other sessions | `/api/v1/accounts/sessions/revoke-others/` |
+| Registration | `POST /api/v1/accounts/register/` |
+| Login | `POST /api/v1/accounts/login/` |
+| Refresh access token | `POST /api/v1/accounts/refresh/` |
+| Logout | `POST /api/v1/accounts/logout/` |
+| Retrieve or update current user | `GET/PATCH /api/v1/accounts/me/` |
+| List sessions | `GET /api/v1/accounts/sessions/` |
+| Revoke other sessions | `POST /api/v1/accounts/sessions/revoke-others/` |
 | Revoke a specific session | `/api/v1/accounts/sessions/<session_id>/` |
-| Change password | `/api/v1/accounts/password/change/` |
-| Request password reset | `/api/v1/accounts/password/reset/` |
-| Confirm password reset | `/api/v1/accounts/password/reset/confirm/` |
-| Verify email | `/api/v1/accounts/email/verify/` |
-| Resend verification email | `/api/v1/accounts/email/resend/` |
+| Change password | `POST /api/v1/accounts/password/change/` |
+| Request password reset | `POST /api/v1/accounts/password/reset/` |
+| Confirm password reset | `POST /api/v1/accounts/password/reset/confirm/` |
+| Verify email | `POST /api/v1/accounts/email/verify/` |
+| Resend verification email | `POST /api/v1/accounts/email/resend/` |
 
-Use Swagger UI to inspect the supported HTTP methods, request payloads, authentication requirements, and response formats for each endpoint.
+Use Swagger UI to inspect request payloads, supported HTTP methods, authentication requirements, and response schemas.
 
 ## Authentication
 
-Protected endpoints use JWT bearer authentication.
+Protected API endpoints use JWT bearer authentication.
 
 Include the access token in the request header:
 
@@ -134,34 +252,66 @@ Include the access token in the request header:
 Authorization: Bearer <access_token>
 ```
 
-Access tokens are short-lived. Use the refresh endpoint to obtain a new access token according to the API's token lifecycle rules.
+Access tokens are short-lived. The refresh token is stored in an HttpOnly cookie and is not directly accessible to frontend JavaScript. The frontend can request a fresh access token through the refresh endpoint when restoring a session or recovering from an expired access token.
+
+The backend also associates authenticated requests with tracked user sessions, allowing revoked or expired sessions to be rejected.
 
 ## Email Configuration
 
-By default, the project uses Django's console email backend for development. Emails are written to the backend container's logs rather than delivered to a real inbox.
+The default email backend is Django's console email backend. During local development, outgoing messages are written to backend logs instead of being delivered to a real inbox.
 
-Email-related endpoints can be tested in this development setup without configuring an external email provider.
+This supports development and testing of email-related flows without an external email provider. Configure an appropriate email service before deploying the application.
 
 ## Running Tests
 
-Run the accounts test suite:
+### Backend
+
+Run the account tests in the Docker environment:
 
 ```bash
-docker compose exec backend python manage.py test accounts
+docker compose exec backend python -m pytest accounts/tests.py -v
 ```
 
-Run the full Django test suite:
+Alternatively, use Django's test runner:
 
 ```bash
 docker compose exec backend python manage.py test
 ```
 
+### Frontend
+
+Run lint and production build checks:
+
+```bash
+cd client
+npm ci
+npm run lint
+npm run build
+```
+
+### Continuous integration
+
+GitHub Actions runs on pushes, pull requests, and manual workflow dispatches.
+
+The current workflow contains two independent jobs:
+
+- **Backend:** installs Python dependencies, starts PostgreSQL, and runs `accounts/tests.py`.
+- **Frontend:** installs Node.js dependencies using `npm ci`, runs ESLint, and builds the Next.js application.
+
+Integration and end-to-end browser tests are not currently part of the workflow.
+
 ## Useful Docker Commands
 
-Start services:
+Start all services:
 
 ```bash
 docker compose up -d
+```
+
+Rebuild and start all services:
+
+```bash
+docker compose up -d --build
 ```
 
 View service status:
@@ -170,10 +320,22 @@ View service status:
 docker compose ps
 ```
 
-View backend logs:
+Follow backend logs:
 
 ```bash
 docker compose logs -f backend
+```
+
+Follow frontend logs:
+
+```bash
+docker compose logs -f frontend
+```
+
+Open a Django shell:
+
+```bash
+docker compose exec backend python manage.py shell
 ```
 
 Stop services:
@@ -182,40 +344,35 @@ Stop services:
 docker compose down
 ```
 
-Stop services and remove the database volume:
+Stop services and delete the database volume:
 
 ```bash
 docker compose down -v
 ```
 
-**Warning:** The last command deletes the PostgreSQL volume and its stored database data. Do not run it unless you intentionally want to remove that data.
+**Warning:** `docker compose down -v` deletes the PostgreSQL volume and its stored database data. Only use it when you intentionally want to remove that data.
 
-## Project Structure
+## Development Roadmap
 
-```text
-teamboard/
-├── config/
-│   ├── accounts/
-│   ├── config/
-│   └── manage.py
-├── .env.example
-├── .gitignore
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
-└── README.md
-```
+The current foundation focuses on account security and the frontend/backend architecture. Planned development includes:
 
-The `accounts` app contains user, profile, authentication, and session-related functionality. The inner `config` package contains Django settings and URL configuration.
+- Workspace and organization management
+- Team membership and role-based permissions
+- Project and task management
+- Collaboration features
+- Integration and end-to-end testing
 
-## Development Notes
+These are planned capabilities, not claims that those modules are already implemented.
 
-- The default email backend is intended for local development.
-- Django's development server is used by the current Docker configuration.
-- Development settings are not a production deployment configuration.
-- Before deploying, configure production settings, secure environment variables, allowed hosts, HTTPS, email delivery, static files, logging, and an appropriate production application server.
-- Never commit secrets, passwords, access tokens, or real environment files.
+## Development and Deployment Notes
+
+- The current Docker backend uses Django's development server.
+- The example environment configuration is for local development only.
+- Production deployment requires an appropriate production application server, secure secret management, HTTPS, production cookie settings, and suitable host and CORS configuration.
+- Configure production email delivery, logging, static assets, database backups, and monitoring before deployment.
+- Review security and deployment settings before exposing services publicly.
+- Never commit `.env`, real credentials, passwords, access tokens, or other secrets.
 
 ## License
 
-No license has been specified yet.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
