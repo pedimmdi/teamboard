@@ -3,13 +3,17 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.core import mail
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+from unittest.mock import patch
+from django.db import close_old_connections, connections
 from rest_framework import response, status
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient
 from urllib.parse import parse_qs, urlparse
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from .models import Profile, UserSession
@@ -296,6 +300,106 @@ class JWTAuthenticationTests(APITestCase):
         session = UserSession.objects.get(user=self.user)
 
         self.assertEqual(session.ip_address, "192.0.2.10")
+
+
+class ConcurrentRefreshTests(TransactionTestCase):
+    refresh_url = "/api/v1/accounts/refresh/"
+
+    def setUp(self):
+        self.password = "Strong-password-2026!"
+        self.user = User.objects.create_user(
+            email="concurrent-refresh@example.com",
+            password=self.password,
+            is_email_verified=True,
+        )
+
+        client = APIClient()
+        login_response = client.post(
+            "/api/v1/accounts/login/",
+            {
+                "email": self.user.email,
+                "password": self.password,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            login_response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.initial_refresh_token = get_refresh_token(
+            login_response
+        )
+
+    @patch(
+        "accounts.api.v1.views.RefreshTokenView.throttle_classes",
+        [],
+    )
+    def test_concurrent_refresh_only_rotates_once(self):
+        barrier = Barrier(2)
+
+        def send_refresh_request():
+            close_old_connections()
+
+            try:
+                client = APIClient()
+                client.cookies[REFRESH_COOKIE_NAME] = (
+                    self.initial_refresh_token
+                )
+
+                barrier.wait(timeout=10)
+
+                response = client.post(self.refresh_url)
+
+                new_cookie = response.cookies.get(
+                    REFRESH_COOKIE_NAME
+                )
+
+                return (
+                    response.status_code,
+                    new_cookie.value if new_cookie else None,
+                )
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [
+                executor.submit(send_refresh_request)
+                for _ in range(2)
+            ]
+            results = [future.result(timeout=30) for future in futures]
+
+        response_statuses = sorted(
+            result[0] for result in results
+        )
+
+        self.assertEqual(
+            response_statuses,
+            [
+                status.HTTP_200_OK,
+                status.HTTP_401_UNAUTHORIZED,
+            ],
+        )
+
+        successful_refresh_tokens = [
+            token
+            for response_status, token in results
+            if response_status == status.HTTP_200_OK and token
+        ]
+
+        self.assertEqual(len(successful_refresh_tokens), 1)
+
+        session = UserSession.objects.get(user=self.user)
+
+        rotated_token = RefreshToken(
+            successful_refresh_tokens[0]
+        )
+
+        self.assertEqual(
+            session.refresh_token_jti,
+            str(rotated_token["jti"]),
+        )
 
 
 class AccountEndpointTests(APITestCase):

@@ -166,33 +166,37 @@ class SessionRefreshTokenSerializer(TokenRefreshSerializer):
             raise InvalidToken(
                 "Refresh token is invalid, expired, or revoked."
             ) from exc
+
         session_id = refresh.get("session_id")
 
         if not session_id:
-            raise AuthenticationFailed("Session is no longer valid.")
-
-        try:
-            session = UserSession.objects.get(
-                id=session_id,
-                user_id=refresh.get("user_id"),
+            raise AuthenticationFailed(
+                "Session is no longer valid."
             )
-        except UserSession.DoesNotExist:
-            raise AuthenticationFailed("Session is no longer valid.")
-
-        if (
-            not session.is_active
-            or session.refresh_token_jti != str(refresh["jti"])
-        ):
-            raise AuthenticationFailed("Session is no longer valid.")
 
         with transaction.atomic():
+            try:
+                session = UserSession.objects.select_for_update().get(
+                    id=session_id,
+                    user_id=refresh.get("user_id"),
+                )
+            except UserSession.DoesNotExist:
+                raise AuthenticationFailed(
+                    "Session is no longer valid."
+                )
+
+            if (
+                not session.is_active
+                or session.refresh_token_jti != str(refresh["jti"])
+            ):
+                raise AuthenticationFailed(
+                    "Session is no longer valid."
+                )
+
             data = super().validate(attrs)
 
             session.last_seen_at = timezone.now()
 
-            # With refresh-token rotation enabled, SimpleJWT
-            # returns a new refresh token. Keep our server-side
-            # session record synchronized with the new JTI.
             new_refresh = data.get("refresh")
 
             if new_refresh:

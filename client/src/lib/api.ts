@@ -37,79 +37,93 @@ function notifyAuthLogout() {
   }
 }
 
-function refreshAccessToken(): Promise<string> {
-  if (!refreshPromise) {
-    refreshPromise = (async () => {
-      let response: Response;
 
-      try {
-        response = await fetch(
-          `${API_URL}/api/v1/accounts/refresh/`,
-          {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        );
-      } catch {
-        notifyAuthLogout();
+async function performRefresh(): Promise<string> {
+  let response: Response;
 
-        throw new ApiError(
-          "Your session has expired. Please log in again.",
-          401,
-        );
-      }
-
-      let data: unknown;
-
-      try {
-        data = await parseResponse(response);
-      } catch {
-        notifyAuthLogout();
-
-        throw new ApiError(
-          "Your session has expired. Please log in again.",
-          401,
-        );
-      }
-
-      if (!response.ok) {
-        notifyAuthLogout();
-
-        throw new ApiError(
-          getErrorMessage(data),
-          response.status,
-          getValidationErrors(data),
-        );
-      }
-
-      const access =
-        typeof data === "object" &&
-        data !== null &&
-        "access" in data &&
-        typeof data.access === "string"
-          ? data.access
-          : null;
-
-      if (!access) {
-        notifyAuthLogout();
-
-        throw new ApiError(
-          "Your session has expired. Please log in again.",
-          401,
-        );
-      }
-
-      return access;
-    })().finally(() => {
-      refreshPromise = null;
-    });
+  try {
+    response = await fetch(
+      `${API_URL}/api/v1/accounts/refresh/`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+  } catch {
+    throw new ApiError(
+      "Unable to connect to the server. Please try again.",
+      0,
+    );
   }
 
-  return refreshPromise;
+  const data = await parseResponse(response);
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      notifyAuthLogout();
+    }
+
+    throw new ApiError(
+      getErrorMessage(data),
+      response.status,
+      getValidationErrors(data),
+    );
+  }
+
+  const access =
+    typeof data === "object" &&
+    data !== null &&
+    "access" in data &&
+    typeof data.access === "string"
+      ? data.access
+      : null;
+
+  if (!access) {
+    throw new ApiError(
+      "The server returned an invalid refresh response. Please try again.",
+      502,
+    );
+  }
+
+  return access;
 }
+
+
+function refreshAccessToken(): Promise<string> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  const refresh: Promise<string> =
+    typeof navigator !== "undefined" &&
+    typeof navigator.locks?.request === "function"
+      ? new Promise<string>((resolve, reject) => {
+          navigator.locks.request(
+            "teamboard:refresh",
+            async () => {
+              try {
+                resolve(await performRefresh());
+              } catch (error) {
+                reject(error);
+              }
+            },
+          ).catch(reject);
+        })
+      : performRefresh();
+
+  const sharedRefresh = refresh.finally(() => {
+    if (refreshPromise === sharedRefresh) {
+      refreshPromise = null;
+    }
+  });
+
+  refreshPromise = sharedRefresh;
+  return sharedRefresh;
+}
+
 
 export class ApiError extends Error {
   status: number;
@@ -310,14 +324,13 @@ export function register(
   );
 }
 
-export function refreshToken() {
-  return apiFetch<LoginResponse>(
-    "/api/v1/accounts/refresh/",
-    {
-      method: "POST",
-    },
-  );
+
+export async function refreshToken(): Promise<LoginResponse> {
+  return {
+    access: await refreshAccessToken(),
+  };
 }
+
 
 export function getCurrentUser(token: string) {
   return apiFetch<CurrentUser>(
