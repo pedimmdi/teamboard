@@ -4,6 +4,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 
 
 def generate_organization_slug():
@@ -69,6 +70,11 @@ class OrganizationMembership(models.Model):
                 fields=["organization", "user"],
                 name="unique_organization_membership",
             ),
+            models.UniqueConstraint(
+                fields=["organization"],
+                condition=models.Q(role="owner"),
+                name="unique_organization_owner",
+            ),
         ]
         indexes = [
             models.Index(
@@ -81,4 +87,82 @@ class OrganizationMembership(models.Model):
         return (
             f"{self.user.email} - "
             f"{self.organization.name} ({self.role})"
+        )
+
+
+class OrganizationInvitation(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACCEPTED = "accepted", "Accepted"
+        REVOKED = "revoked", "Revoked"
+        EXPIRED = "expired", "Expired"
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="invitations",
+    )
+
+    email = models.EmailField()
+
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sent_organization_invitations",
+    )
+
+    # Store only the SHA-256 hash of the invitation token.
+    token_hash = models.CharField(
+        max_length=64,
+        unique=True,
+        editable=False,
+    )
+
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "email"],
+                condition=Q(status="pending"),
+                name="unique_pending_org_invitation_email",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["organization", "status"],
+                name="org_inv_status_idx",
+            ),
+            models.Index(
+                fields=["email", "status"],
+                name="org_inv_email_status_idx",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.email = self.email.strip().lower()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return (
+            f"{self.email} - "
+            f"{self.organization.name} ({self.status})"
         )
