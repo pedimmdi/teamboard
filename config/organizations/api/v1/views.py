@@ -41,7 +41,7 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
         )
 
 
-class OrganizationDetailView(generics.RetrieveAPIView):
+class OrganizationDetailView(generics.RetrieveDestroyAPIView):
     serializer_class = OrganizationSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = "slug"
@@ -50,6 +50,28 @@ class OrganizationDetailView(generics.RetrieveAPIView):
         return Organization.objects.filter(
             memberships__user=self.request.user,
         )
+
+    def destroy(self, request, *args, **kwargs):
+        with transaction.atomic():
+            organization = get_object_or_404(
+                self.get_queryset().select_for_update(),
+                slug=self.kwargs["slug"],
+            )
+
+            actor_membership = get_object_or_404(
+                OrganizationMembership.objects.select_for_update(),
+                organization=organization,
+                user=request.user,
+            )
+
+            if actor_membership.role != OrganizationMembership.Role.OWNER:
+                raise PermissionDenied(
+                    "Only the organization owner can delete the organization."
+                )
+
+            organization.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 INVITATION_MANAGEMENT_ROLES = (
@@ -275,6 +297,58 @@ class OrganizationMemberRoleUpdateView(APIView):
             OrganizationMembershipSerializer(target_membership).data,
             status=status.HTTP_200_OK,
         )
+
+
+class OrganizationMemberRemoveView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, slug, membership_id):
+        with transaction.atomic():
+            organization = get_object_or_404(
+                Organization.objects.select_for_update(),
+                slug=slug,
+                memberships__user=request.user,
+            )
+
+            actor_membership = get_object_or_404(
+                OrganizationMembership.objects.select_for_update(),
+                organization=organization,
+                user=request.user,
+            )
+
+            if actor_membership.role not in (
+                OrganizationMembership.Role.OWNER,
+                OrganizationMembership.Role.ADMIN,
+            ):
+                raise PermissionDenied(
+                    "Only organization owners and admins can remove members."
+                )
+
+            target_membership = get_object_or_404(
+                OrganizationMembership.objects.select_for_update(),
+                organization=organization,
+                id=membership_id,
+            )
+
+            if target_membership.role == OrganizationMembership.Role.OWNER:
+                raise ValidationError({
+                    "membership_id": (
+                        "The organization owner cannot be removed "
+                        "through this endpoint."
+                    )
+                })
+
+            if (
+                actor_membership.role == OrganizationMembership.Role.ADMIN
+                and target_membership.role != OrganizationMembership.Role.MEMBER
+            ):
+                raise PermissionDenied(
+                    "Admins can remove members only, not other admins."
+                )
+
+            target_membership.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class OrganizationOwnershipTransferView(APIView):
