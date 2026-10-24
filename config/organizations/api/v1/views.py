@@ -20,7 +20,9 @@ from .serializers import (
     OrganizationSerializer,
     OrganizationInvitationCreateSerializer,
     OrganizationInvitationSerializer,
-    OrganizationInvitationAcceptSerializer
+    OrganizationInvitationAcceptSerializer,
+    OrganizationMembershipSerializer,
+    OrganizationMembershipRoleUpdateSerializer,
 )
 
 
@@ -186,5 +188,89 @@ class OrganizationInvitationAcceptView(APIView):
                 },
                 "role": OrganizationMembership.Role.MEMBER,
             },
+            status=status.HTTP_200_OK,
+        )
+
+
+class OrganizationMemberListView(
+    OrganizationInvitationAccessMixin,
+    generics.ListAPIView,
+):
+    serializer_class = OrganizationMembershipSerializer
+
+    def get_organization_and_membership(self):
+        organization = get_object_or_404(
+            Organization.objects.filter(
+                memberships__user=self.request.user,
+            ).distinct(),
+            slug=self.kwargs["slug"],
+        )
+
+        membership = get_object_or_404(
+            OrganizationMembership,
+            organization=organization,
+            user=self.request.user,
+        )
+
+        return organization, membership
+
+    def get_queryset(self):
+        organization, _ = self.get_organization_and_membership()
+
+        return (
+            OrganizationMembership.objects
+            .filter(organization=organization)
+            .select_related("user")
+            .order_by("joined_at")
+        )
+
+
+class OrganizationMemberRoleUpdateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, slug, membership_id):
+        serializer = OrganizationMembershipRoleUpdateSerializer(
+            data=request.data,
+        )
+        serializer.is_valid(raise_exception=True)
+
+        with transaction.atomic():
+            organization = get_object_or_404(
+                Organization.objects.select_for_update(),
+                slug=slug,
+                memberships__user=request.user,
+            )
+
+            # Lock and verify the requesting user's membership.
+            actor_membership = get_object_or_404(
+                OrganizationMembership.objects.select_for_update(),
+                organization=organization,
+                user=request.user,
+            )
+
+            if actor_membership.role != OrganizationMembership.Role.OWNER:
+                raise PermissionDenied(
+                    "Only the organization owner can change member roles."
+                )
+
+            target_membership = get_object_or_404(
+                OrganizationMembership.objects.select_for_update(),
+                organization=organization,
+                id=membership_id,
+            )
+
+            if target_membership.role == OrganizationMembership.Role.OWNER:
+                raise ValidationError({
+                    "role": (
+                        "The owner's role cannot be changed "
+                        "through this endpoint."
+                    )
+                })
+
+            target_membership.role = serializer.validated_data["role"]
+            target_membership.save(update_fields=["role"])
+
+        return Response(
+            OrganizationMembershipSerializer(target_membership).data,
             status=status.HTTP_200_OK,
         )

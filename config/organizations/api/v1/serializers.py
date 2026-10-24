@@ -94,3 +94,31 @@ class OrganizationInvitationAcceptSerializer(serializers.Serializer):
         trim_whitespace=True,
         max_length=200,
     )
+
+
+class OrganizationMembershipSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(
+        source="user.email",
+        read_only=True,
+    )
+
+    class Meta:
+        model = OrganizationMembership
+        fields = (
+            "id",
+            "user_email",
+            "role",
+            "joined_at",
+        )
+        read_only_fields = fields
+
+
+class OrganizationMembershipRoleUpdateSerializer(
+    serializers.Serializer
+):
+    role = serializers.ChoiceField(
+        choices=(
+            OrganizationMembership.Role.ADMIN,
+            OrganizationMembership.Role.MEMBER,
+        )
+    )

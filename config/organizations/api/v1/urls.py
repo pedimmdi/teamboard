@@ -5,7 +5,9 @@ from .views import (
     OrganizationListCreateView,
     OrganizationInvitationListCreateView,
     OrganizationInvitationRevokeView,
-    OrganizationInvitationAcceptView
+    OrganizationInvitationAcceptView,
+    OrganizationMemberListView,
+    OrganizationMemberRoleUpdateView,
 )
 
 app_name = "organizations_api_v1"
@@ -35,5 +37,15 @@ urlpatterns = [
         "invitations/accept/",
         OrganizationInvitationAcceptView.as_view(),
         name="organization-invitation-accept",
+    ),
+    path(
+        "<slug:slug>/members/",
+        OrganizationMemberListView.as_view(),
+        name="organization-member-list",
+    ),
+    path(
+        "<slug:slug>/members/<uuid:membership_id>/role/",
+        OrganizationMemberRoleUpdateView.as_view(),
+        name="organization-member-role-update",
     ),
 ]
