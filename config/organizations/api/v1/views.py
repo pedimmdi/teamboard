@@ -23,6 +23,7 @@ from .serializers import (
     OrganizationInvitationAcceptSerializer,
     OrganizationMembershipSerializer,
     OrganizationMembershipRoleUpdateSerializer,
+    OrganizationOwnershipTransferSerializer,
 )
 
 
@@ -268,6 +269,60 @@ class OrganizationMemberRoleUpdateView(APIView):
                 })
 
             target_membership.role = serializer.validated_data["role"]
+            target_membership.save(update_fields=["role"])
+
+        return Response(
+            OrganizationMembershipSerializer(target_membership).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class OrganizationOwnershipTransferView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, slug):
+        serializer = OrganizationOwnershipTransferSerializer(
+            data=request.data,
+        )
+        serializer.is_valid(raise_exception=True)
+
+        membership_id = serializer.validated_data["membership_id"]
+
+        with transaction.atomic():
+            organization = get_object_or_404(
+                Organization.objects.select_for_update(),
+                slug=slug,
+                memberships__user=request.user,
+            )
+
+            actor_membership = get_object_or_404(
+                OrganizationMembership.objects.select_for_update(),
+                organization=organization,
+                user=request.user,
+            )
+
+            if actor_membership.role != OrganizationMembership.Role.OWNER:
+                raise PermissionDenied(
+                    "Only the organization owner can transfer ownership."
+                )
+
+            target_membership = get_object_or_404(
+                OrganizationMembership.objects.select_for_update(),
+                organization=organization,
+                id=membership_id,
+            )
+
+            if target_membership.id == actor_membership.id:
+                raise ValidationError({
+                    "membership_id": (
+                        "You cannot transfer ownership to yourself."
+                    )
+                })
+
+            actor_membership.role = OrganizationMembership.Role.ADMIN
+            actor_membership.save(update_fields=["role"])
+
+            target_membership.role = OrganizationMembership.Role.OWNER
             target_membership.save(update_fields=["role"])
 
         return Response(

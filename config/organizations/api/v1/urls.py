@@ -8,6 +8,7 @@ from .views import (
     OrganizationInvitationAcceptView,
     OrganizationMemberListView,
     OrganizationMemberRoleUpdateView,
+    OrganizationOwnershipTransferView,
 )
 
 app_name = "organizations_api_v1"
@@ -47,5 +48,10 @@ urlpatterns = [
         "<slug:slug>/members/<uuid:membership_id>/role/",
         OrganizationMemberRoleUpdateView.as_view(),
         name="organization-member-role-update",
+    ),
+    path(
+        "<slug:slug>/transfer-ownership/",
+        OrganizationOwnershipTransferView.as_view(),
+        name="organization-transfer-ownership",
     ),
 ]

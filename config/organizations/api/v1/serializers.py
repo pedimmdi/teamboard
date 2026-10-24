@@ -122,3 +122,7 @@ class OrganizationMembershipRoleUpdateSerializer(
             OrganizationMembership.Role.MEMBER,
         )
     )
+
+
+class OrganizationOwnershipTransferSerializer(serializers.Serializer):
+    membership_id = serializers.UUIDField()
