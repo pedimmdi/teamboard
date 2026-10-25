@@ -38,7 +38,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Run account tests
+      - name: Run backend tests
         working-directory: config
         env:
           SECRET_KEY: ci-test-secret-key
@@ -48,7 +48,8 @@ jobs:
           POSTGRES_HOST: 127.0.0.1
           POSTGRES_PORT: "5432"
           EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
-        run: python -m pytest accounts/tests.py -v
+          FRONTEND_URL: http://localhost:3000
+        run: python -m pytest -v
 
   frontend:
     runs-on: ubuntu-latest
