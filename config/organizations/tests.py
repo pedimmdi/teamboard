@@ -994,3 +994,49 @@ class OrganizationManagementAPITests(APITestCase):
             5,
         )
         self.assertEqual(len(mail.outbox), 5)
+
+    def test_non_member_with_invalid_invitation_body_gets_404(self):
+        self.authenticate(self.outsider)
+
+        response = self.client.post(
+            self.invitations_url(),
+            {},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_admin_with_invalid_role_update_body_gets_403(self):
+        self.authenticate(self.admin)
+
+        response = self.client.patch(
+            self.role_url(self.member_membership),
+            {},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_with_invalid_transfer_body_gets_403(self):
+        self.authenticate(self.admin)
+
+        response = self.client.post(
+            self.transfer_url(),
+            {},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_owner_cannot_leave_error_has_detail_key(self):
+        self.authenticate(self.owner)
+
+        response = self.client.post(self.leave_url())
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIsInstance(response.data, dict)
+        self.assertIn("detail", response.data)
+        self.assertIsInstance(response.data["detail"], str)

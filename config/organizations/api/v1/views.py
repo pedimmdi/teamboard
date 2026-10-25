@@ -369,10 +369,12 @@ class OrganizationInvitationListCreateView(
         return OrganizationInvitationSerializer
 
     def create(self, request, *args, **kwargs):
+        # Check organization membership and invitation permissions first.
+        organization, _ = self.get_organization_and_membership()
+
+        # Validate the request only after access has been confirmed.
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        organization, _ = self.get_organization_and_membership()
 
         try:
             invitation = create_organization_invitation(
@@ -614,11 +616,6 @@ class OrganizationMemberRoleUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def patch(self, request, slug, membership_id):
-        serializer = OrganizationMembershipRoleUpdateSerializer(
-            data=request.data,
-        )
-        serializer.is_valid(raise_exception=True)
-
         with transaction.atomic():
             organization = get_object_or_404(
                 Organization.objects.select_for_update(),
@@ -626,7 +623,6 @@ class OrganizationMemberRoleUpdateView(APIView):
                 memberships__user=request.user,
             )
 
-            # Lock and verify the requesting user's membership.
             actor_membership = get_object_or_404(
                 OrganizationMembership.objects.select_for_update(),
                 organization=organization,
@@ -637,6 +633,12 @@ class OrganizationMemberRoleUpdateView(APIView):
                 raise PermissionDenied(
                     "Only the organization owner can change member roles."
                 )
+
+            # Validate only after verifying the actor's permissions.
+            serializer = OrganizationMembershipRoleUpdateSerializer(
+                data=request.data,
+            )
+            serializer.is_valid(raise_exception=True)
 
             target_membership = get_object_or_404(
                 OrganizationMembership.objects.select_for_update(),
@@ -787,13 +789,6 @@ class OrganizationOwnershipTransferView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, slug):
-        serializer = OrganizationOwnershipTransferSerializer(
-            data=request.data,
-        )
-        serializer.is_valid(raise_exception=True)
-
-        membership_id = serializer.validated_data["membership_id"]
-
         with transaction.atomic():
             organization = get_object_or_404(
                 Organization.objects.select_for_update(),
@@ -811,6 +806,13 @@ class OrganizationOwnershipTransferView(APIView):
                 raise PermissionDenied(
                     "Only the organization owner can transfer ownership."
                 )
+
+            # Validate only after confirming that the requester is the owner.
+            serializer = OrganizationOwnershipTransferSerializer(
+                data=request.data,
+            )
+            serializer.is_valid(raise_exception=True)
+            membership_id = serializer.validated_data["membership_id"]
 
             target_membership = get_object_or_404(
                 OrganizationMembership.objects.select_for_update(),
@@ -832,7 +834,10 @@ class OrganizationOwnershipTransferView(APIView):
             target_membership.save(update_fields=["role"])
 
         return Response(
-            OrganizationMembershipSerializer(target_membership).data,
+            OrganizationMembershipSerializer(
+                target_membership,
+                context={"request": request},
+            ).data,
             status=status.HTTP_200_OK,
         )
 
@@ -895,10 +900,12 @@ class OrganizationLeaveView(APIView):
                 raise NotFound("Organization not found.")
 
             if membership.role == OrganizationMembership.Role.OWNER:
-                raise ValidationError(
-                    "Organization owners cannot leave the organization. "
-                    "Transfer ownership or delete the organization instead."
-                )
+                raise ValidationError({
+                    "detail": (
+                        "Organization owners cannot leave the organization. "
+                        "Transfer ownership or delete the organization instead."
+                    )
+                })
 
             membership.delete()
 
