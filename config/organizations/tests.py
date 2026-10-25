@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -247,6 +248,29 @@ class OrganizationAPITests(APITestCase):
             status.HTTP_400_BAD_REQUEST,
         )
         self.assertEqual(Organization.objects.count(), 0)
+
+    def test_organization_creation_is_throttled(self):
+        cache.clear()
+
+        for index in range(5):
+            response = self.create_organization(
+                self.owner,
+                name=f"TeamBoard {index}",
+            )
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_201_CREATED,
+            )
+
+        response = self.create_organization(
+            self.owner,
+            name="TeamBoard over limit",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_429_TOO_MANY_REQUESTS,
+        )
 
 
 class OrganizationManagementAPITests(APITestCase):
@@ -937,3 +961,36 @@ class OrganizationManagementAPITests(APITestCase):
             invitation.status,
             OrganizationInvitation.Status.EXPIRED,
         )
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        FRONTEND_URL="http://localhost:3000",
+    )
+    def test_invitation_creation_is_throttled(self):
+        cache.clear()
+
+        for index in range(5):
+            response = self.create_invitation(
+                f"invitee{index}@example.com",
+            )
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_201_CREATED,
+            )
+
+        response = self.create_invitation(
+            "invitee-over-limit@example.com",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+        self.assertEqual(
+            OrganizationInvitation.objects.filter(
+                organization=self.organization,
+            ).count(),
+            5,
+        )
+        self.assertEqual(len(mail.outbox), 5)

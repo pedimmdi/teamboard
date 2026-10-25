@@ -8,6 +8,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.throttling import ScopedRateThrottle
 
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -64,6 +65,12 @@ from .serializers import (
 class OrganizationListCreateView(generics.ListCreateAPIView):
     serializer_class = OrganizationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "organization_create"
+
+    def get_throttles(self):
+        if self.request.method == "POST":
+            return [ScopedRateThrottle()]
+        return []
 
     def get_queryset(self):
         current_user_memberships = OrganizationMembership.objects.filter(
@@ -341,6 +348,13 @@ class OrganizationInvitationListCreateView(
     OrganizationInvitationAccessMixin,
     generics.ListCreateAPIView,
 ):
+    throttle_scope = "organization_invitation"
+
+    def get_throttles(self):
+        if self.request.method == "POST":
+            return [ScopedRateThrottle()]
+        return []
+
     def get_queryset(self):
         organization, _ = self.get_organization_and_membership()
 

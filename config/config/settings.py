@@ -162,6 +162,8 @@ REST_FRAMEWORK = {
         "password_reset_confirm": "20/min",
         "email_verification": "10/min",
         "email_resend": "5/min",
+        "organization_create": "5/hour",
+        "organization_invitation": "5/hour",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
