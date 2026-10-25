@@ -10,6 +10,7 @@ from .views import (
     OrganizationMemberRoleUpdateView,
     OrganizationOwnershipTransferView,
     OrganizationMemberRemoveView,
+    OrganizationLeaveView,
 )
 
 app_name = "organizations_api_v1"
@@ -54,10 +55,15 @@ urlpatterns = [
         "<slug:slug>/transfer-ownership/",
         OrganizationOwnershipTransferView.as_view(),
         name="organization-transfer-ownership",
-    ),    
+    ),
     path(
         "<slug:slug>/members/<uuid:membership_id>/",
         OrganizationMemberRemoveView.as_view(),
         name="organization-member-remove",
+    ),
+    path(
+        "<slug:slug>/leave/",
+        OrganizationLeaveView.as_view(),
+        name="organization-leave",
     ),
 ]

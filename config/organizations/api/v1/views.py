@@ -3,7 +3,8 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from rest_framework import generics, permissions, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -41,44 +42,90 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
         )
 
 
-class OrganizationDetailView(generics.RetrieveDestroyAPIView):
+class OrganizationDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = OrganizationSerializer
-    permission_classes = [permissions.IsAuthenticated]
     lookup_field = "slug"
+    http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         return Organization.objects.filter(
             memberships__user=self.request.user,
-        )
+        ).distinct()
 
-    def destroy(self, request, *args, **kwargs):
+    def partial_update(self, request, *args, **kwargs):
         with transaction.atomic():
-            organization = get_object_or_404(
-                self.get_queryset().select_for_update(),
-                slug=self.kwargs["slug"],
+            organization = (
+                Organization.objects
+                .select_for_update()
+                .get(slug=kwargs["slug"])
             )
 
-            actor_membership = get_object_or_404(
-                OrganizationMembership.objects.select_for_update(),
-                organization=organization,
-                user=request.user,
+            membership = (
+                OrganizationMembership.objects
+                .select_for_update()
+                .filter(
+                    organization=organization,
+                    user=request.user,
+                )
+                .first()
             )
 
-            if actor_membership.role != OrganizationMembership.Role.OWNER:
+            if membership is None:
+                raise NotFound("Organization not found.")
+
+            if membership.role not in {
+                OrganizationMembership.Role.OWNER,
+                OrganizationMembership.Role.ADMIN,
+            }:
+                raise PermissionDenied(
+                    "Only organization owners and admins can update the organization."
+                )
+
+            serializer = self.get_serializer(
+                organization,
+                data=request.data,
+                partial=True,
+            )
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+
+        return Response(serializer.data)
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            organization = (
+                Organization.objects
+                .select_for_update()
+                .get(pk=instance.pk)
+            )
+
+            membership = (
+                OrganizationMembership.objects
+                .select_for_update()
+                .filter(
+                    organization=organization,
+                    user=self.request.user,
+                )
+                .first()
+            )
+
+            if membership is None:
+                raise NotFound("Organization not found.")
+
+            if membership.role != OrganizationMembership.Role.OWNER:
                 raise PermissionDenied(
                     "Only the organization owner can delete the organization."
                 )
 
             organization.delete()
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return None
 
 
 INVITATION_MANAGEMENT_ROLES = (
     OrganizationMembership.Role.OWNER,
     OrganizationMembership.Role.ADMIN,
 )
-
 
 class OrganizationInvitationAccessMixin:
     permission_classes = [permissions.IsAuthenticated]
@@ -403,3 +450,42 @@ class OrganizationOwnershipTransferView(APIView):
             OrganizationMembershipSerializer(target_membership).data,
             status=status.HTTP_200_OK,
         )
+
+
+class OrganizationLeaveView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        with transaction.atomic():
+            organization = (
+                Organization.objects
+                .select_for_update()
+                .filter(slug=slug)
+                .first()
+            )
+
+            if organization is None:
+                raise NotFound("Organization not found.")
+
+            membership = (
+                OrganizationMembership.objects
+                .select_for_update()
+                .filter(
+                    organization=organization,
+                    user=request.user,
+                )
+                .first()
+            )
+
+            if membership is None:
+                raise NotFound("Organization not found.")
+
+            if membership.role == OrganizationMembership.Role.OWNER:
+                raise ValidationError(
+                    "Organization owners cannot leave the organization. "
+                    "Transfer ownership or delete the organization instead."
+                )
+
+            membership.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
