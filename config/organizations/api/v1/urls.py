@@ -11,6 +11,7 @@ from .views import (
     OrganizationOwnershipTransferView,
     OrganizationMemberRemoveView,
     OrganizationLeaveView,
+    OrganizationInvitationResendView,
 )
 
 app_name = "organizations_api_v1"
@@ -65,5 +66,10 @@ urlpatterns = [
         "<slug:slug>/leave/",
         OrganizationLeaveView.as_view(),
         name="organization-leave",
+    ),
+    path(
+        "<slug:slug>/invitations/<uuid:invitation_id>/resend/",
+        OrganizationInvitationResendView.as_view(),
+        name="organization-invitation-resend",
     ),
 ]

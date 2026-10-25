@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -12,7 +13,7 @@ from organizations.models import (
 
 class OrganizationSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Organization
         fields = (
@@ -91,6 +92,7 @@ class OrganizationInvitationSerializer(serializers.ModelSerializer):
         read_only=True,
         allow_null=True,
     )
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationInvitation
@@ -105,6 +107,15 @@ class OrganizationInvitationSerializer(serializers.ModelSerializer):
             "revoked_at",
         )
         read_only_fields = fields
+
+    def get_status(self, obj):
+        if (
+            obj.status == OrganizationInvitation.Status.PENDING
+            and obj.expires_at <= timezone.now()
+        ):
+            return OrganizationInvitation.Status.EXPIRED
+
+        return obj.status
 
 
 class OrganizationInvitationAcceptSerializer(serializers.Serializer):

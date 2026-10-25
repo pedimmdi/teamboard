@@ -1040,3 +1040,110 @@ class OrganizationManagementAPITests(APITestCase):
         self.assertIsInstance(response.data, dict)
         self.assertIn("detail", response.data)
         self.assertIsInstance(response.data["detail"], str)
+
+    def test_expired_pending_invitation_is_listed_as_expired(self):
+        create_response = self.create_invitation()
+        self.assertEqual(
+            create_response.status_code,
+            status.HTTP_201_CREATED,
+        )
+
+        invitation = OrganizationInvitation.objects.get(
+            pk=create_response.data["id"],
+        )
+        invitation.expires_at = timezone.now() - timedelta(minutes=1)
+        invitation.save(update_fields=["expires_at"])
+
+        self.authenticate(self.owner)
+        response = self.client.get(self.invitations_url())
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        serialized_invitation = next(
+            item for item in response.data
+            if item["id"] == str(invitation.id)
+        )
+        self.assertEqual(serialized_invitation["status"], "expired")
+
+        # The API computes the effective status without mutating the database.
+        invitation.refresh_from_db()
+        self.assertEqual(
+            invitation.status,
+            OrganizationInvitation.Status.PENDING,
+        )
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        FRONTEND_URL="http://localhost:3000",
+    )
+    def test_owner_can_resend_invitation_with_new_token(self):
+        create_response = self.create_invitation()
+        self.assertEqual(
+            create_response.status_code,
+            status.HTTP_201_CREATED,
+        )
+
+        invitation = OrganizationInvitation.objects.get(
+            pk=create_response.data["id"],
+        )
+        original_token_hash = invitation.token_hash
+        original_expiry = invitation.expires_at
+
+        response = self.client.post(
+            f"{self.invitations_url()}{invitation.id}/resend/",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "pending")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(invitation.email, mail.outbox[0].to)
+
+        invitation.refresh_from_db()
+
+        self.assertNotEqual(invitation.token_hash, original_token_hash)
+        self.assertGreater(invitation.expires_at, original_expiry)
+        self.assertEqual(
+            invitation.status,
+            OrganizationInvitation.Status.PENDING,
+        )
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        FRONTEND_URL="http://localhost:3000",
+    )
+    def test_revoked_invitation_cannot_be_resent(self):
+        create_response = self.create_invitation()
+        invitation_id = create_response.data["id"]
+
+        revoke_response = self.client.delete(
+            f"{self.invitations_url()}{invitation_id}/",
+        )
+        self.assertEqual(revoke_response.status_code, status.HTTP_200_OK)
+
+        response = self.client.post(
+            f"{self.invitations_url()}{invitation_id}/resend/",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        FRONTEND_URL="http://localhost:3000",
+    )
+    def test_member_cannot_resend_invitation(self):
+        create_response = self.create_invitation()
+        invitation_id = create_response.data["id"]
+
+        self.authenticate(self.member)
+
+        response = self.client.post(
+            f"{self.invitations_url()}{invitation_id}/resend/",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )

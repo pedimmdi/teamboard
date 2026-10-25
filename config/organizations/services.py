@@ -178,3 +178,112 @@ def accept_organization_invitation(*, token, user):
         })
 
     return invitation
+
+
+@transaction.atomic
+def resend_organization_invitation(
+    *,
+    organization,
+    invitation_id,
+    invited_by,
+):
+    now = timezone.now()
+
+    try:
+        invitation = (
+            OrganizationInvitation.objects
+            .select_for_update()
+            .select_related("organization")
+            .get(
+                id=invitation_id,
+                organization=organization,
+            )
+        )
+    except OrganizationInvitation.DoesNotExist:
+        from rest_framework.exceptions import NotFound
+
+        raise NotFound("Invitation not found.")
+
+    if invitation.status in (
+        OrganizationInvitation.Status.ACCEPTED,
+        OrganizationInvitation.Status.REVOKED,
+    ):
+        raise ValidationError({
+            "status": (
+                "Accepted or revoked invitations cannot be resent."
+            )
+        })
+
+    # An existing member does not need another invitation.
+    if organization.memberships.filter(
+        user__email__iexact=invitation.email,
+    ).exists():
+        raise ValidationError({
+            "email": "This user is already a member of the organization."
+        })
+
+    # Clear stale pending records for this email before reactivating
+    # this invitation, so the database uniqueness constraint is respected.
+    OrganizationInvitation.objects.filter(
+        organization=organization,
+        email=invitation.email,
+        status=OrganizationInvitation.Status.PENDING,
+        expires_at__lte=now,
+    ).exclude(
+        pk=invitation.pk,
+    ).update(
+        status=OrganizationInvitation.Status.EXPIRED,
+    )
+
+    # Do not create multiple active invitations for the same email.
+    active_invitation_exists = (
+        OrganizationInvitation.objects.filter(
+            organization=organization,
+            email=invitation.email,
+            status=OrganizationInvitation.Status.PENDING,
+            expires_at__gt=now,
+        )
+        .exclude(pk=invitation.pk)
+        .exists()
+    )
+
+    if active_invitation_exists:
+        raise ValidationError({
+            "status": (
+                "Another active invitation already exists for this email."
+            )
+        })
+
+    raw_token = secrets.token_urlsafe(32)
+
+    invitation.token_hash = hash_invitation_token(raw_token)
+    invitation.status = OrganizationInvitation.Status.PENDING
+    invitation.expires_at = now + timedelta(
+        days=INVITATION_EXPIRY_DAYS,
+    )
+    invitation.invited_by = invited_by
+
+    invitation.save(
+        update_fields=[
+            "token_hash",
+            "status",
+            "expires_at",
+            "invited_by",
+        ]
+    )
+
+    invitation_url = (
+        f"{settings.FRONTEND_URL.rstrip('/')}/accept-invitation/"
+        f"?token={raw_token}"
+    )
+
+    transaction.on_commit(
+        lambda: send_organization_invitation_email(
+            email=invitation.email,
+            organization_name=organization.name,
+            invitation_url=invitation_url,
+        ),
+        robust=True,
+    )
+
+    return invitation

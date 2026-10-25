@@ -24,7 +24,8 @@ from organizations.models import (
 )
 from organizations.services import (
     create_organization_invitation,
-    accept_organization_invitation
+    accept_organization_invitation,
+    resend_organization_invitation,
 )
 from .serializers import (
     OrganizationSerializer,
@@ -475,6 +476,59 @@ class OrganizationInvitationRevokeView(
 
 @extend_schema(
     tags=["Organizations - Invitations"],
+    summary="Resend organization invitation",
+    description=(
+        "Resends an invitation email with a newly generated token "
+        "and renews its expiration date. Only organization owners "
+        "and admins can resend invitations."
+    ),
+    responses={
+        200: OrganizationInvitationSerializer,
+        400: OpenApiResponse(
+            description=(
+                "The invitation was accepted, revoked, or cannot be resent."
+            ),
+        ),
+        403: OpenApiResponse(
+            description="The authenticated user cannot manage invitations.",
+        ),
+        404: OpenApiResponse(
+            description="The organization or invitation was not found.",
+        ),
+        429: OpenApiResponse(
+            description="The invitation rate limit was exceeded.",
+        ),
+    },
+)
+class OrganizationInvitationResendView(
+    OrganizationInvitationAccessMixin,
+    APIView,
+):
+    throttle_scope = "organization_invitation"
+
+    def get_throttles(self):
+        if self.request.method == "POST":
+            return [ScopedRateThrottle()]
+        return []
+
+    def post(self, request, slug, invitation_id):
+        # Verify membership and permissions before accessing the invitation.
+        organization, _ = self.get_organization_and_membership()
+
+        invitation = resend_organization_invitation(
+            organization=organization,
+            invitation_id=invitation_id,
+            invited_by=request.user,
+        )
+
+        return Response(
+            OrganizationInvitationSerializer(invitation).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(
+    tags=["Organizations - Invitations"],
     summary="Accept organization invitation",
     description=(
         "Accepts an organization invitation using its token and adds "
@@ -493,7 +547,6 @@ class OrganizationInvitationRevokeView(
         ),
     },
 )
-
 class OrganizationInvitationAcceptView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
