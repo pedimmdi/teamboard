@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
+from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
@@ -60,6 +61,77 @@ class OrganizationModelTests(TestCase):
                     user=self.user,
                     role=OrganizationMembership.Role.MEMBER,
                 )
+
+    def test_deleting_organization_owner_is_blocked(self):
+        organization = Organization.objects.create(
+            name="Owned Organization",
+        )
+        OrganizationMembership.objects.create(
+            organization=organization,
+            user=self.user,
+            role=OrganizationMembership.Role.OWNER,
+        )
+
+        with self.assertRaises(ProtectedError):
+            with transaction.atomic():
+                self.user.delete()
+
+        self.assertTrue(
+            User.objects.filter(pk=self.user.pk).exists()
+        )
+        self.assertTrue(
+            Organization.objects.filter(pk=organization.pk).exists()
+        )
+        self.assertTrue(
+            OrganizationMembership.objects.filter(
+                organization=organization,
+                user=self.user,
+                role=OrganizationMembership.Role.OWNER,
+            ).exists()
+        )
+
+    def test_deleting_non_owner_user_preserves_organization_owner(self):
+        organization = Organization.objects.create(
+            name="Shared Organization",
+        )
+        OrganizationMembership.objects.create(
+            organization=organization,
+            user=self.user,
+            role=OrganizationMembership.Role.OWNER,
+        )
+
+        member = User.objects.create_user(
+            email="member-to-delete@example.com",
+            password="Strong-password-2026!",
+        )
+        OrganizationMembership.objects.create(
+            organization=organization,
+            user=member,
+            role=OrganizationMembership.Role.MEMBER,
+        )
+
+        member_id = member.pk
+        member.delete()
+
+        self.assertFalse(
+            User.objects.filter(pk=member.pk).exists()
+        )
+        self.assertTrue(
+            Organization.objects.filter(pk=organization.pk).exists()
+        )
+        self.assertTrue(
+            OrganizationMembership.objects.filter(
+                organization=organization,
+                user=self.user,
+                role=OrganizationMembership.Role.OWNER,
+            ).exists()
+        )
+        self.assertFalse(
+            OrganizationMembership.objects.filter(
+                organization=organization,
+                user_id=member_id,
+            ).exists()
+        )
 
 
 class OrganizationAPITests(APITestCase):
