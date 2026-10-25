@@ -36,6 +36,7 @@ from .serializers import (
     OrganizationMembershipRoleUpdateSerializer,
     OrganizationOwnershipTransferSerializer,
 )
+from organizations.access import get_membership_or_404
 
 
 @extend_schema_view(
@@ -198,31 +199,20 @@ class OrganizationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def partial_update(self, request, *args, **kwargs):
         with transaction.atomic():
-            organization = get_object_or_404(
-                Organization.objects.select_for_update(),
+            membership = get_membership_or_404(
                 slug=kwargs["slug"],
+                user=request.user,
+                roles={
+                    OrganizationMembership.Role.OWNER,
+                    OrganizationMembership.Role.ADMIN,
+                },
+                for_update=True,
+                permission_message=(
+                    "Only organization owners and admins can update "
+                    "the organization."
+                ),
             )
-
-            membership = (
-                OrganizationMembership.objects
-                .select_for_update()
-                .filter(
-                    organization=organization,
-                    user=request.user,
-                )
-                .first()
-            )
-
-            if membership is None:
-                raise NotFound("Organization not found.")
-
-            if membership.role not in {
-                OrganizationMembership.Role.OWNER,
-                OrganizationMembership.Role.ADMIN,
-            }:
-                raise PermissionDenied(
-                    "Only organization owners and admins can update the organization."
-                )
+            organization = membership.organization
 
             serializer = self.get_serializer(
                 organization,
@@ -236,31 +226,18 @@ class OrganizationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_destroy(self, instance):
         with transaction.atomic():
-            organization = (
-                Organization.objects
-                .select_for_update()
-                .get(pk=instance.pk)
+            membership = get_membership_or_404(
+                slug=instance.slug,
+                user=self.request.user,
+                roles={OrganizationMembership.Role.OWNER},
+                for_update=True,
+                permission_message=(
+                    "Only the organization owner can delete "
+                    "the organization."
+                ),
             )
 
-            membership = (
-                OrganizationMembership.objects
-                .select_for_update()
-                .filter(
-                    organization=organization,
-                    user=self.request.user,
-                )
-                .first()
-            )
-
-            if membership is None:
-                raise NotFound("Organization not found.")
-
-            if membership.role != OrganizationMembership.Role.OWNER:
-                raise PermissionDenied(
-                    "Only the organization owner can delete the organization."
-                )
-
-            organization.delete()
+            membership.organization.delete()
 
         return None
 
@@ -274,25 +251,16 @@ class OrganizationInvitationAccessMixin:
     permission_classes = [permissions.IsAuthenticated]
 
     def get_organization_and_membership(self):
-        organization = get_object_or_404(
-            Organization.objects.filter(
-                memberships__user=self.request.user,
-            ).distinct(),
+        membership = get_membership_or_404(
             slug=self.kwargs["slug"],
-        )
-
-        membership = get_object_or_404(
-            OrganizationMembership,
-            organization=organization,
             user=self.request.user,
+            roles=INVITATION_MANAGEMENT_ROLES,
+            permission_message=(
+                "Only organization owners and admins can manage invitations."
+            ),
         )
 
-        if membership.role not in INVITATION_MANAGEMENT_ROLES:
-            raise PermissionDenied(
-                "Only organization owners and admins can manage invitations."
-            )
-
-        return organization, membership
+        return membership.organization, membership
 
 
 @extend_schema_view(
@@ -504,6 +472,7 @@ class OrganizationInvitationResendView(
     OrganizationInvitationAccessMixin,
     APIView,
 ):
+    serializer_class = OrganizationInvitationSerializer
     throttle_scope = "organization_invitation"
 
     def get_throttles(self):
@@ -603,20 +572,12 @@ class OrganizationMemberListView(
     serializer_class = OrganizationMembershipSerializer
 
     def get_organization_and_membership(self):
-        organization = get_object_or_404(
-            Organization.objects.filter(
-                memberships__user=self.request.user,
-            ).distinct(),
+        membership = get_membership_or_404(
             slug=self.kwargs["slug"],
-        )
-
-        membership = get_object_or_404(
-            OrganizationMembership,
-            organization=organization,
             user=self.request.user,
         )
 
-        return organization, membership
+        return membership.organization, membership
 
     def get_queryset(self):
         organization, _ = self.get_organization_and_membership()
@@ -670,22 +631,16 @@ class OrganizationMemberRoleUpdateView(APIView):
 
     def patch(self, request, slug, membership_id):
         with transaction.atomic():
-            organization = get_object_or_404(
-                Organization.objects.select_for_update(),
+            actor_membership = get_membership_or_404(
                 slug=slug,
-                memberships__user=request.user,
-            )
-
-            actor_membership = get_object_or_404(
-                OrganizationMembership.objects.select_for_update(),
-                organization=organization,
                 user=request.user,
-            )
-
-            if actor_membership.role != OrganizationMembership.Role.OWNER:
-                raise PermissionDenied(
+                roles={OrganizationMembership.Role.OWNER},
+                for_update=True,
+                permission_message=(
                     "Only the organization owner can change member roles."
-                )
+                ),
+            )
+            organization = actor_membership.organization
 
             # Validate only after verifying the actor's permissions.
             serializer = OrganizationMembershipRoleUpdateSerializer(
@@ -761,25 +716,19 @@ class OrganizationMemberRemoveView(APIView):
 
     def delete(self, request, slug, membership_id):
         with transaction.atomic():
-            organization = get_object_or_404(
-                Organization.objects.select_for_update(),
+            actor_membership = get_membership_or_404(
                 slug=slug,
-                memberships__user=request.user,
-            )
-
-            actor_membership = get_object_or_404(
-                OrganizationMembership.objects.select_for_update(),
-                organization=organization,
                 user=request.user,
-            )
-
-            if actor_membership.role not in (
-                OrganizationMembership.Role.OWNER,
-                OrganizationMembership.Role.ADMIN,
-            ):
-                raise PermissionDenied(
+                roles={
+                    OrganizationMembership.Role.OWNER,
+                    OrganizationMembership.Role.ADMIN,
+                },
+                for_update=True,
+                permission_message=(
                     "Only organization owners and admins can remove members."
-                )
+                ),
+            )
+            organization = actor_membership.organization
 
             target_membership = get_object_or_404(
                 OrganizationMembership.objects.select_for_update(),
@@ -843,22 +792,16 @@ class OrganizationOwnershipTransferView(APIView):
 
     def post(self, request, slug):
         with transaction.atomic():
-            organization = get_object_or_404(
-                Organization.objects.select_for_update(),
+            actor_membership = get_membership_or_404(
                 slug=slug,
-                memberships__user=request.user,
-            )
-
-            actor_membership = get_object_or_404(
-                OrganizationMembership.objects.select_for_update(),
-                organization=organization,
                 user=request.user,
-            )
-
-            if actor_membership.role != OrganizationMembership.Role.OWNER:
-                raise PermissionDenied(
+                roles={OrganizationMembership.Role.OWNER},
+                for_update=True,
+                permission_message=(
                     "Only the organization owner can transfer ownership."
-                )
+                ),
+            )
+            organization = actor_membership.organization
 
             # Validate only after confirming that the requester is the owner.
             serializer = OrganizationOwnershipTransferSerializer(
@@ -929,28 +872,11 @@ class OrganizationLeaveView(APIView):
 
     def post(self, request, slug):
         with transaction.atomic():
-            organization = (
-                Organization.objects
-                .select_for_update()
-                .filter(slug=slug)
-                .first()
+            membership = get_membership_or_404(
+                slug=slug,
+                user=request.user,
+                for_update=True,
             )
-
-            if organization is None:
-                raise NotFound("Organization not found.")
-
-            membership = (
-                OrganizationMembership.objects
-                .select_for_update()
-                .filter(
-                    organization=organization,
-                    user=request.user,
-                )
-                .first()
-            )
-
-            if membership is None:
-                raise NotFound("Organization not found.")
 
             if membership.role == OrganizationMembership.Role.OWNER:
                 raise ValidationError({

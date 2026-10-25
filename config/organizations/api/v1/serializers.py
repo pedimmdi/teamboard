@@ -2,6 +2,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from drf_spectacular.utils import extend_schema_field
 
 from organizations.models import (
     Organization,
@@ -31,6 +32,12 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
+    @extend_schema_field(
+        serializers.ChoiceField(
+            choices=OrganizationMembership.Role.choices,
+            allow_null=True,
+        )
+    )
     def get_role(self, obj):
         request = self.context.get("request")
         if request is None or not request.user.is_authenticated:
@@ -108,6 +115,11 @@ class OrganizationInvitationSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
+    @extend_schema_field(
+        serializers.ChoiceField(
+            choices=OrganizationInvitation.Status.choices,
+        )
+    )
     def get_status(self, obj):
         if (
             obj.status == OrganizationInvitation.Status.PENDING
@@ -127,7 +139,7 @@ class OrganizationInvitationAcceptSerializer(serializers.Serializer):
 
 
 class OrganizationMembershipSerializer(serializers.ModelSerializer):
-    user_id = serializers.ReadOnlyField(source="user.pk")
+    user_id = serializers.IntegerField(source="user.pk", read_only=True)
     user_email = serializers.EmailField(
         source="user.email",
         read_only=True,
@@ -146,6 +158,7 @@ class OrganizationMembershipSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_current_user(self, obj):
         request = self.context.get("request")
         return (

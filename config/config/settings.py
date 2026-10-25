@@ -243,4 +243,15 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_DIST": "SIDECAR",
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
+    "ENUM_NAME_OVERRIDES": {
+        "OrganizationRoleEnum": [
+            ("owner", "Owner"),
+            ("admin", "Admin"),
+            ("member", "Member"),
+        ],
+        "OrganizationMembershipUpdateRoleEnum": [
+            ("admin", "Admin"),
+            ("member", "Member"),
+        ],
+    },
 }
