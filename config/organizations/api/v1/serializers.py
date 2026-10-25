@@ -11,12 +11,15 @@ from organizations.models import (
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+    
     class Meta:
         model = Organization
         fields = (
             "id",
             "name",
             "slug",
+            "role",
             "created_at",
             "updated_at",
         )
@@ -25,6 +28,22 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "slug",
             "created_at",
             "updated_at",
+        )
+
+    def get_role(self, obj):
+        request = self.context.get("request")
+        if request is None or not request.user.is_authenticated:
+            return None
+
+        memberships = getattr(obj, "current_user_memberships", None)
+        if memberships is not None:
+            return memberships[0].role if memberships else None
+
+        return (
+            OrganizationMembership.objects
+            .filter(organization=obj, user=request.user)
+            .values_list("role", flat=True)
+            .first()
         )
 
     def create(self, validated_data):
@@ -97,20 +116,32 @@ class OrganizationInvitationAcceptSerializer(serializers.Serializer):
 
 
 class OrganizationMembershipSerializer(serializers.ModelSerializer):
+    user_id = serializers.ReadOnlyField(source="user.pk")
     user_email = serializers.EmailField(
         source="user.email",
         read_only=True,
     )
+    is_current_user = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationMembership
         fields = (
             "id",
+            "user_id",
             "user_email",
             "role",
+            "is_current_user",
             "joined_at",
         )
         read_only_fields = fields
+
+    def get_is_current_user(self, obj):
+        request = self.context.get("request")
+        return (
+            request is not None
+            and request.user.is_authenticated
+            and obj.user_id == request.user.pk
+        )
 
 
 class OrganizationMembershipRoleUpdateSerializer(

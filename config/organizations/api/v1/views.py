@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -65,9 +66,20 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        current_user_memberships = OrganizationMembership.objects.filter(
+            user=self.request.user,
+        )
+
         return (
             Organization.objects.filter(
                 memberships__user=self.request.user,
+            )
+            .prefetch_related(
+                Prefetch(
+                    "memberships",
+                    queryset=current_user_memberships,
+                    to_attr="current_user_memberships",
+                )
             )
             .order_by("name")
             .distinct()
@@ -158,9 +170,23 @@ class OrganizationDetailView(generics.RetrieveUpdateDestroyAPIView):
     http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        return Organization.objects.filter(
-            memberships__user=self.request.user,
-        ).distinct()
+        current_user_memberships = OrganizationMembership.objects.filter(
+            user=self.request.user,
+        )
+
+        return (
+            Organization.objects.filter(
+                memberships__user=self.request.user,
+            )
+            .prefetch_related(
+                Prefetch(
+                    "memberships",
+                    queryset=current_user_memberships,
+                    to_attr="current_user_memberships",
+                )
+            )
+            .distinct()
+        )
 
     def partial_update(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -616,7 +642,10 @@ class OrganizationMemberRoleUpdateView(APIView):
             target_membership.save(update_fields=["role"])
 
         return Response(
-            OrganizationMembershipSerializer(target_membership).data,
+            OrganizationMembershipSerializer(
+                target_membership,
+                context={"request": request},
+            ).data,
             status=status.HTTP_200_OK,
         )
 

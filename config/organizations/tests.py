@@ -108,7 +108,10 @@ class OrganizationAPITests(APITestCase):
 
         self.assertEqual(membership.role, OrganizationMembership.Role.OWNER)
         self.assertEqual(len(organization.slug), 10)
-        self.assertNotIn("role", response.data)
+        self.assertEqual(
+            response.data["role"],
+            OrganizationMembership.Role.OWNER,
+        )
 
     def test_creation_does_not_allow_client_to_choose_slug_or_role(self):
         self.authenticate(self.owner)
@@ -189,6 +192,10 @@ class OrganizationAPITests(APITestCase):
             response.data[0]["name"],
             "Owner Organization",
         )
+        self.assertEqual(
+            response.data[0]["role"],
+            OrganizationMembership.Role.OWNER,
+        )
 
     def test_non_member_cannot_retrieve_organization(self):
         create_response = self.create_organization(self.owner)
@@ -221,6 +228,10 @@ class OrganizationAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["slug"], slug)
+        self.assertEqual(
+            response.data["role"],
+            OrganizationMembership.Role.MEMBER,
+        )
 
     def test_creation_rejects_blank_name(self):
         self.authenticate(self.owner)
@@ -517,6 +528,30 @@ class OrganizationManagementAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 4)
+
+        current_user_rows = [
+            row for row in response.data
+            if row["is_current_user"]
+        ]
+        self.assertEqual(len(current_user_rows), 1)
+
+        current_user_row = current_user_rows[0]
+        self.assertEqual(
+            current_user_row["user_id"],
+            self.member.pk,
+        )
+        self.assertEqual(
+            current_user_row["user_email"],
+            self.member.email,
+        )
+        self.assertEqual(
+            current_user_row["role"],
+            OrganizationMembership.Role.MEMBER,
+        )
+
+        self.assertTrue(
+            all("user_id" in row for row in response.data)
+        )
 
     def test_outsider_cannot_view_member_list(self):
         self.authenticate(self.outsider)
