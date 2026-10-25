@@ -8,6 +8,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+)
+
 from organizations.models import (
     Organization,
     OrganizationInvitation,
@@ -28,6 +35,31 @@ from .serializers import (
 )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Organizations"],
+        summary="List organizations",
+        description=(
+            "Returns all organizations that the authenticated user "
+            "is a member of."
+        ),
+        responses={
+            200: OrganizationSerializer(many=True),
+        },
+    ),
+    post=extend_schema(
+        tags=["Organizations"],
+        summary="Create organization",
+        description=(
+            "Creates a new organization. The authenticated user "
+            "automatically becomes the organization owner."
+        ),
+        request=OrganizationSerializer,
+        responses={
+            201: OrganizationSerializer,
+        },
+    ),
+)
 class OrganizationListCreateView(generics.ListCreateAPIView):
     serializer_class = OrganizationSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -42,6 +74,84 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Organizations"],
+        summary="Retrieve organization",
+        description=(
+            "Returns the details of an organization that the "
+            "authenticated user belongs to."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="slug",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The unique slug of the organization.",
+            ),
+        ],
+        responses={
+            200: OrganizationSerializer,
+            404: OpenApiResponse(
+                description="Organization not found.",
+            ),
+        },
+    ),
+    patch=extend_schema(
+        tags=["Organizations"],
+        summary="Update organization",
+        description=(
+            "Updates an organization's editable fields. "
+            "Only organization owners and admins can perform this operation."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="slug",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The unique slug of the organization.",
+            ),
+        ],
+        request=OrganizationSerializer,
+        responses={
+            200: OrganizationSerializer,
+            403: OpenApiResponse(
+                description="The authenticated user does not have permission to update the organization.",
+            ),
+            404: OpenApiResponse(
+                description="Organization not found.",
+            ),
+        },
+    ),
+    delete=extend_schema(
+        tags=["Organizations"],
+        summary="Delete organization",
+        description=(
+            "Permanently deletes the organization and its related "
+            "memberships and invitations. Only the organization owner "
+            "can perform this operation."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="slug",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The unique slug of the organization.",
+            ),
+        ],
+        responses={
+            204: OpenApiResponse(
+                description="Organization deleted successfully.",
+            ),
+            403: OpenApiResponse(
+                description="Only the organization owner can delete the organization.",
+            ),
+            404: OpenApiResponse(
+                description="Organization not found.",
+            ),
+        },
+    ),
+)
 class OrganizationDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = OrganizationSerializer
     lookup_field = "slug"
@@ -152,6 +262,56 @@ class OrganizationInvitationAccessMixin:
         return organization, membership
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Organizations - Invitations"],
+        summary="List organization invitations",
+        description=(
+            "Returns invitations for an organization. "
+            "Only organization owners and admins can manage invitations."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="slug",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The unique slug of the organization.",
+            ),
+        ],
+        responses={
+            200: OrganizationInvitationSerializer(many=True),
+        },
+    ),
+    post=extend_schema(
+        tags=["Organizations - Invitations"],
+        summary="Create organization invitation",
+        description=(
+            "Creates an invitation for an email address. "
+            "Only organization owners and admins can invite users."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="slug",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The unique slug of the organization.",
+            ),
+        ],
+        request=OrganizationInvitationCreateSerializer,
+        responses={
+            201: OrganizationInvitationSerializer,
+            400: OpenApiResponse(
+                description="Invalid email, existing member, or active invitation.",
+            ),
+            403: OpenApiResponse(
+                description="The authenticated user cannot manage invitations.",
+            ),
+            404: OpenApiResponse(
+                description="Organization not found.",
+            ),
+        },
+    ),
+)
 class OrganizationInvitationListCreateView(
     OrganizationInvitationAccessMixin,
     generics.ListCreateAPIView,
@@ -194,6 +354,44 @@ class OrganizationInvitationListCreateView(
         )
 
 
+@extend_schema_view(
+    delete=extend_schema(
+        tags=["Organizations - Invitations"],
+        summary="Revoke organization invitation",
+        description=(
+            "Revokes a pending invitation. "
+            "Only organization owners and admins can revoke invitations."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="slug",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The unique slug of the organization.",
+            ),
+            OpenApiParameter(
+                name="invitation_id",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The UUID of the invitation.",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="Invitation revoked successfully.",
+            ),
+            400: OpenApiResponse(
+                description="The invitation is not pending or has already expired.",
+            ),
+            403: OpenApiResponse(
+                description="The authenticated user cannot manage invitations.",
+            ),
+            404: OpenApiResponse(
+                description="Organization or invitation not found.",
+            ),
+        },
+    ),
+)
 class OrganizationInvitationRevokeView(
     OrganizationInvitationAccessMixin,
     APIView,
@@ -234,6 +432,27 @@ class OrganizationInvitationRevokeView(
         )
 
 
+@extend_schema(
+    tags=["Organizations - Invitations"],
+    summary="Accept organization invitation",
+    description=(
+        "Accepts an organization invitation using its token and adds "
+        "the authenticated user as a member of the organization."
+    ),
+    request=OrganizationInvitationAcceptSerializer,
+    responses={
+        200: OpenApiResponse(
+            description="Invitation accepted successfully.",
+        ),
+        400: OpenApiResponse(
+            description="Invalid, expired, revoked, or otherwise unusable invitation.",
+        ),
+        401: OpenApiResponse(
+            description="Authentication is required.",
+        ),
+    },
+)
+
 class OrganizationInvitationAcceptView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -262,6 +481,27 @@ class OrganizationInvitationAcceptView(APIView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Organizations - Members"],
+        summary="List organization members",
+        description=(
+            "Returns all members of the organization. "
+            "Any authenticated member of the organization can view the list."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="slug",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The unique slug of the organization.",
+            ),
+        ],
+        responses={
+            200: OrganizationMembershipSerializer(many=True),
+        },
+    ),
+)
 class OrganizationMemberListView(
     OrganizationInvitationAccessMixin,
     generics.ListAPIView,
@@ -295,6 +535,42 @@ class OrganizationMemberListView(
         )
 
 
+@extend_schema(
+    tags=["Organizations - Members"],
+    summary="Update member role",
+    description=(
+        "Changes an organization's member role between admin and member. "
+        "Only the organization owner can change member roles. "
+        "The owner's role cannot be changed through this endpoint."
+    ),
+    parameters=[
+        OpenApiParameter(
+            name="slug",
+            type=str,
+            location=OpenApiParameter.PATH,
+            description="The unique slug of the organization.",
+        ),
+        OpenApiParameter(
+            name="membership_id",
+            type=str,
+            location=OpenApiParameter.PATH,
+            description="The UUID of the membership.",
+        ),
+    ],
+    request=OrganizationMembershipRoleUpdateSerializer,
+    responses={
+        200: OrganizationMembershipSerializer,
+        400: OpenApiResponse(
+            description="Invalid role or attempt to change the owner's role.",
+        ),
+        403: OpenApiResponse(
+            description="Only the organization owner can change member roles.",
+        ),
+        404: OpenApiResponse(
+            description="Organization or membership not found.",
+        ),
+    },
+)
 class OrganizationMemberRoleUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -346,6 +622,43 @@ class OrganizationMemberRoleUpdateView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Organizations - Members"],
+    summary="Remove organization member",
+    description=(
+        "Removes a member from the organization without deleting "
+        "the user's account. Owners can remove admins and members; "
+        "admins can remove members only."
+    ),
+    parameters=[
+        OpenApiParameter(
+            name="slug",
+            type=str,
+            location=OpenApiParameter.PATH,
+            description="The unique slug of the organization.",
+        ),
+        OpenApiParameter(
+            name="membership_id",
+            type=str,
+            location=OpenApiParameter.PATH,
+            description="The UUID of the membership to remove.",
+        ),
+    ],
+    responses={
+        204: OpenApiResponse(
+            description="Member removed successfully.",
+        ),
+        400: OpenApiResponse(
+            description="The organization owner cannot be removed.",
+        ),
+        403: OpenApiResponse(
+            description="The authenticated user does not have permission to remove this member.",
+        ),
+        404: OpenApiResponse(
+            description="Organization or membership not found.",
+        ),
+    },
+)
 class OrganizationMemberRemoveView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -398,6 +711,36 @@ class OrganizationMemberRemoveView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@extend_schema(
+    tags=["Organizations - Members"],
+    summary="Transfer organization ownership",
+    description=(
+        "Transfers organization ownership to another member. "
+        "The current owner becomes an admin and the selected member "
+        "becomes the new owner."
+    ),
+    parameters=[
+        OpenApiParameter(
+            name="slug",
+            type=str,
+            location=OpenApiParameter.PATH,
+            description="The unique slug of the organization.",
+        ),
+    ],
+    request=OrganizationOwnershipTransferSerializer,
+    responses={
+        200: OrganizationMembershipSerializer,
+        400: OpenApiResponse(
+            description="Invalid membership or ownership transfer request.",
+        ),
+        403: OpenApiResponse(
+            description="Only the organization owner can transfer ownership.",
+        ),
+        404: OpenApiResponse(
+            description="Organization or target membership not found.",
+        ),
+    },
+)
 class OrganizationOwnershipTransferView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -452,6 +795,35 @@ class OrganizationOwnershipTransferView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Organizations - Members"],
+    summary="Leave organization",
+    description=(
+        "Removes the authenticated user's membership from the organization. "
+        "Organization owners cannot leave directly; they must transfer "
+        "ownership or delete the organization."
+    ),
+    request=None,
+    parameters=[
+        OpenApiParameter(
+            name="slug",
+            type=str,
+            location=OpenApiParameter.PATH,
+            description="The unique slug of the organization.",
+        ),
+    ],
+    responses={
+        204: OpenApiResponse(
+            description="Successfully left the organization.",
+        ),
+        400: OpenApiResponse(
+            description="Organization owners cannot leave the organization.",
+        ),
+        404: OpenApiResponse(
+            description="Organization or membership not found.",
+        ),
+    },
+)
 class OrganizationLeaveView(APIView):
     permission_classes = [IsAuthenticated]
 

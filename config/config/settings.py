@@ -222,8 +222,10 @@ CORS_ALLOW_CREDENTIALS = True
 SPECTACULAR_SETTINGS = {
     "TITLE": "TeamBoard API",
     "DESCRIPTION": (
-        "REST API documentation for TeamBoard, "
-        "including account management and authentication."
+        "REST API documentation for TeamBoard. "
+        "The API provides authentication, account management, "
+        "organization management, membership management, and "
+        "organization invitation workflows."
     ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,

@@ -2,8 +2,9 @@ openapi: 3.0.3
 info:
   title: TeamBoard API
   version: 1.0.0
-  description: REST API documentation for TeamBoard, including account management
-    and authentication.
+  description: REST API documentation for TeamBoard. The API provides authentication,
+    account management, organization management, membership management, and organization
+    invitation workflows.
 paths:
   /api/v1/accounts/email/resend/:
     post:
@@ -107,18 +108,6 @@ paths:
       summary: Log out
       tags:
       - v1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Logout'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Logout'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Logout'
-        required: true
       security:
       - BearerAuth: []
       responses:
@@ -389,6 +378,443 @@ paths:
           description: The current token is not associated with a session.
         '401':
           description: Authentication credentials are missing or invalid.
+  /api/v1/organizations/:
+    get:
+      operationId: v1_organizations_list
+      description: Returns all organizations that the authenticated user is a member
+        of.
+      summary: List organizations
+      tags:
+      - Organizations
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organization'
+          description: ''
+    post:
+      operationId: v1_organizations_create
+      description: Creates a new organization. The authenticated user automatically
+        becomes the organization owner.
+      summary: Create organization
+      tags:
+      - Organizations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Organization'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Organization'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Organization'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+          description: ''
+  /api/v1/organizations/{slug}/:
+    get:
+      operationId: v1_organizations_retrieve
+      description: Returns the details of an organization that the authenticated user
+        belongs to.
+      summary: Retrieve organization
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+          description: ''
+        '404':
+          description: Organization not found.
+    patch:
+      operationId: v1_organizations_partial_update
+      description: Updates an organization's editable fields. Only organization owners
+        and admins can perform this operation.
+      summary: Update organization
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganization'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganization'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganization'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+          description: ''
+        '403':
+          description: The authenticated user does not have permission to update the
+            organization.
+        '404':
+          description: Organization not found.
+    delete:
+      operationId: v1_organizations_destroy
+      description: Permanently deletes the organization and its related memberships
+        and invitations. Only the organization owner can perform this operation.
+      summary: Delete organization
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Organization deleted successfully.
+        '403':
+          description: Only the organization owner can delete the organization.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{slug}/invitations/:
+    get:
+      operationId: v1_organizations_invitations_list
+      description: Returns invitations for an organization. Only organization owners
+        and admins can manage invitations.
+      summary: List organization invitations
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations - Invitations
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationInvitation'
+          description: ''
+    post:
+      operationId: v1_organizations_invitations_create
+      description: Creates an invitation for an email address. Only organization owners
+        and admins can invite users.
+      summary: Create organization invitation
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations - Invitations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationInvitationCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrganizationInvitationCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrganizationInvitationCreate'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationInvitation'
+          description: ''
+        '400':
+          description: Invalid email, existing member, or active invitation.
+        '403':
+          description: The authenticated user cannot manage invitations.
+        '404':
+          description: Organization not found.
+  /api/v1/organizations/{slug}/invitations/{invitation_id}/:
+    delete:
+      operationId: v1_organizations_invitations_destroy
+      description: Revokes a pending invitation. Only organization owners and admins
+        can revoke invitations.
+      summary: Revoke organization invitation
+      parameters:
+      - in: path
+        name: invitation_id
+        schema:
+          type: string
+        description: The UUID of the invitation.
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations - Invitations
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Invitation revoked successfully.
+        '400':
+          description: The invitation is not pending or has already expired.
+        '403':
+          description: The authenticated user cannot manage invitations.
+        '404':
+          description: Organization or invitation not found.
+  /api/v1/organizations/{slug}/leave/:
+    post:
+      operationId: v1_organizations_leave_create
+      description: Removes the authenticated user's membership from the organization.
+        Organization owners cannot leave directly; they must transfer ownership or
+        delete the organization.
+      summary: Leave organization
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations - Members
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Successfully left the organization.
+        '400':
+          description: Organization owners cannot leave the organization.
+        '404':
+          description: Organization or membership not found.
+  /api/v1/organizations/{slug}/members/:
+    get:
+      operationId: v1_organizations_members_list
+      description: Returns all members of the organization. Any authenticated member
+        of the organization can view the list.
+      summary: List organization members
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations - Members
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationMembership'
+          description: ''
+  /api/v1/organizations/{slug}/members/{membership_id}/:
+    delete:
+      operationId: v1_organizations_members_destroy
+      description: Removes a member from the organization without deleting the user's
+        account. Owners can remove admins and members; admins can remove members only.
+      summary: Remove organization member
+      parameters:
+      - in: path
+        name: membership_id
+        schema:
+          type: string
+        description: The UUID of the membership to remove.
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations - Members
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Member removed successfully.
+        '400':
+          description: The organization owner cannot be removed.
+        '403':
+          description: The authenticated user does not have permission to remove this
+            member.
+        '404':
+          description: Organization or membership not found.
+  /api/v1/organizations/{slug}/members/{membership_id}/role/:
+    patch:
+      operationId: v1_organizations_members_role_partial_update
+      description: Changes an organization's member role between admin and member.
+        Only the organization owner can change member roles. The owner's role cannot
+        be changed through this endpoint.
+      summary: Update member role
+      parameters:
+      - in: path
+        name: membership_id
+        schema:
+          type: string
+        description: The UUID of the membership.
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations - Members
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationMembershipRoleUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationMembershipRoleUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationMembershipRoleUpdate'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationMembership'
+          description: ''
+        '400':
+          description: Invalid role or attempt to change the owner's role.
+        '403':
+          description: Only the organization owner can change member roles.
+        '404':
+          description: Organization or membership not found.
+  /api/v1/organizations/{slug}/transfer-ownership/:
+    post:
+      operationId: v1_organizations_transfer_ownership_create
+      description: Transfers organization ownership to another member. The current
+        owner becomes an admin and the selected member becomes the new owner.
+      summary: Transfer organization ownership
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the organization.
+        required: true
+      tags:
+      - Organizations - Members
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationOwnershipTransfer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrganizationOwnershipTransfer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrganizationOwnershipTransfer'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationMembership'
+          description: ''
+        '400':
+          description: Invalid membership or ownership transfer request.
+        '403':
+          description: Only the organization owner can transfer ownership.
+        '404':
+          description: Organization or target membership not found.
+  /api/v1/organizations/invitations/accept/:
+    post:
+      operationId: v1_organizations_invitations_accept_create
+      description: Accepts an organization invitation using its token and adds the
+        authenticated user as a member of the organization.
+      summary: Accept organization invitation
+      tags:
+      - Organizations - Invitations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationInvitationAccept'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrganizationInvitationAccept'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrganizationInvitationAccept'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Invitation accepted successfully.
+        '400':
+          description: Invalid, expired, revoked, or otherwise unusable invitation.
+        '401':
+          description: Authentication is required.
 components:
   schemas:
     ChangePassword:
@@ -461,14 +887,6 @@ components:
       required:
       - email
       - password
-    Logout:
-      type: object
-      properties:
-        refresh:
-          type: string
-          writeOnly: true
-      required:
-      - refresh
     LogoutResponse:
       type: object
       properties:
@@ -476,6 +894,148 @@ components:
           type: string
       required:
       - detail
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        slug:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - slug
+      - updated_at
+    OrganizationInvitation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        invited_by_email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - accepted_at
+      - created_at
+      - email
+      - expires_at
+      - id
+      - invited_by_email
+      - revoked_at
+      - status
+    OrganizationInvitationAccept:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          maxLength: 200
+      required:
+      - token
+    OrganizationInvitationCreate:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+      required:
+      - email
+    OrganizationMembership:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        user_email:
+          type: string
+          format: email
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/OrganizationMembershipRoleEnum'
+          readOnly: true
+        joined_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - joined_at
+      - role
+      - user_email
+    OrganizationMembershipRoleEnum:
+      enum:
+      - owner
+      - admin
+      - member
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `admin` - Admin
+        * `member` - Member
+    OrganizationMembershipRoleUpdateRoleEnum:
+      enum:
+      - admin
+      - member
+      type: string
+      description: |-
+        * `admin` - admin
+        * `member` - member
+    OrganizationOwnershipTransfer:
+      type: object
+      properties:
+        membership_id:
+          type: string
+          format: uuid
+      required:
+      - membership_id
     PasswordResetConfirm:
       type: object
       properties:
@@ -539,6 +1099,32 @@ components:
         is_email_verified:
           type: boolean
           readOnly: true
+    PatchedOrganization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        slug:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedOrganizationMembershipRoleUpdate:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/OrganizationMembershipRoleUpdateRoleEnum'
     Register:
       type: object
       properties:
@@ -599,6 +1185,18 @@ components:
           type: string
       required:
       - detail
+    StatusEnum:
+      enum:
+      - pending
+      - accepted
+      - revoked
+      - expired
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `accepted` - Accepted
+        * `revoked` - Revoked
+        * `expired` - Expired
     UserSession:
       type: object
       properties:
