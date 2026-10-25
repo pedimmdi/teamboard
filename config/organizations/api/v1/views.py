@@ -164,10 +164,9 @@ class OrganizationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def partial_update(self, request, *args, **kwargs):
         with transaction.atomic():
-            organization = (
-                Organization.objects
-                .select_for_update()
-                .get(slug=kwargs["slug"])
+            organization = get_object_or_404(
+                Organization.objects.select_for_update(),
+                slug=kwargs["slug"],
             )
 
             membership = (

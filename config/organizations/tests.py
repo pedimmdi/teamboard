@@ -332,6 +332,20 @@ class OrganizationManagementAPITests(APITestCase):
         self.organization.refresh_from_db()
         self.assertEqual(self.organization.name, "Updated Team")
 
+    def test_patch_nonexistent_organization_returns_404(self):
+        self.authenticate(self.owner)
+
+        response = self.client.patch(
+            f"{self.list_url}missing-org-slug/",
+            {"name": "Updated Team"},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
     def test_admin_can_update_organization_name(self):
         self.authenticate(self.admin)
 
