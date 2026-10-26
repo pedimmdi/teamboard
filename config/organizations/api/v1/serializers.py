@@ -181,3 +181,24 @@ class OrganizationMembershipRoleUpdateSerializer(
 
 class OrganizationOwnershipTransferSerializer(serializers.Serializer):
     membership_id = serializers.UUIDField()
+
+
+class PaginatedOrganizationSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = OrganizationSerializer(many=True)
+
+
+class PaginatedOrganizationMembershipSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = OrganizationMembershipSerializer(many=True)
+
+
+class PaginatedOrganizationInvitationSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = OrganizationInvitationSerializer(many=True)

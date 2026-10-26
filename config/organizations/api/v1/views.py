@@ -16,7 +16,6 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-
 from organizations.models import (
     Organization,
     OrganizationInvitation,
@@ -35,8 +34,12 @@ from .serializers import (
     OrganizationMembershipSerializer,
     OrganizationMembershipRoleUpdateSerializer,
     OrganizationOwnershipTransferSerializer,
+    PaginatedOrganizationSerializer,
+    PaginatedOrganizationMembershipSerializer,
+    PaginatedOrganizationInvitationSerializer,
 )
 from organizations.access import get_membership_or_404
+from .pagination import OrganizationPageNumberPagination
 
 
 @extend_schema_view(
@@ -48,7 +51,7 @@ from organizations.access import get_membership_or_404
             "is a member of."
         ),
         responses={
-            200: OrganizationSerializer(many=True),
+            200: PaginatedOrganizationSerializer
         },
     ),
     post=extend_schema(
@@ -67,6 +70,7 @@ from organizations.access import get_membership_or_404
 class OrganizationListCreateView(generics.ListCreateAPIView):
     serializer_class = OrganizationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = OrganizationPageNumberPagination
     throttle_scope = "organization_create"
 
     def get_throttles(self):
@@ -90,7 +94,7 @@ class OrganizationListCreateView(generics.ListCreateAPIView):
                     to_attr="current_user_memberships",
                 )
             )
-            .order_by("name")
+            .order_by("name", "pk")
             .distinct()
         )
 
@@ -280,7 +284,7 @@ class OrganizationInvitationAccessMixin:
             ),
         ],
         responses={
-            200: OrganizationInvitationSerializer(many=True),
+            200: PaginatedOrganizationInvitationSerializer,
         },
     ),
     post=extend_schema(
@@ -317,6 +321,7 @@ class OrganizationInvitationListCreateView(
     OrganizationInvitationAccessMixin,
     generics.ListCreateAPIView,
 ):
+    pagination_class = OrganizationPageNumberPagination
     throttle_scope = "organization_invitation"
 
     def get_throttles(self):
@@ -327,9 +332,12 @@ class OrganizationInvitationListCreateView(
     def get_queryset(self):
         organization, _ = self.get_organization_and_membership()
 
-        return OrganizationInvitation.objects.filter(
-            organization=organization,
-        ).select_related("invited_by", "organization")
+        return (
+            OrganizationInvitation.objects
+            .filter(organization=organization)
+            .select_related("invited_by", "organization")
+            .order_by("-created_at", "-pk")
+        )
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -561,7 +569,7 @@ class OrganizationInvitationAcceptView(APIView):
             ),
         ],
         responses={
-            200: OrganizationMembershipSerializer(many=True),
+            200: PaginatedOrganizationMembershipSerializer,
         },
     ),
 )
@@ -570,6 +578,7 @@ class OrganizationMemberListView(
     generics.ListAPIView,
 ):
     serializer_class = OrganizationMembershipSerializer
+    pagination_class = OrganizationPageNumberPagination
 
     def get_organization_and_membership(self):
         membership = get_membership_or_404(
@@ -586,7 +595,7 @@ class OrganizationMemberListView(
             OrganizationMembership.objects
             .filter(organization=organization)
             .select_related("user")
-            .order_by("joined_at")
+            .order_by("joined_at", "pk")
         )
 
 

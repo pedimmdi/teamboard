@@ -260,13 +260,14 @@ class OrganizationAPITests(APITestCase):
         response = self.client.get(self.list_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(
-            response.data[0]["name"],
+            response.data["results"][0]["name"],
             "Owner Organization",
         )
         self.assertEqual(
-            response.data[0]["role"],
+            response.data["results"][0]["role"],
             OrganizationMembership.Role.OWNER,
         )
 
@@ -623,31 +624,26 @@ class OrganizationManagementAPITests(APITestCase):
         response = self.client.get(self.members_url())
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 4)
+
+        results = response.data["results"]
+
+        self.assertEqual(response.data["count"], 4)
+        self.assertEqual(len(results), 4)
 
         current_user_rows = [
-            row for row in response.data
+            row for row in results
             if row["is_current_user"]
         ]
         self.assertEqual(len(current_user_rows), 1)
 
         current_user_row = current_user_rows[0]
-        self.assertEqual(
-            current_user_row["user_id"],
-            self.member.pk,
-        )
-        self.assertEqual(
-            current_user_row["user_email"],
-            self.member.email,
-        )
+        self.assertEqual(current_user_row["user_id"], self.member.pk)
+        self.assertEqual(current_user_row["user_email"], self.member.email)
         self.assertEqual(
             current_user_row["role"],
             OrganizationMembership.Role.MEMBER,
         )
-
-        self.assertTrue(
-            all("user_id" in row for row in response.data)
-        )
+        self.assertTrue(all("user_id" in row for row in results))
 
     def test_outsider_cannot_view_member_list(self):
         self.authenticate(self.outsider)
@@ -1132,7 +1128,7 @@ class OrganizationManagementAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         serialized_invitation = next(
-            item for item in response.data
+            item for item in response.data["results"]
             if item["id"] == str(invitation.id)
         )
         self.assertEqual(serialized_invitation["status"], "expired")
@@ -1219,3 +1215,75 @@ class OrganizationManagementAPITests(APITestCase):
             response.status_code,
             status.HTTP_403_FORBIDDEN,
         )
+
+    def test_organization_list_supports_pagination(self):
+        for index in range(2):
+            organization = Organization.objects.create(
+                name=f"Pagination Org {index}",
+            )
+            OrganizationMembership.objects.create(
+                organization=organization,
+                user=self.owner,
+                role=OrganizationMembership.Role.OWNER,
+            )
+
+        self.authenticate(self.owner)
+        response = self.client.get(
+            f"{self.list_url}?page_size=2",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 3)
+        self.assertEqual(len(response.data["results"]), 2)
+        self.assertIsNotNone(response.data["next"])
+
+        second_page = self.client.get(
+            f"{self.list_url}?page=2&page_size=2",
+        )
+        self.assertEqual(second_page.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(second_page.data["results"]), 1)
+
+
+    def test_member_list_supports_pagination(self):
+        self.authenticate(self.member)
+        response = self.client.get(
+            f"{self.members_url()}?page_size=2",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 4)
+        self.assertEqual(len(response.data["results"]), 2)
+        self.assertIsNotNone(response.data["next"])
+
+        second_page = self.client.get(
+            f"{self.members_url()}?page=2&page_size=2",
+        )
+        self.assertEqual(second_page.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(second_page.data["results"]), 2)
+
+
+    def test_invitation_list_supports_pagination(self):
+        for index in range(3):
+            OrganizationInvitation.objects.create(
+                organization=self.organization,
+                email=f"page-{index}@example.com",
+                invited_by=self.owner,
+                token_hash=f"{index:064d}",
+                expires_at=timezone.now() + timedelta(days=7),
+            )
+
+        self.authenticate(self.owner)
+        response = self.client.get(
+            f"{self.invitations_url()}?page_size=2",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 3)
+        self.assertEqual(len(response.data["results"]), 2)
+        self.assertIsNotNone(response.data["next"])
+
+        second_page = self.client.get(
+            f"{self.invitations_url()}?page=2&page_size=2",
+        )
+        self.assertEqual(second_page.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(second_page.data["results"]), 1)
