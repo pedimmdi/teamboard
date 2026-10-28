@@ -507,7 +507,7 @@ export type OrganizationRole =
   | "member";
 
 export type Organization = {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   role: OrganizationRole | null;
@@ -535,6 +535,24 @@ export function getOrganizations(
     {
       method: "GET",
       token,
+    },
+  );
+}
+
+export type CreateOrganizationInput = {
+  name: string;
+};
+
+export function createOrganization(
+  token: string,
+  data: CreateOrganizationInput,
+) {
+  return apiFetch<Organization>(
+    "/api/v1/organizations/",
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(data),
     },
   );
 }

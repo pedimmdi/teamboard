@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CreateOrganizationModal from "./create-organization-modal";
 
 import {
   ApiError,
@@ -122,6 +123,9 @@ export default function OrganizationsPage() {
     null,
   );
 
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     if (!accessToken) {
       return;
@@ -172,7 +176,7 @@ export default function OrganizationsPage() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, page]);
+  }, [accessToken, page, reloadKey]);
 
   const startItem =
     count === 0 ? 0 : (page - 1) * organizations.length + 1;
@@ -200,8 +204,8 @@ export default function OrganizationsPage() {
           <button
             type="button"
             className={styles.primaryButton}
-            disabled
-            title="Organization creation will be added in the next stage."
+            onClick={() => setIsCreateOpen(true)}
+            disabled={!accessToken}
           >
             Create organization
           </button>
@@ -317,6 +321,18 @@ export default function OrganizationsPage() {
           </>
         )}
       </div>
+
+      {isCreateOpen && accessToken && (
+        <CreateOrganizationModal
+          accessToken={accessToken}
+          onClose={() => setIsCreateOpen(false)}
+          onCreated={() => {
+            setIsCreateOpen(false);
+            setPage(1);
+            setReloadKey((current) => current + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
