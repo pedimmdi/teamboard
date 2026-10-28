@@ -502,9 +502,9 @@ export function changePassword(
 }
 
 export type OrganizationRole =
-  | "OWNER"
-  | "ADMIN"
-  | "MEMBER";
+  | "owner"
+  | "admin"
+  | "member";
 
 export type Organization = {
   id: number;

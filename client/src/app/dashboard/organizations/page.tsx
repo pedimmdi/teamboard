@@ -42,7 +42,7 @@ function getRoleLabel(role: Organization["role"]) {
 function getRoleClassName(
   role: Organization["role"],
 ) {
-  switch (role) {
+  switch (role?.toUpperCase()) {
     case "OWNER":
       return styles.roleOwner;
 
