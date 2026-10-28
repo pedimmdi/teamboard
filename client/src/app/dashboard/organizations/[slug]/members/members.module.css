@@ -1,0 +1,218 @@
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.heading p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.count {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.card,
+.status {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.table th {
+  padding: 14px 20px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table td {
+  padding: 16px 20px;
+  border-top: 1px solid #f1f5f9;
+  color: #475569;
+}
+
+.memberCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.email {
+  color: #0f172a;
+  overflow-wrap: anywhere;
+}
+
+.you {
+  color: #64748b;
+}
+
+.role {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions button,
+.status button {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+  color: #0f172a;
+  font: inherit;
+  cursor: pointer;
+}
+
+.actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status {
+  padding: 24px;
+  color: #475569;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .footer {
+    flex-wrap: wrap;
+  }
+}
+
+.desktopTable {
+  display: block;
+  overflow: visible;
+}
+
+.mobileList {
+  display: none;
+}
+
+.table {
+  min-width: 440px;
+}
+
+
+.mobileMember {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mobileMember:last-child {
+  border-bottom: none;
+}
+
+.mobileMemberTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobileMemberInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mobileJoined {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.mobileMemberBottom {
+  margin-top: 12px;
+  padding-left: 38px;
+}
+
+@media (max-width: 768px) {
+  .desktopTable {
+    display: none;
+  }
+
+  .mobileList {
+    display: block;
+  }
+
+  .memberCell {
+    min-width: 0;
+  }
+
+  .email {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .footer {
+    padding: 14px 16px;
+  }
+}

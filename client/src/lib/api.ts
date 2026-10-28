@@ -569,3 +569,84 @@ export function createOrganization(
     },
   );
 }
+
+export type OrganizationMember = {
+  id: string;
+  user_id: number;
+  user_email: string;
+  role: OrganizationRole;
+  is_current_user: boolean;
+  joined_at: string;
+};
+
+export type PaginatedOrganizationMembers = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: OrganizationMember[];
+};
+
+export function getOrganizationMembers(
+  token: string,
+  slug: string,
+  page = 1,
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+  });
+
+  return apiFetch<PaginatedOrganizationMembers>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/members/?${params}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export function updateOrganizationMemberRole(
+  token: string,
+  slug: string,
+  membershipId: string,
+  role: "admin" | "member",
+) {
+  return apiFetch<OrganizationMember>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/members/${encodeURIComponent(membershipId)}/role/`,
+    {
+      method: "PATCH",
+      token,
+      body: JSON.stringify({ role }),
+    },
+  );
+}
+
+export function transferOrganizationOwnership(
+  token: string,
+  slug: string,
+  membershipId: string,
+) {
+  return apiFetch<OrganizationMember>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/transfer-ownership/`,
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify({
+        membership_id: membershipId,
+      }),
+    },
+  );
+}
+
+export function removeOrganizationMember(
+  token: string,
+  slug: string,
+  membershipId: string,
+) {
+  return apiFetch<null>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/members/${encodeURIComponent(membershipId)}/`,
+    {
+      method: "DELETE",
+      token,
+    },
+  );
+}
