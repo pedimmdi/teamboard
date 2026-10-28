@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import CreateOrganizationModal from "./create-organization-modal";
+import Link from "next/link";
 
 import {
   ApiError,
@@ -246,8 +247,11 @@ export default function OrganizationsPage() {
           <>
             <div className={styles.organizationList}>
               {organizations.map((organization) => (
-                <div
+                <Link
                   key={organization.id}
+                  href={`/dashboard/organizations/${encodeURIComponent(
+                    organization.slug,
+                  )}`}
                   className={styles.organizationCard}
                 >
                   <div className={styles.organizationIcon}>
@@ -283,7 +287,7 @@ export default function OrganizationsPage() {
                   >
                     <ChevronRightIcon />
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
 

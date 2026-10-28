@@ -539,6 +539,19 @@ export function getOrganizations(
   );
 }
 
+export function getOrganization(
+  token: string,
+  slug: string,
+) {
+  return apiFetch<Organization>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
 export type CreateOrganizationInput = {
   name: string;
 };
