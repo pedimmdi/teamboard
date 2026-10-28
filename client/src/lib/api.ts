@@ -500,3 +500,41 @@ export function changePassword(
     },
   );
 }
+
+export type OrganizationRole =
+  | "OWNER"
+  | "ADMIN"
+  | "MEMBER";
+
+export type Organization = {
+  id: number;
+  name: string;
+  slug: string;
+  role: OrganizationRole | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PaginatedOrganizations = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Organization[];
+};
+
+export function getOrganizations(
+  token: string,
+  page = 1,
+) {
+  const params = new URLSearchParams();
+
+  params.set("page", String(page));
+
+  return apiFetch<PaginatedOrganizations>(
+    `/api/v1/organizations/?${params.toString()}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}

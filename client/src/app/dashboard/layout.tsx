@@ -82,6 +82,37 @@ function MonitorIcon() {
   );
 }
 
+function OrganizationIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect
+        x="3"
+        y="3"
+        width="14"
+        height="14"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M7 17V8H13V17"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <path
+        d="M5.5 6H5.51M9.5 6H9.51M13.5 6H13.51"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function LogoutIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -150,6 +181,10 @@ export default function DashboardLayout({
 
   const initials = getInitials(user.first_name, user.last_name);
 
+  const isOrganizations =
+    pathname === "/dashboard/organizations" ||
+    pathname.startsWith("/dashboard/organizations/");
+
   const isProfile = pathname === "/dashboard";
   const isSecurity = pathname === "/dashboard/security";
   const isSessions = pathname === "/dashboard/sessions";
@@ -168,8 +203,21 @@ export default function DashboardLayout({
             <span>TeamBoard</span>
           </div>
 
-          <nav className={styles.navigation} aria-label="Account">
-            <div className={styles.sectionLabel}>ACCOUNT</div>
+          <nav className={styles.navigation} aria-label="Workspace">
+            <div className={styles.sectionLabel}>
+              WORKSPACE
+            </div>
+
+            <NavItem
+              href="/dashboard/organizations"
+              label="Organizations"
+              active={isOrganizations}
+              icon={<OrganizationIcon />}
+            />
+
+            <div className={styles.sectionLabel}>
+              ACCOUNT
+            </div>
 
             <NavItem
               href="/dashboard"
@@ -237,7 +285,17 @@ export default function DashboardLayout({
 
       <main className={styles.main}>{children}</main>
 
-      <nav className={styles.mobileTabBar} aria-label="Account">
+      <nav
+        className={styles.mobileTabBar}
+        aria-label="Dashboard"
+      >
+        <NavItem
+          href="/dashboard/organizations"
+          label="Organizations"
+          active={isOrganizations}
+          icon={<OrganizationIcon />}
+        />
+
         <NavItem
           href="/dashboard"
           label="Profile"
