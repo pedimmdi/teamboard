@@ -650,3 +650,89 @@ export function removeOrganizationMember(
     },
   );
 }
+
+
+export type OrganizationInvitationStatus =
+  | "pending"
+  | "accepted"
+  | "revoked"
+  | "expired";
+
+export type OrganizationInvitation = {
+  id: string;
+  email: string;
+  status: OrganizationInvitationStatus;
+  invited_by_email: string | null;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+};
+
+export type PaginatedOrganizationInvitations = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: OrganizationInvitation[];
+};
+
+export function getOrganizationInvitations(
+  token: string,
+  slug: string,
+  page = 1,
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+  });
+
+  return apiFetch<PaginatedOrganizationInvitations>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/invitations/?${params.toString()}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export function createOrganizationInvitation(
+  token: string,
+  slug: string,
+  email: string,
+) {
+  return apiFetch<OrganizationInvitation>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/invitations/`,
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify({ email }),
+    },
+  );
+}
+
+export function resendOrganizationInvitation(
+  token: string,
+  slug: string,
+  invitationId: string,
+) {
+  return apiFetch<OrganizationInvitation>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/invitations/${encodeURIComponent(invitationId)}/resend/`,
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
+export function revokeOrganizationInvitation(
+  token: string,
+  slug: string,
+  invitationId: string,
+) {
+  return apiFetch<{ detail: string }>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/invitations/${encodeURIComponent(invitationId)}/`,
+    {
+      method: "DELETE",
+      token,
+    },
+  );
+}

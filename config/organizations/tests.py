@@ -1,8 +1,9 @@
 from datetime import timedelta
 from urllib.parse import parse_qs, urlparse
-
+from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
@@ -11,6 +12,7 @@ from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework.throttling import ScopedRateThrottle
 
 from organizations.models import (
     Organization,
@@ -1037,23 +1039,28 @@ class OrganizationManagementAPITests(APITestCase):
     def test_invitation_creation_is_throttled(self):
         cache.clear()
 
-        for index in range(5):
+        with patch.object(
+            ScopedRateThrottle,
+            "THROTTLE_RATES",
+            {"organization_invitation": "5/hour"},
+        ):
+            for index in range(5):
+                response = self.create_invitation(
+                    f"invitee{index}@example.com",
+                )
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_201_CREATED,
+                )
+
             response = self.create_invitation(
-                f"invitee{index}@example.com",
+                "invitee-over-limit@example.com",
             )
+
             self.assertEqual(
                 response.status_code,
-                status.HTTP_201_CREATED,
+                status.HTTP_429_TOO_MANY_REQUESTS,
             )
-
-        response = self.create_invitation(
-            "invitee-over-limit@example.com",
-        )
-
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_429_TOO_MANY_REQUESTS,
-        )
 
         self.assertEqual(
             OrganizationInvitation.objects.filter(

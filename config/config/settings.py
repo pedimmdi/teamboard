@@ -163,7 +163,7 @@ REST_FRAMEWORK = {
         "email_verification": "10/min",
         "email_resend": "5/min",
         "organization_create": "5/hour",
-        "organization_invitation": "5/hour",
+        "organization_invitation": "30/hour",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
