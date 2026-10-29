@@ -1,97 +1,75 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 import VerificationShell from "@/components/auth/VerificationShell";
 import VerificationStatus from "@/components/auth/VerificationStatus";
-import { verifyEmail } from "@/lib/api";
+import { ApiError, verifyEmail } from "@/lib/api";
 
 import styles from "./verify-email.module.css";
 
-type VerificationState = "loading" | "success" | "error";
+type VerificationState = "ready" | "loading" | "success" | "error";
 
-const verificationRequests = new Map<
-  string,
-  ReturnType<typeof verifyEmail>
->();
+function VerifyEmailContent() {
+  const searchParams = useSearchParams();
+  const uid = searchParams.get("uid");
+  const token = searchParams.get("token");
 
-function verifyEmailOnce(uid: string, token: string) {
-  const key = JSON.stringify([uid, token]);
-  const existing = verificationRequests.get(key);
+  const [status, setStatus] = useState<VerificationState>("ready");
+  const [message, setMessage] = useState("");
 
-  if (existing) return existing;
+  const missingParams = !uid || !token;
+  const hasError = missingParams || status === "error";
 
-  const request = verifyEmail(uid, token);
-  verificationRequests.set(key, request);
-
-  return request;
-}
-
-export default function VerifyEmailPage() {
-  const [status, setStatus] = useState<VerificationState>("loading");
-  const [message, setMessage] = useState(
-    "We're checking your verification link.",
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function verify() {
-      const params = new URLSearchParams(window.location.search);
-      const uid = params.get("uid");
-      const token = params.get("token");
-
-      if (!uid || !token) {
-        setMessage("This verification link is missing or invalid.");
-        setStatus("error");
-        return;
-      }
-
-      try {
-        const result = await verifyEmailOnce(uid, token);
-
-        if (cancelled) return;
-
-        setMessage(result.detail || "Your email has been verified.");
-        setStatus("success");
-
-        window.history.replaceState(
-          window.history.state,
-          "",
-          "/verify-email",
-        );
-      } catch (error) {
-        if (cancelled) return;
-
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "This verification link is invalid or has expired.",
-        );
-        setStatus("error");
-      }
+  async function handleVerify() {
+    if (!uid || !token || status !== "ready") {
+      return;
     }
 
-    void verify();
+    setStatus("loading");
+    setMessage("");
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    try {
+      await verifyEmail(uid, token);
+
+      setStatus("success");
+
+      window.history.replaceState(
+        window.history.state,
+        "",
+        "/verify-email",
+      );
+    } catch (error) {
+      if (error instanceof ApiError) {
+        const detail = error.errors?.detail;
+        const tokenError = error.errors?.token;
+        const uidError = error.errors?.uid;
+        const serverMessage = detail ?? tokenError ?? uidError;
+
+        setMessage(
+          typeof serverMessage === "string"
+            ? serverMessage
+            : Array.isArray(serverMessage)
+              ? serverMessage.join(" ")
+              : error.message,
+        );
+      } else {
+        setMessage(
+          "Unable to verify your email. Please try again.",
+        );
+      }
+
+      setStatus("error");
+    }
+  }
 
   return (
     <VerificationShell>
-      {status === "loading" ? (
-        <VerificationStatus
-          tone="info"
-          title="Verifying your email"
-          description={message}
-        >
-          <p className={styles.loadingText}>Please wait...</p>
-        </VerificationStatus>
-      ) : status === "success" ? (
+      {status === "success" ? (
         <VerificationStatus
           tone="success"
           title="Email verified"
@@ -101,13 +79,30 @@ export default function VerifyEmailPage() {
             Continue to sign in
           </Link>
         </VerificationStatus>
-      ) : (
+      ) : hasError ? (
         <VerificationStatus
           tone="error"
-          title="Verification link expired"
-          description={message}
+          title="Unable to verify email"
+          description={
+            missingParams
+              ? "This verification link is missing or invalid."
+              : message
+          }
         >
-          <Link href="/resend-verification" className={styles.primaryButton}>
+          {!missingParams && (
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => setStatus("ready")}
+            >
+              Try again
+            </button>
+          )}
+
+          <Link
+            href="/resend-verification"
+            className={styles.secondaryLink}
+          >
             Send a new link
           </Link>
 
@@ -115,7 +110,34 @@ export default function VerifyEmailPage() {
             Back to sign in
           </Link>
         </VerificationStatus>
+      ) : (
+        <VerificationStatus
+          tone="info"
+          title="Verify your email"
+          description="Confirm your email address to activate your TeamBoard account."
+        >
+          <button
+            type="button"
+            className={styles.primaryButton}
+            onClick={() => void handleVerify()}
+            disabled={status === "loading"}
+          >
+            {status === "loading" ? "Verifying..." : "Verify email"}
+          </button>
+
+          <Link href="/login" className={styles.secondaryLink}>
+            Back to sign in
+          </Link>
+        </VerificationStatus>
       )}
     </VerificationShell>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

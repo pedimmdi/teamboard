@@ -1015,9 +1015,10 @@ class EmailVerificationTests(APITestCase):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
 
-        response = self.client.get(
+        response = self.client.post(
             reverse("accounts_api_v1:email_verify"),
             {"uid": uid, "token": token},
+            format="json",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -1057,8 +1058,8 @@ class EmailVerificationTests(APITestCase):
         url = reverse("accounts_api_v1:email_verify")
         params = {"uid": uid, "token": token}
 
-        first_response = self.client.get(url, params)
-        second_response = self.client.get(url, params)
+        first_response = self.client.post(url, params, format="json")
+        second_response = self.client.post(url, params, format="json")
 
         self.assertEqual(first_response.status_code, 200)
         self.assertEqual(second_response.status_code, 400)
@@ -1071,9 +1072,10 @@ class EmailVerificationTests(APITestCase):
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
-        response = self.client.get(
+        response = self.client.post(
             reverse("accounts_api_v1:email_verify"),
             {"uid": uid, "token": "invalid-token"},
+            format="json",
         )
 
         self.assertEqual(response.status_code, 400)
@@ -1122,6 +1124,46 @@ class EmailVerificationTests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_get_request_does_not_verify_email(self):
+        user = User.objects.create_user(
+            email="scanner@example.com",
+            password="StrongPassword123!",
+        )
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        url = reverse("accounts_api_v1:email_verify")
+
+        response = self.client.get(
+            url,
+            {"uid": uid, "token": token},
+        )
+
+        self.assertEqual(response.status_code, 405)
+
+        user.refresh_from_db()
+        self.assertFalse(user.is_email_verified)
+
+        post_response = self.client.post(
+            url,
+            {"uid": uid, "token": token},
+            format="json",
+        )
+
+        self.assertEqual(post_response.status_code, 200)
+
+        user.refresh_from_db()
+        self.assertTrue(user.is_email_verified)
+
+    def test_verification_requires_token_and_uid(self):
+        response = self.client.post(
+            reverse("accounts_api_v1:email_verify"),
+            {},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
 
 
 class SessionManagementAPITests(APITestCase):

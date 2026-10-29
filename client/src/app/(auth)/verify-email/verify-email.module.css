@@ -30,3 +30,15 @@
   color: #64748b;
   font-size: 12px;
 }
+
+.primaryButton {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.primaryButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

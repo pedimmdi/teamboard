@@ -354,23 +354,11 @@ class EmailVerificationView(APIView):
 
     @extend_schema(
         summary="Verify email address",
-        description="Verifies an email address using the supplied verification token.",
-        parameters=[
-            OpenApiParameter(
-                name="uid",
-                type=str,
-                location=OpenApiParameter.QUERY,
-                required=True,
-                description="Encoded user identifier.",
-            ),
-            OpenApiParameter(
-                name="token",
-                type=str,
-                location=OpenApiParameter.QUERY,
-                required=True,
-                description="Email verification token.",
-            ),
-        ],
+        description=(
+            "Verifies an email address using the supplied verification token. "
+            "Verification requires an explicit POST request."
+        ),
+        request=EmailVerificationSerializer,
         responses={
             200: inline_serializer(
                 name="EmailVerificationResponse",
@@ -379,16 +367,16 @@ class EmailVerificationView(APIView):
                 },
             ),
             400: OpenApiResponse(
-                description="Invalid or expired verification data."
+                description="Invalid, expired, or already used verification data."
             ),
             429: OpenApiResponse(
                 description="Too many requests."
             ),
         },
     )
-    def get(self, request):
+    def post(self, request):
         serializer = EmailVerificationSerializer(
-            data=request.query_params
+            data=request.data,
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()

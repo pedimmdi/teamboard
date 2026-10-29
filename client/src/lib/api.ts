@@ -390,15 +390,11 @@ export function verifyEmail(
   uid: string,
   token: string,
 ) {
-  const params = new URLSearchParams({
-    uid,
-    token,
-  });
-
   return apiFetch<{ detail: string }>(
-    `/api/v1/accounts/email/verify/?${params.toString()}`,
+    "/api/v1/accounts/email/verify/",
     {
-      method: "GET",
+      method: "POST",
+      body: JSON.stringify({ uid, token }),
     },
   );
 }
