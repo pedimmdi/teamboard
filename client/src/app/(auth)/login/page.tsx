@@ -7,6 +7,13 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { ApiError, getCurrentUser, login } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import {
+  clearInvitationReturn,
+  getInvitationAuthUrl,
+  getSafeInvitationReturn,
+  readInvitationReturn,
+  saveInvitationReturn,
+} from "@/lib/invitation-return";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -32,7 +39,15 @@ export default function LoginPage() {
         data.access,
         user,
       );
-      router.replace("/dashboard");
+      const params = new URLSearchParams(window.location.search);
+
+      const returnPath =
+        getSafeInvitationReturn(params.get("next")) ??
+        readInvitationReturn();
+
+      clearInvitationReturn();
+
+      router.replace(returnPath ?? "/dashboard");
     } catch (err) {
       setError(
         err instanceof ApiError || err instanceof Error
@@ -124,7 +139,20 @@ export default function LoginPage() {
 
           <p className="auth-footer">
             Don&apos;t have an account?{" "}
-            <Link href="/register">Create an account</Link>
+            <Link
+              href={getInvitationAuthUrl(
+                "/register",
+                typeof window === "undefined"
+                  ? null
+                  : new URLSearchParams(window.location.search).get("next"),
+              )}
+              onClick={() => {
+                const params = new URLSearchParams(window.location.search);
+                saveInvitationReturn(params.get("next"));
+              }}
+            >
+              Create an account
+            </Link>
           </p>
         </div>
       </section>

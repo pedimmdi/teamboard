@@ -777,3 +777,29 @@ export function deleteOrganization(
     },
   );
 }
+
+export type AcceptOrganizationInvitationResponse = {
+  detail: string;
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  role: OrganizationRole;
+};
+
+export function acceptOrganizationInvitation(
+  accessToken: string,
+  invitationToken: string,
+) {
+  return apiFetch<AcceptOrganizationInvitationResponse>(
+    "/api/v1/organizations/invitations/accept/",
+    {
+      method: "POST",
+      token: accessToken,
+      body: JSON.stringify({
+        token: invitationToken,
+      }),
+    },
+  );
+}

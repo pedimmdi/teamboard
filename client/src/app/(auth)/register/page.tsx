@@ -8,6 +8,9 @@ import {
   ApiError,
   register,
 } from "@/lib/api";
+import {
+  saveInvitationReturn,
+} from "@/lib/invitation-return";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -27,6 +30,10 @@ export default function RegisterPage() {
 
     setError("");
     setFieldErrors({});
+
+    const params = new URLSearchParams(window.location.search);
+
+    saveInvitationReturn(params.get("next"));
 
     if (password !== passwordConfirm) {
       setFieldErrors({
@@ -116,7 +123,15 @@ export default function RegisterPage() {
 
             <p className="auth-footer">
               Already verified?{" "}
-              <Link href="/login">Sign in</Link>
+              <Link
+                href="/login"
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  saveInvitationReturn(params.get("next"));
+                }}
+              >
+                Sign in
+              </Link>
             </p>
           </div>
         </section>
@@ -225,7 +240,15 @@ export default function RegisterPage() {
 
           <p className="auth-footer">
             Already have an account?{" "}
-            <Link href="/login">Sign in</Link>
+            <Link
+              href="/login"
+              onClick={() => {
+                const params = new URLSearchParams(window.location.search);
+                saveInvitationReturn(params.get("next"));
+              }}
+            >
+              Sign in
+            </Link>
           </p>
         </div>
       </section>
