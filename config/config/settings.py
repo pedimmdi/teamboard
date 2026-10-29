@@ -51,7 +51,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "drf_spectacular_sidecar",
     "accounts.apps.AccountsConfig",
-    "organizations.apps.OrganizationsConfig",
+    "workspaces.apps.WorkspacesConfig",
 ]
 
 MIDDLEWARE = [
@@ -162,8 +162,8 @@ REST_FRAMEWORK = {
         "password_reset_confirm": "20/min",
         "email_verification": "10/min",
         "email_resend": "5/min",
-        "organization_create": "5/hour",
-        "organization_invitation": "30/hour",
+        "workspace_create": "5/hour",
+        "workspace_invitation": "30/hour",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -226,8 +226,8 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": (
         "REST API documentation for TeamBoard. "
         "The API provides authentication, account management, "
-        "organization management, membership management, and "
-        "organization invitation workflows."
+        "workspace management, membership management, and "
+        "workspace invitation workflows."
     ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
@@ -244,12 +244,12 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
     "ENUM_NAME_OVERRIDES": {
-        "OrganizationRoleEnum": [
+        "WorkspaceRoleEnum": [
             ("owner", "Owner"),
             ("admin", "Admin"),
             ("member", "Member"),
         ],
-        "OrganizationMembershipUpdateRoleEnum": [
+        "WorkspaceMembershipUpdateRoleEnum": [
             ("admin", "Admin"),
             ("member", "Member"),
         ],

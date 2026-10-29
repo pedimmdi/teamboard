@@ -82,7 +82,7 @@ function MonitorIcon() {
   );
 }
 
-function OrganizationIcon() {
+function WorkspaceIcon() {
   return (
     <svg
       viewBox="0 0 20 20"
@@ -181,9 +181,9 @@ export default function DashboardLayout({
 
   const initials = getInitials(user.first_name, user.last_name);
 
-  const isOrganizations =
-    pathname === "/dashboard/organizations" ||
-    pathname.startsWith("/dashboard/organizations/");
+  const isWorkspaces =
+    pathname === "/dashboard/workspaces" ||
+    pathname.startsWith("/dashboard/workspaces/");
 
   const isProfile = pathname === "/dashboard";
   const isSecurity = pathname === "/dashboard/security";
@@ -209,10 +209,10 @@ export default function DashboardLayout({
             </div>
 
             <NavItem
-              href="/dashboard/organizations"
-              label="Organizations"
-              active={isOrganizations}
-              icon={<OrganizationIcon />}
+              href="/dashboard/workspaces"
+              label="Workspaces"
+              active={isWorkspaces}
+              icon={<WorkspaceIcon />}
             />
 
             <div className={styles.sectionLabel}>
@@ -290,10 +290,10 @@ export default function DashboardLayout({
         aria-label="Dashboard"
       >
         <NavItem
-          href="/dashboard/organizations"
-          label="Organizations"
-          active={isOrganizations}
-          icon={<OrganizationIcon />}
+          href="/dashboard/workspaces"
+          label="Workspaces"
+          active={isWorkspaces}
+          icon={<WorkspaceIcon />}
         />
 
         <NavItem

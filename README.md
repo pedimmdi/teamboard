@@ -358,7 +358,7 @@ docker compose down -v
 
 The current foundation focuses on account security and the frontend/backend architecture. Planned development includes:
 
-- Workspace and organization management
+- Workspace and workspace management
 - Team membership and role-based permissions
 - Project and task management
 - Collaboration features
@@ -378,3 +378,14 @@ These are planned capabilities, not claims that those modules are already implem
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+# Workspace rename upgrades
+
+The backend app and API now use `workspaces`; the dashboard lives at
+`/dashboard/workspaces` and the API at `/api/v1/workspaces/`.
+Run `python manage.py migrate` before starting the updated backend.
+The replacement migration recognizes the three previously applied migrations
+of the former app, then renames its tables and foreign keys in place. Existing
+workspace IDs, slugs, memberships, invitations, content types and permission
+assignments are retained. Historical names remain only in upgrade migrations
+and their regression test. Upgrade databases from the previous release with all
+three former app migrations applied; do not fake or delete migration records.

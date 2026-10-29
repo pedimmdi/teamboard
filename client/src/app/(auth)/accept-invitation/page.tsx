@@ -6,9 +6,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
-  acceptOrganizationInvitation,
+  acceptWorkspaceInvitation,
   ApiError,
-  type AcceptOrganizationInvitationResponse,
+  type AcceptWorkspaceInvitationResponse,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { clearInvitationReturn, saveInvitationReturn } from "@/lib/invitation-return";
@@ -69,7 +69,7 @@ function InvitationContent() {
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
 
   const [result, setResult] =
-    useState<AcceptOrganizationInvitationResponse | null>(null);
+    useState<AcceptWorkspaceInvitationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
@@ -118,7 +118,7 @@ function InvitationContent() {
     setError(null);
 
     try {
-      const response = await acceptOrganizationInvitation(
+      const response = await acceptWorkspaceInvitation(
         accessToken,
         invitationToken,
       );
@@ -164,16 +164,16 @@ function InvitationContent() {
 
           {status === "success" && result ? (
             <>
-              <h1>You joined {result.organization.name}.</h1>
+              <h1>You joined {result.workspace.name}.</h1>
               <p className={styles.description}>
-                You are now a member of this organization.
+                You are now a member of this workspace.
                 You can start collaborating with your team.
               </p>
 
               <Link
                 className={styles.primaryButton}
-                href={`/dashboard/organizations/${encodeURIComponent(
-                  result.organization.slug,
+                href={`/dashboard/workspaces/${encodeURIComponent(
+                  result.workspace.slug,
                 )}`}
               >
                 Go to Workspace
@@ -181,9 +181,9 @@ function InvitationContent() {
 
               <Link
                 className={styles.secondaryLink}
-                href="/dashboard/organizations"
+                href="/dashboard/workspaces"
               >
-                View all organizations
+                View all workspaces
               </Link>
             </>
           ) : status === "error" ? (
@@ -199,8 +199,8 @@ function InvitationContent() {
               </div>
 
               {isAuthenticated ? (
-                <Link className={styles.primaryButton} href="/dashboard/organizations">
-                  Go to organizations
+                <Link className={styles.primaryButton} href="/dashboard/workspaces">
+                  Go to workspaces
                 </Link>
               ) : (
                 <Link className={styles.primaryButton} href={loginPath}>
@@ -210,14 +210,14 @@ function InvitationContent() {
 
               <Link
                 className={styles.secondaryLink}
-                href="/dashboard/organizations"
+                href="/dashboard/workspaces"
               >
-                Go to organizations
+                Go to workspaces
               </Link>
 
               <p className={styles.helpText}>
                 If the invitation has expired or was revoked,
-                ask an organization admin to send a new one.
+                ask an workspace admin to send a new one.
               </p>
             </>
           ) : (
@@ -225,7 +225,7 @@ function InvitationContent() {
               <h1>Accept your invitation</h1>
 
               <p className={styles.description}>
-                You&apos;ve been invited to join an organization
+                You&apos;ve been invited to join an workspace
                 on TeamBoard. Accept the invitation to collaborate
                 with your team.
               </p>

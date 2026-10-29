@@ -497,28 +497,28 @@ export function changePassword(
   );
 }
 
-export type OrganizationRole =
+export type WorkspaceRole =
   | "owner"
   | "admin"
   | "member";
 
-export type Organization = {
+export type Workspace = {
   id: string;
   name: string;
   slug: string;
-  role: OrganizationRole | null;
+  role: WorkspaceRole | null;
   created_at: string;
   updated_at: string;
 };
 
-export type PaginatedOrganizations = {
+export type PaginatedWorkspaces = {
   count: number;
   next: string | null;
   previous: string | null;
-  results: Organization[];
+  results: Workspace[];
 };
 
-export function getOrganizations(
+export function getWorkspaces(
   token: string,
   page = 1,
 ) {
@@ -526,8 +526,8 @@ export function getOrganizations(
 
   params.set("page", String(page));
 
-  return apiFetch<PaginatedOrganizations>(
-    `/api/v1/organizations/?${params.toString()}`,
+  return apiFetch<PaginatedWorkspaces>(
+    `/api/v1/workspaces/?${params.toString()}`,
     {
       method: "GET",
       token,
@@ -535,12 +535,12 @@ export function getOrganizations(
   );
 }
 
-export function getOrganization(
+export function getWorkspace(
   token: string,
   slug: string,
 ) {
-  return apiFetch<Organization>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/`,
+  return apiFetch<Workspace>(
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/`,
     {
       method: "GET",
       token,
@@ -548,16 +548,16 @@ export function getOrganization(
   );
 }
 
-export type CreateOrganizationInput = {
+export type CreateWorkspaceInput = {
   name: string;
 };
 
-export function createOrganization(
+export function createWorkspace(
   token: string,
-  data: CreateOrganizationInput,
+  data: CreateWorkspaceInput,
 ) {
-  return apiFetch<Organization>(
-    "/api/v1/organizations/",
+  return apiFetch<Workspace>(
+    "/api/v1/workspaces/",
     {
       method: "POST",
       token,
@@ -566,23 +566,23 @@ export function createOrganization(
   );
 }
 
-export type OrganizationMember = {
+export type WorkspaceMember = {
   id: string;
   user_id: number;
   user_email: string;
-  role: OrganizationRole;
+  role: WorkspaceRole;
   is_current_user: boolean;
   joined_at: string;
 };
 
-export type PaginatedOrganizationMembers = {
+export type PaginatedWorkspaceMembers = {
   count: number;
   next: string | null;
   previous: string | null;
-  results: OrganizationMember[];
+  results: WorkspaceMember[];
 };
 
-export function getOrganizationMembers(
+export function getWorkspaceMembers(
   token: string,
   slug: string,
   page = 1,
@@ -591,8 +591,8 @@ export function getOrganizationMembers(
     page: String(page),
   });
 
-  return apiFetch<PaginatedOrganizationMembers>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/members/?${params}`,
+  return apiFetch<PaginatedWorkspaceMembers>(
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/members/?${params}`,
     {
       method: "GET",
       token,
@@ -600,14 +600,14 @@ export function getOrganizationMembers(
   );
 }
 
-export function updateOrganizationMemberRole(
+export function updateWorkspaceMemberRole(
   token: string,
   slug: string,
   membershipId: string,
   role: "admin" | "member",
 ) {
-  return apiFetch<OrganizationMember>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/members/${encodeURIComponent(membershipId)}/role/`,
+  return apiFetch<WorkspaceMember>(
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/members/${encodeURIComponent(membershipId)}/role/`,
     {
       method: "PATCH",
       token,
@@ -616,13 +616,13 @@ export function updateOrganizationMemberRole(
   );
 }
 
-export function transferOrganizationOwnership(
+export function transferWorkspaceOwnership(
   token: string,
   slug: string,
   membershipId: string,
 ) {
-  return apiFetch<OrganizationMember>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/transfer-ownership/`,
+  return apiFetch<WorkspaceMember>(
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/transfer-ownership/`,
     {
       method: "POST",
       token,
@@ -633,13 +633,13 @@ export function transferOrganizationOwnership(
   );
 }
 
-export function removeOrganizationMember(
+export function removeWorkspaceMember(
   token: string,
   slug: string,
   membershipId: string,
 ) {
   return apiFetch<null>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/members/${encodeURIComponent(membershipId)}/`,
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/members/${encodeURIComponent(membershipId)}/`,
     {
       method: "DELETE",
       token,
@@ -648,16 +648,16 @@ export function removeOrganizationMember(
 }
 
 
-export type OrganizationInvitationStatus =
+export type WorkspaceInvitationStatus =
   | "pending"
   | "accepted"
   | "revoked"
   | "expired";
 
-export type OrganizationInvitation = {
+export type WorkspaceInvitation = {
   id: string;
   email: string;
-  status: OrganizationInvitationStatus;
+  status: WorkspaceInvitationStatus;
   invited_by_email: string | null;
   created_at: string;
   expires_at: string;
@@ -665,14 +665,14 @@ export type OrganizationInvitation = {
   revoked_at: string | null;
 };
 
-export type PaginatedOrganizationInvitations = {
+export type PaginatedWorkspaceInvitations = {
   count: number;
   next: string | null;
   previous: string | null;
-  results: OrganizationInvitation[];
+  results: WorkspaceInvitation[];
 };
 
-export function getOrganizationInvitations(
+export function getWorkspaceInvitations(
   token: string,
   slug: string,
   page = 1,
@@ -681,8 +681,8 @@ export function getOrganizationInvitations(
     page: String(page),
   });
 
-  return apiFetch<PaginatedOrganizationInvitations>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/invitations/?${params.toString()}`,
+  return apiFetch<PaginatedWorkspaceInvitations>(
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/invitations/?${params.toString()}`,
     {
       method: "GET",
       token,
@@ -690,13 +690,13 @@ export function getOrganizationInvitations(
   );
 }
 
-export function createOrganizationInvitation(
+export function createWorkspaceInvitation(
   token: string,
   slug: string,
   email: string,
 ) {
-  return apiFetch<OrganizationInvitation>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/invitations/`,
+  return apiFetch<WorkspaceInvitation>(
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/invitations/`,
     {
       method: "POST",
       token,
@@ -705,13 +705,13 @@ export function createOrganizationInvitation(
   );
 }
 
-export function resendOrganizationInvitation(
+export function resendWorkspaceInvitation(
   token: string,
   slug: string,
   invitationId: string,
 ) {
-  return apiFetch<OrganizationInvitation>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/invitations/${encodeURIComponent(invitationId)}/resend/`,
+  return apiFetch<WorkspaceInvitation>(
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/invitations/${encodeURIComponent(invitationId)}/resend/`,
     {
       method: "POST",
       token,
@@ -719,13 +719,13 @@ export function resendOrganizationInvitation(
   );
 }
 
-export function revokeOrganizationInvitation(
+export function revokeWorkspaceInvitation(
   token: string,
   slug: string,
   invitationId: string,
 ) {
   return apiFetch<{ detail: string }>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/invitations/${encodeURIComponent(invitationId)}/`,
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/invitations/${encodeURIComponent(invitationId)}/`,
     {
       method: "DELETE",
       token,
@@ -733,13 +733,13 @@ export function revokeOrganizationInvitation(
   );
 }
 
-export function updateOrganization(
+export function updateWorkspace(
   token: string,
   slug: string,
   name: string,
 ) {
-  return apiFetch<Organization>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/`,
+  return apiFetch<Workspace>(
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/`,
     {
       method: "PATCH",
       token,
@@ -748,12 +748,12 @@ export function updateOrganization(
   );
 }
 
-export function leaveOrganization(
+export function leaveWorkspace(
   token: string,
   slug: string,
 ) {
   return apiFetch<null>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/leave/`,
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/leave/`,
     {
       method: "POST",
       token,
@@ -761,12 +761,12 @@ export function leaveOrganization(
   );
 }
 
-export function deleteOrganization(
+export function deleteWorkspace(
   token: string,
   slug: string,
 ) {
   return apiFetch<null>(
-    `/api/v1/organizations/${encodeURIComponent(slug)}/`,
+    `/api/v1/workspaces/${encodeURIComponent(slug)}/`,
     {
       method: "DELETE",
       token,
@@ -774,22 +774,22 @@ export function deleteOrganization(
   );
 }
 
-export type AcceptOrganizationInvitationResponse = {
+export type AcceptWorkspaceInvitationResponse = {
   detail: string;
-  organization: {
+  workspace: {
     id: string;
     name: string;
     slug: string;
   };
-  role: OrganizationRole;
+  role: WorkspaceRole;
 };
 
-export function acceptOrganizationInvitation(
+export function acceptWorkspaceInvitation(
   accessToken: string,
   invitationToken: string,
 ) {
-  return apiFetch<AcceptOrganizationInvitationResponse>(
-    "/api/v1/organizations/invitations/accept/",
+  return apiFetch<AcceptWorkspaceInvitationResponse>(
+    "/api/v1/workspaces/invitations/accept/",
     {
       method: "POST",
       token: accessToken,

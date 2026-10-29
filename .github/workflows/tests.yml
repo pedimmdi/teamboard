@@ -49,7 +49,11 @@ jobs:
           POSTGRES_PORT: "5432"
           EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
           FRONTEND_URL: http://localhost:3000
-        run: python -m pytest -v
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+          python manage.py spectacular --validate --fail-on-warn --file /tmp/schema.yml
+          python -m pytest -v
 
   frontend:
     runs-on: ubuntu-latest

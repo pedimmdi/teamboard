@@ -3,7 +3,7 @@ info:
   title: TeamBoard API
   version: 1.0.0
   description: REST API documentation for TeamBoard. The API provides authentication,
-    account management, organization management, membership management, and organization
+    account management, workspace management, membership management, and workspace
     invitation workflows.
 paths:
   /api/v1/accounts/email/resend/:
@@ -41,25 +41,25 @@ paths:
         '429':
           description: Too many requests.
   /api/v1/accounts/email/verify/:
-    get:
-      operationId: v1_accounts_email_verify_retrieve
+    post:
+      operationId: v1_accounts_email_verify_create
       description: Verifies an email address using the supplied verification token.
+        Verification requires an explicit POST request.
       summary: Verify email address
-      parameters:
-      - in: query
-        name: token
-        schema:
-          type: string
-        description: Email verification token.
-        required: true
-      - in: query
-        name: uid
-        schema:
-          type: string
-        description: Encoded user identifier.
-        required: true
       tags:
       - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+        required: true
       security:
       - BearerAuth: []
       - {}
@@ -71,7 +71,7 @@ paths:
                 $ref: '#/components/schemas/EmailVerificationResponse'
           description: ''
         '400':
-          description: Invalid or expired verification data.
+          description: Invalid, expired, or already used verification data.
         '429':
           description: Too many requests.
   /api/v1/accounts/login/:
@@ -378,14 +378,27 @@ paths:
           description: The current token is not associated with a session.
         '401':
           description: Authentication credentials are missing or invalid.
-  /api/v1/organizations/:
+  /api/v1/workspaces/:
     get:
-      operationId: v1_organizations_list
-      description: Returns all organizations that the authenticated user is a member
+      operationId: v1_workspaces_list
+      description: Returns all workspaces that the authenticated user is a member
         of.
-      summary: List organizations
+      summary: List workspaces
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
       tags:
-      - Organizations
+      - Workspaces
       security:
       - BearerAuth: []
       responses:
@@ -393,28 +406,26 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Organization'
+                $ref: '#/components/schemas/PaginatedPaginatedWorkspaceList'
           description: ''
     post:
-      operationId: v1_organizations_create
-      description: Creates a new organization. The authenticated user automatically
-        becomes the organization owner.
-      summary: Create organization
+      operationId: v1_workspaces_create
+      description: Creates a new workspace. The authenticated user automatically becomes
+        the workspace owner.
+      summary: Create workspace
       tags:
-      - Organizations
+      - Workspaces
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Organization'
+              $ref: '#/components/schemas/Workspace'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Organization'
+              $ref: '#/components/schemas/Workspace'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Organization'
+              $ref: '#/components/schemas/Workspace'
         required: true
       security:
       - BearerAuth: []
@@ -423,23 +434,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Organization'
+                $ref: '#/components/schemas/Workspace'
           description: ''
-  /api/v1/organizations/{slug}/:
+  /api/v1/workspaces/{slug}/:
     get:
-      operationId: v1_organizations_retrieve
-      description: Returns the details of an organization that the authenticated user
+      operationId: v1_workspaces_retrieve
+      description: Returns the details of an workspace that the authenticated user
         belongs to.
-      summary: Retrieve organization
+      summary: Retrieve workspace
       parameters:
       - in: path
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
+        description: The unique slug of the workspace.
         required: true
       tags:
-      - Organizations
+      - Workspaces
       security:
       - BearerAuth: []
       responses:
@@ -447,35 +458,35 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Organization'
+                $ref: '#/components/schemas/Workspace'
           description: ''
         '404':
-          description: Organization not found.
+          description: Workspace not found.
     patch:
-      operationId: v1_organizations_partial_update
-      description: Updates an organization's editable fields. Only organization owners
-        and admins can perform this operation.
-      summary: Update organization
+      operationId: v1_workspaces_partial_update
+      description: Updates an workspace's editable fields. Only workspace owners and
+        admins can perform this operation.
+      summary: Update workspace
       parameters:
       - in: path
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
+        description: The unique slug of the workspace.
         required: true
       tags:
-      - Organizations
+      - Workspaces
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedOrganization'
+              $ref: '#/components/schemas/PatchedWorkspace'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedOrganization'
+              $ref: '#/components/schemas/PatchedWorkspace'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedOrganization'
+              $ref: '#/components/schemas/PatchedWorkspace'
       security:
       - BearerAuth: []
       responses:
@@ -483,51 +494,63 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Organization'
+                $ref: '#/components/schemas/Workspace'
           description: ''
         '403':
           description: The authenticated user does not have permission to update the
-            organization.
+            workspace.
         '404':
-          description: Organization not found.
+          description: Workspace not found.
     delete:
-      operationId: v1_organizations_destroy
-      description: Permanently deletes the organization and its related memberships
-        and invitations. Only the organization owner can perform this operation.
-      summary: Delete organization
+      operationId: v1_workspaces_destroy
+      description: Permanently deletes the workspace and its related memberships and
+        invitations. Only the workspace owner can perform this operation.
+      summary: Delete workspace
       parameters:
       - in: path
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
+        description: The unique slug of the workspace.
         required: true
       tags:
-      - Organizations
+      - Workspaces
       security:
       - BearerAuth: []
       responses:
         '204':
-          description: Organization deleted successfully.
+          description: Workspace deleted successfully.
         '403':
-          description: Only the organization owner can delete the organization.
+          description: Only the workspace owner can delete the workspace.
         '404':
-          description: Organization not found.
-  /api/v1/organizations/{slug}/invitations/:
+          description: Workspace not found.
+  /api/v1/workspaces/{slug}/invitations/:
     get:
-      operationId: v1_organizations_invitations_list
-      description: Returns invitations for an organization. Only organization owners
-        and admins can manage invitations.
-      summary: List organization invitations
+      operationId: v1_workspaces_invitations_list
+      description: Returns invitations for an workspace. Only workspace owners and
+        admins can manage invitations.
+      summary: List workspace invitations
       parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
       - in: path
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
+        description: The unique slug of the workspace.
         required: true
       tags:
-      - Organizations - Invitations
+      - Workspaces - Invitations
       security:
       - BearerAuth: []
       responses:
@@ -535,35 +558,33 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/OrganizationInvitation'
+                $ref: '#/components/schemas/PaginatedPaginatedWorkspaceInvitationList'
           description: ''
     post:
-      operationId: v1_organizations_invitations_create
-      description: Creates an invitation for an email address. Only organization owners
+      operationId: v1_workspaces_invitations_create
+      description: Creates an invitation for an email address. Only workspace owners
         and admins can invite users.
-      summary: Create organization invitation
+      summary: Create workspace invitation
       parameters:
       - in: path
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
+        description: The unique slug of the workspace.
         required: true
       tags:
-      - Organizations - Invitations
+      - Workspaces - Invitations
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrganizationInvitationCreate'
+              $ref: '#/components/schemas/WorkspaceInvitationCreate'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/OrganizationInvitationCreate'
+              $ref: '#/components/schemas/WorkspaceInvitationCreate'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/OrganizationInvitationCreate'
+              $ref: '#/components/schemas/WorkspaceInvitationCreate'
         required: true
       security:
       - BearerAuth: []
@@ -572,20 +593,20 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationInvitation'
+                $ref: '#/components/schemas/WorkspaceInvitation'
           description: ''
         '400':
           description: Invalid email, existing member, or active invitation.
         '403':
           description: The authenticated user cannot manage invitations.
         '404':
-          description: Organization not found.
-  /api/v1/organizations/{slug}/invitations/{invitation_id}/:
+          description: Workspace not found.
+  /api/v1/workspaces/{slug}/invitations/{invitation_id}/:
     delete:
-      operationId: v1_organizations_invitations_destroy
-      description: Revokes a pending invitation. Only organization owners and admins
+      operationId: v1_workspaces_invitations_destroy
+      description: Revokes a pending invitation. Only workspace owners and admins
         can revoke invitations.
-      summary: Revoke organization invitation
+      summary: Revoke workspace invitation
       parameters:
       - in: path
         name: invitation_id
@@ -597,10 +618,10 @@ paths:
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
+        description: The unique slug of the workspace.
         required: true
       tags:
-      - Organizations - Invitations
+      - Workspaces - Invitations
       security:
       - BearerAuth: []
       responses:
@@ -611,47 +632,38 @@ paths:
         '403':
           description: The authenticated user cannot manage invitations.
         '404':
-          description: Organization or invitation not found.
-  /api/v1/organizations/{slug}/leave/:
+          description: Workspace or invitation not found.
+  /api/v1/workspaces/{slug}/invitations/{invitation_id}/resend/:
     post:
-      operationId: v1_organizations_leave_create
-      description: Removes the authenticated user's membership from the organization.
-        Organization owners cannot leave directly; they must transfer ownership or
-        delete the organization.
-      summary: Leave organization
+      operationId: v1_workspaces_invitations_resend_create
+      description: Resends an invitation email with a newly generated token and renews
+        its expiration date. Only workspace owners and admins can resend invitations.
+      summary: Resend workspace invitation
       parameters:
+      - in: path
+        name: invitation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
       - in: path
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
         required: true
       tags:
-      - Organizations - Members
-      security:
-      - BearerAuth: []
-      responses:
-        '204':
-          description: Successfully left the organization.
-        '400':
-          description: Organization owners cannot leave the organization.
-        '404':
-          description: Organization or membership not found.
-  /api/v1/organizations/{slug}/members/:
-    get:
-      operationId: v1_organizations_members_list
-      description: Returns all members of the organization. Any authenticated member
-        of the organization can view the list.
-      summary: List organization members
-      parameters:
-      - in: path
-        name: slug
-        schema:
-          type: string
-        description: The unique slug of the organization.
-        required: true
-      tags:
-      - Organizations - Members
+      - Workspaces - Invitations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceInvitation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkspaceInvitation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkspaceInvitation'
       security:
       - BearerAuth: []
       responses:
@@ -659,16 +671,83 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/OrganizationMembership'
+                $ref: '#/components/schemas/WorkspaceInvitation'
           description: ''
-  /api/v1/organizations/{slug}/members/{membership_id}/:
+        '400':
+          description: The invitation was accepted, revoked, or cannot be resent.
+        '403':
+          description: The authenticated user cannot manage invitations.
+        '404':
+          description: The workspace or invitation was not found.
+        '429':
+          description: The invitation rate limit was exceeded.
+  /api/v1/workspaces/{slug}/leave/:
+    post:
+      operationId: v1_workspaces_leave_create
+      description: Removes the authenticated user's membership from the workspace.
+        Workspace owners cannot leave directly; they must transfer ownership or delete
+        the workspace.
+      summary: Leave workspace
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the workspace.
+        required: true
+      tags:
+      - Workspaces - Members
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Successfully left the workspace.
+        '400':
+          description: Workspace owners cannot leave the workspace.
+        '404':
+          description: Workspace or membership not found.
+  /api/v1/workspaces/{slug}/members/:
+    get:
+      operationId: v1_workspaces_members_list
+      description: Returns all members of the workspace. Any authenticated member
+        of the workspace can view the list.
+      summary: List workspace members
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: slug
+        schema:
+          type: string
+        description: The unique slug of the workspace.
+        required: true
+      tags:
+      - Workspaces - Members
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaginatedWorkspaceMembershipList'
+          description: ''
+  /api/v1/workspaces/{slug}/members/{membership_id}/:
     delete:
-      operationId: v1_organizations_members_destroy
-      description: Removes a member from the organization without deleting the user's
+      operationId: v1_workspaces_members_destroy
+      description: Removes a member from the workspace without deleting the user's
         account. Owners can remove admins and members; admins can remove members only.
-      summary: Remove organization member
+      summary: Remove workspace member
       parameters:
       - in: path
         name: membership_id
@@ -680,28 +759,28 @@ paths:
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
+        description: The unique slug of the workspace.
         required: true
       tags:
-      - Organizations - Members
+      - Workspaces - Members
       security:
       - BearerAuth: []
       responses:
         '204':
           description: Member removed successfully.
         '400':
-          description: The organization owner cannot be removed.
+          description: The workspace owner cannot be removed.
         '403':
           description: The authenticated user does not have permission to remove this
             member.
         '404':
-          description: Organization or membership not found.
-  /api/v1/organizations/{slug}/members/{membership_id}/role/:
+          description: Workspace or membership not found.
+  /api/v1/workspaces/{slug}/members/{membership_id}/role/:
     patch:
-      operationId: v1_organizations_members_role_partial_update
-      description: Changes an organization's member role between admin and member.
-        Only the organization owner can change member roles. The owner's role cannot
-        be changed through this endpoint.
+      operationId: v1_workspaces_members_role_partial_update
+      description: Changes an workspace's member role between admin and member. Only
+        the workspace owner can change member roles. The owner's role cannot be changed
+        through this endpoint.
       summary: Update member role
       parameters:
       - in: path
@@ -714,21 +793,21 @@ paths:
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
+        description: The unique slug of the workspace.
         required: true
       tags:
-      - Organizations - Members
+      - Workspaces - Members
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedOrganizationMembershipRoleUpdate'
+              $ref: '#/components/schemas/PatchedWorkspaceMembershipRoleUpdate'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedOrganizationMembershipRoleUpdate'
+              $ref: '#/components/schemas/PatchedWorkspaceMembershipRoleUpdate'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedOrganizationMembershipRoleUpdate'
+              $ref: '#/components/schemas/PatchedWorkspaceMembershipRoleUpdate'
       security:
       - BearerAuth: []
       responses:
@@ -736,40 +815,40 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationMembership'
+                $ref: '#/components/schemas/WorkspaceMembership'
           description: ''
         '400':
           description: Invalid role or attempt to change the owner's role.
         '403':
-          description: Only the organization owner can change member roles.
+          description: Only the workspace owner can change member roles.
         '404':
-          description: Organization or membership not found.
-  /api/v1/organizations/{slug}/transfer-ownership/:
+          description: Workspace or membership not found.
+  /api/v1/workspaces/{slug}/transfer-ownership/:
     post:
-      operationId: v1_organizations_transfer_ownership_create
-      description: Transfers organization ownership to another member. The current
-        owner becomes an admin and the selected member becomes the new owner.
-      summary: Transfer organization ownership
+      operationId: v1_workspaces_transfer_ownership_create
+      description: Transfers workspace ownership to another member. The current owner
+        becomes an admin and the selected member becomes the new owner.
+      summary: Transfer workspace ownership
       parameters:
       - in: path
         name: slug
         schema:
           type: string
-        description: The unique slug of the organization.
+        description: The unique slug of the workspace.
         required: true
       tags:
-      - Organizations - Members
+      - Workspaces - Members
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrganizationOwnershipTransfer'
+              $ref: '#/components/schemas/WorkspaceOwnershipTransfer'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/OrganizationOwnershipTransfer'
+              $ref: '#/components/schemas/WorkspaceOwnershipTransfer'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/OrganizationOwnershipTransfer'
+              $ref: '#/components/schemas/WorkspaceOwnershipTransfer'
         required: true
       security:
       - BearerAuth: []
@@ -778,33 +857,33 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationMembership'
+                $ref: '#/components/schemas/WorkspaceMembership'
           description: ''
         '400':
           description: Invalid membership or ownership transfer request.
         '403':
-          description: Only the organization owner can transfer ownership.
+          description: Only the workspace owner can transfer ownership.
         '404':
-          description: Organization or target membership not found.
-  /api/v1/organizations/invitations/accept/:
+          description: Workspace or target membership not found.
+  /api/v1/workspaces/invitations/accept/:
     post:
-      operationId: v1_organizations_invitations_accept_create
-      description: Accepts an organization invitation using its token and adds the
-        authenticated user as a member of the organization.
-      summary: Accept organization invitation
+      operationId: v1_workspaces_invitations_accept_create
+      description: Accepts an workspace invitation using its token and adds the authenticated
+        user as a member of the workspace.
+      summary: Accept workspace invitation
       tags:
-      - Organizations - Invitations
+      - Workspaces - Invitations
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrganizationInvitationAccept'
+              $ref: '#/components/schemas/WorkspaceInvitationAccept'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/OrganizationInvitationAccept'
+              $ref: '#/components/schemas/WorkspaceInvitationAccept'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/OrganizationInvitationAccept'
+              $ref: '#/components/schemas/WorkspaceInvitationAccept'
         required: true
       security:
       - BearerAuth: []
@@ -868,6 +947,16 @@ components:
       - email
       - id
       - is_email_verified
+    EmailVerification:
+      type: object
+      properties:
+        uid:
+          type: string
+        token:
+          type: string
+      required:
+      - token
+      - uid
     EmailVerificationResponse:
       type: object
       properties:
@@ -894,148 +983,144 @@ components:
           type: string
       required:
       - detail
-    Organization:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        name:
-          type: string
-          maxLength: 150
-        slug:
-          type: string
-          readOnly: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - created_at
-      - id
-      - name
-      - slug
-      - updated_at
-    OrganizationInvitation:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        email:
-          type: string
-          format: email
-          readOnly: true
-        status:
-          allOf:
-          - $ref: '#/components/schemas/StatusEnum'
-          readOnly: true
-        invited_by_email:
-          type: string
-          format: email
-          readOnly: true
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        expires_at:
-          type: string
-          format: date-time
-          readOnly: true
-        accepted_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-        revoked_at:
-          type: string
-          format: date-time
-          readOnly: true
-          nullable: true
-      required:
-      - accepted_at
-      - created_at
-      - email
-      - expires_at
-      - id
-      - invited_by_email
-      - revoked_at
-      - status
-    OrganizationInvitationAccept:
-      type: object
-      properties:
-        token:
-          type: string
-          writeOnly: true
-          maxLength: 200
-      required:
-      - token
-    OrganizationInvitationCreate:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-          maxLength: 254
-      required:
-      - email
-    OrganizationMembership:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        user_email:
-          type: string
-          format: email
-          readOnly: true
-        role:
-          allOf:
-          - $ref: '#/components/schemas/OrganizationMembershipRoleEnum'
-          readOnly: true
-        joined_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - id
-      - joined_at
-      - role
-      - user_email
-    OrganizationMembershipRoleEnum:
+    NullEnum:
       enum:
-      - owner
-      - admin
-      - member
-      type: string
-      description: |-
-        * `owner` - Owner
-        * `admin` - Admin
-        * `member` - Member
-    OrganizationMembershipRoleUpdateRoleEnum:
-      enum:
-      - admin
-      - member
-      type: string
-      description: |-
-        * `admin` - admin
-        * `member` - member
-    OrganizationOwnershipTransfer:
+      - null
+    PaginatedPaginatedWorkspaceInvitationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaginatedWorkspaceInvitation'
+    PaginatedPaginatedWorkspaceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaginatedWorkspace'
+    PaginatedPaginatedWorkspaceMembershipList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaginatedWorkspaceMembership'
+    PaginatedWorkspace:
       type: object
       properties:
-        membership_id:
+        count:
+          type: integer
+        next:
           type: string
-          format: uuid
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Workspace'
       required:
-      - membership_id
+      - count
+      - next
+      - previous
+      - results
+    PaginatedWorkspaceInvitation:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceInvitation'
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PaginatedWorkspaceMembership:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceMembership'
+      required:
+      - count
+      - next
+      - previous
+      - results
     PasswordResetConfirm:
       type: object
       properties:
@@ -1099,7 +1184,7 @@ components:
         is_email_verified:
           type: boolean
           readOnly: true
-    PatchedOrganization:
+    PatchedWorkspace:
       type: object
       properties:
         id:
@@ -1112,6 +1197,12 @@ components:
         slug:
           type: string
           readOnly: true
+        role:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/WorkspaceRoleEnum'
+          - $ref: '#/components/schemas/NullEnum'
         created_at:
           type: string
           format: date-time
@@ -1120,11 +1211,11 @@ components:
           type: string
           format: date-time
           readOnly: true
-    PatchedOrganizationMembershipRoleUpdate:
+    PatchedWorkspaceMembershipRoleUpdate:
       type: object
       properties:
         role:
-          $ref: '#/components/schemas/OrganizationMembershipRoleUpdateRoleEnum'
+          $ref: '#/components/schemas/WorkspaceMembershipRoleUpdateRoleEnum'
     Register:
       type: object
       properties:
@@ -1238,6 +1329,163 @@ components:
       - is_current
       - last_seen_at
       - user_agent
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        slug:
+          type: string
+          readOnly: true
+        role:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/WorkspaceRoleEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - role
+      - slug
+      - updated_at
+    WorkspaceInvitation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        invited_by_email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - accepted_at
+      - created_at
+      - email
+      - expires_at
+      - id
+      - invited_by_email
+      - revoked_at
+      - status
+    WorkspaceInvitationAccept:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          maxLength: 200
+      required:
+      - token
+    WorkspaceInvitationCreate:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+      required:
+      - email
+    WorkspaceMembership:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        user_id:
+          type: integer
+          readOnly: true
+        user_email:
+          type: string
+          format: email
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/WorkspaceRoleEnum'
+          readOnly: true
+        is_current_user:
+          type: boolean
+          readOnly: true
+        joined_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - is_current_user
+      - joined_at
+      - role
+      - user_email
+      - user_id
+    WorkspaceMembershipRoleUpdateRoleEnum:
+      enum:
+      - admin
+      - member
+      type: string
+      description: |-
+        * `admin` - admin
+        * `member` - member
+    WorkspaceOwnershipTransfer:
+      type: object
+      properties:
+        membership_id:
+          type: string
+          format: uuid
+      required:
+      - membership_id
+    WorkspaceRoleEnum:
+      enum:
+      - owner
+      - admin
+      - member
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `admin` - Admin
+        * `member` - Member
   securitySchemes:
     BearerAuth:
       type: http
