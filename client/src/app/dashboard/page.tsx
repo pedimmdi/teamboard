@@ -123,48 +123,77 @@ function ProfileForm({
 
       <div className={styles.divider} />
 
-      <label className={styles.field}>
-        <span>Profile picture</span>
-        <input
-          ref={fileInput}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          disabled={isSaving}
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-            if (
-              !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-              file.size > 5 * 1024 * 1024
-            ) {
-              setErrorMessage("Choose a JPEG, PNG, or WebP image up to 5 MB.");
-              event.target.value = "";
-              return;
-            }
-            setErrorMessage("");
-            setSuccessMessage("");
-            setAvatar(file);
-            setPreview(URL.createObjectURL(file));
-          }}
-        />
-        <small className={styles.fieldHelp}>
-          JPEG, PNG, or WebP. Up to 5 MB and 4096 × 4096 pixels.
-        </small>
-      </label>
-      {(avatar || user.avatar) && avatar !== null && (
-        <button
-          type="button"
-          className={`${styles.secondaryButton} ${styles.removePicture}`}
-          disabled={isSaving}
-          onClick={() => {
-            setAvatar(user.avatar ? null : undefined);
-            setPreview(null);
-            if (fileInput.current) fileInput.current.value = "";
-          }}
+      <div className={styles.field}>
+        <span id="profile-picture-label">Profile picture</span>
+        <div
+          className={styles.pictureControls}
+          role="group"
+          aria-labelledby="profile-picture-label"
+          aria-describedby="profile-picture-help"
         >
-          Remove picture
-        </button>
-      )}
+          <input
+            ref={fileInput}
+            type="file"
+            hidden
+            aria-label="Choose profile picture"
+            accept="image/jpeg,image/png,image/webp"
+            disabled={isSaving}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              if (
+                !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+                file.size > 5 * 1024 * 1024
+              ) {
+                setErrorMessage("Choose a JPEG, PNG, or WebP image up to 5 MB.");
+                event.target.value = "";
+                return;
+              }
+              setErrorMessage("");
+              setSuccessMessage("");
+              setAvatar(file);
+              setPreview(URL.createObjectURL(file));
+            }}
+          />
+          <button
+            type="button"
+            className={styles.uploadPicture}
+            disabled={isSaving}
+            onClick={() => fileInput.current?.click()}
+          >
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M10 13V3M6.5 6.5L10 3L13.5 6.5M4 12V15.5C4 16.33 4.67 17 5.5 17H14.5C15.33 17 16 16.33 16 15.5V12"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {avatar || (user.avatar && avatar !== null) ? "Change photo" : "Upload photo"}
+          </button>
+          <span className={styles.pictureFileName} title={avatar?.name}>
+            {avatar?.name ?? (user.avatar && avatar !== null ? "Current picture" : "No picture")}
+          </span>
+          {(avatar || user.avatar) && avatar !== null && (
+            <button
+              type="button"
+              className={styles.removePicture}
+              disabled={isSaving}
+              aria-label="Remove profile picture"
+              title="Remove picture"
+              onClick={() => {
+                setAvatar(user.avatar ? null : undefined);
+                setPreview(null);
+                if (fileInput.current) fileInput.current.value = "";
+              }}
+            >
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M3.5 5.5H16.5M8 3H12M5 5.5L5.75 16.25C5.8 16.95 6.38 17.5 7.08 17.5H12.92C13.62 17.5 14.2 16.95 14.25 16.25L15 5.5M8 8.5V14M12 8.5V14"
+                  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <small id="profile-picture-help" className={styles.fieldHelp}>
+          JPEG, PNG or WebP · Up to 5 MB · Max 4096 × 4096
+        </small>
+      </div>
 
       <div className={styles.fieldRow}>
         <label className={styles.field}>

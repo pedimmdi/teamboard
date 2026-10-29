@@ -104,7 +104,6 @@ export default function WorkspaceLayout({ children }: Props) {
 
               <div>
                 <h1>{workspace.name}</h1>
-                <p>Workspace workspace</p>
               </div>
             </header>
 

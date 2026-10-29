@@ -53,12 +53,6 @@
   line-height: 32px;
 }
 
-.header p {
-  margin: 4px 0 0;
-  color: #475569;
-  font-size: 14px;
-}
-
 .pageContent {
   min-width: 0;
 }

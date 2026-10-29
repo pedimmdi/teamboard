@@ -2,7 +2,7 @@
 
 TeamBoard is a project management platform in development, built with Django REST Framework and Next.js. It is designed to support team collaboration, task management, and secure account access through a versioned REST API.
 
-The current implementation focuses on account management, authentication, session security, and the frontend foundation. Workspace, team, and task management modules are planned for subsequent development.
+The current implementation includes account management, authentication, session security, workspaces, role-based membership, and email invitations. Project and task management are the next development areas.
 
 ## Current Features
 
@@ -10,6 +10,10 @@ The current implementation focuses on account management, authentication, sessio
 
 - Custom user model with email-based identification
 - User profile management with validated profile image uploads
+- Workspace creation, overview, settings, and deletion
+- Owner, admin, and member roles with workspace-scoped access
+- Member management, ownership transfer, and leaving a workspace
+- Email invitations with acceptance, resend, revocation, and expiration
 - JWT authentication with short-lived access tokens
 - Refresh token rotation using an HttpOnly cookie
 - Session tracking, session revocation, and active-session management
@@ -29,6 +33,9 @@ The current implementation focuses on account management, authentication, sessio
 - Authenticated account dashboard
 - Profile editing, image preview, upload and removal
 - Profile pictures in workspace member lists and the account sidebar
+- Workspace listing, creation, overview, members, invitations, and settings
+- Shared workspace navigation icon and distinct role badges on desktop and mobile
+- Compact profile image controls with upload and removal in one row
 - Password and security settings
 - Active session management and session revocation
 - Automatic access-token refresh and session handling
@@ -59,14 +66,21 @@ teamboard/
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── (auth)/
+│   │   │   │   ├── accept-invitation/
 │   │   │   │   ├── forgot-password/
 │   │   │   │   ├── login/
 │   │   │   │   ├── register/
+│   │   │   │   ├── resend-verification/
 │   │   │   │   ├── reset-password/
 │   │   │   │   └── verify-email/
 │   │   │   ├── dashboard/
 │   │   │   │   ├── security/
-│   │   │   │   └── sessions/
+│   │   │   │   ├── sessions/
+│   │   │   │   └── workspaces/
+│   │   │   │       └── [slug]/
+│   │   │   │           ├── members/
+│   │   │   │           ├── invitations/
+│   │   │   │           └── settings/
 │   │   │   ├── globals.css
 │   │   │   ├── layout.tsx
 │   │   │   └── page.tsx
@@ -82,19 +96,32 @@ teamboard/
 │   ├── accounts/
 │   │   ├── api/
 │   │   │   └── v1/
-                ├── serializers.py
+│   │   │       ├── serializers.py
 │   │   │       ├── urls.py
 │   │   │       └── views.py
 │   │   ├── migrations/
 │   │   ├── admin.py
 │   │   ├── authentication.py
 │   │   ├── models.py
-│   │   └── tests.py
+│   │   ├── validators.py
+│   │   ├── tests.py
+│   │   └── test_avatars.py
+│   ├── workspaces/
+│   │   ├── api/v1/
+│   │   ├── migrations/
+│   │   ├── access.py
+│   │   ├── admin.py
+│   │   ├── models.py
+│   │   ├── services.py
+│   │   ├── signals.py
+│   │   ├── tests.py
+│   │   └── test_migrations.py
 │   ├── config/
 │   │   ├── settings.py
 │   │   ├── urls.py
 │   │   └── api_v1_urls.py
 │   ├── manage.py
+│   ├── schema.yml
 │   └── pytest.ini
 ├── docker/
 │   ├── backend.Dockerfile
@@ -240,10 +267,37 @@ All application API endpoints are currently versioned under `/api/v1/`.
 | Change password | `POST /api/v1/accounts/password/change/` |
 | Request password reset | `POST /api/v1/accounts/password/reset/` |
 | Confirm password reset | `POST /api/v1/accounts/password/reset/confirm/` |
-| Verify email | `GET /api/v1/accounts/email/verify/` |
+| Verify email | `POST /api/v1/accounts/email/verify/` |
 | Resend verification email | `POST /api/v1/accounts/email/resend/` |
 
 Use Swagger UI to inspect request payloads, supported HTTP methods, authentication requirements, and response schemas.
+
+### Workspaces, members, and invitations
+
+| Functionality | Endpoint |
+|---|---|
+| List or create workspaces | `GET/POST /api/v1/workspaces/` |
+| Retrieve, update, or delete a workspace | `GET/PATCH/DELETE /api/v1/workspaces/<slug>/` |
+| List members | `GET /api/v1/workspaces/<slug>/members/` |
+| Update a member's role | `PATCH /api/v1/workspaces/<slug>/members/<membership_id>/role/` |
+| Remove a member | `DELETE /api/v1/workspaces/<slug>/members/<membership_id>/` |
+| Transfer ownership | `POST /api/v1/workspaces/<slug>/transfer-ownership/` |
+| Leave a workspace | `POST /api/v1/workspaces/<slug>/leave/` |
+| List or send invitations | `GET/POST /api/v1/workspaces/<slug>/invitations/` |
+| Revoke an invitation | `DELETE /api/v1/workspaces/<slug>/invitations/<invitation_id>/` |
+| Resend an invitation | `POST /api/v1/workspaces/<slug>/invitations/<invitation_id>/resend/` |
+| Accept an invitation | `POST /api/v1/workspaces/invitations/accept/` |
+
+Workspace members can access their workspace overview and member list. Owners and
+admins can edit workspace settings and manage invitations. Only owners can change
+roles, transfer ownership, or delete a workspace. Owners can remove admins and
+members; admins can remove members only. Owners must transfer ownership before
+leaving a workspace.
+
+The dashboard uses `/dashboard` for profiles, `/dashboard/security` for password
+settings, `/dashboard/sessions` for sessions, and `/dashboard/workspaces` for
+workspaces. Each workspace has overview, members, invitations, and settings tabs.
+Invitation links preserve the acceptance flow through login or registration.
 
 ## Authentication
 
@@ -269,16 +323,20 @@ This supports development and testing of email-related flows without an external
 
 ### Backend
 
-Run the account tests in the Docker environment:
+Run the full backend suite against PostgreSQL in the Docker environment:
 
 ```bash
-docker compose exec backend python -m pytest accounts/tests.py -v
+docker compose exec backend python -m pytest -v
 ```
 
-Alternatively, use Django's test runner:
+The suite covers accounts, session security, profile images, workspace permissions,
+memberships, invitations, and upgrades from the former workspace app name.
+Run the checks used by CI before committing:
 
 ```bash
-docker compose exec backend python manage.py test
+docker compose exec backend python manage.py check
+docker compose exec backend python manage.py makemigrations --check --dry-run
+docker compose exec backend python manage.py spectacular --validate --fail-on-warn --file /tmp/teamboard-schema.yml
 ```
 
 ### Frontend
@@ -298,7 +356,7 @@ GitHub Actions runs on pushes, pull requests, and manual workflow dispatches.
 
 The current workflow contains two independent jobs:
 
-- **Backend:** installs Python dependencies, starts PostgreSQL, and runs `accounts/tests.py`.
+- **Backend:** installs Python dependencies, starts PostgreSQL, checks Django configuration and migration consistency, validates the OpenAPI schema, and runs the full pytest suite.
 - **Frontend:** installs Node.js dependencies using `npm ci`, runs ESLint, and builds the Next.js application.
 
 Integration and end-to-end browser tests are not currently part of the workflow.
@@ -357,10 +415,9 @@ docker compose down -v
 
 ## Development Roadmap
 
-The current foundation focuses on account security and the frontend/backend architecture. Planned development includes:
+Account security, profile images, workspaces, memberships, and invitations are
+implemented. Planned development includes:
 
-- Workspace and workspace management
-- Team membership and role-based permissions
 - Project and task management
 - Collaboration features
 - Integration and end-to-end testing
@@ -375,10 +432,6 @@ These are planned capabilities, not claims that those modules are already implem
 - Configure production email delivery, logging, static assets, database backups, and monitoring before deployment.
 - Review security and deployment settings before exposing services publicly.
 - Never commit `.env`, real credentials, passwords, access tokens, or other secrets.
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ## Workspace rename upgrades
 
@@ -406,3 +459,14 @@ Uploads are stored in `config/media/`, which is ignored by Git and persists
 through the existing Docker bind mount. Django serves `/media/` when `DEBUG=True`.
 For production, serve `MEDIA_ROOT` at `/media/` through the deployment's media
 server or configure Django storage, and preserve uploaded files across deploys.
+
+## Commit convention
+
+Use `type(scope): description`, with the affected app or area as the scope.
+Examples: `feat(workspaces): add workspace settings`,
+`fix(accounts): refine profile picture controls`, and
+`docs(readme): update development instructions`.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

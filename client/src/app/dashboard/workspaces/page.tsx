@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import CreateWorkspaceModal from "./create-workspace-modal";
 import Link from "next/link";
+import WorkspaceIcon from "@/components/ui/WorkspaceIcon";
 
 import {
   ApiError,
@@ -69,37 +70,6 @@ function ChevronRightIcon() {
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function WorkspaceIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <rect
-        x="4"
-        y="4"
-        width="16"
-        height="16"
-        rx="3"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M8 20V9H16V20"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M7 7H7.01M11 7H11.01M15 7H15.01"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
       />
     </svg>
   );

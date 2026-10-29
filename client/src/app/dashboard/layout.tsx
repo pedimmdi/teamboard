@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import WorkspaceIcon from "@/components/ui/WorkspaceIcon";
 import Avatar from "@/components/ui/Avatar";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
@@ -75,37 +76,6 @@ function MonitorIcon() {
       />
       <path
         d="M7 17H13M10 13V17"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function WorkspaceIcon() {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden="true"
-    >
-      <rect
-        x="3"
-        y="3"
-        width="14"
-        height="14"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M7 17V8H13V17"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M5.5 6H5.51M9.5 6H9.51M13.5 6H13.51"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"

@@ -296,25 +296,79 @@
   line-height: 18px;
 }
 
+.pictureControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.uploadPicture,
 .removePicture {
-  align-self: flex-start;
-}
-
-.field input[type="file"] {
-  height: auto;
-  min-height: 44px;
-  padding: 8px;
-}
-
-.field input[type="file"]::file-selector-button {
-  margin-right: 12px;
-  padding: 5px 10px;
-  border: 0;
-  border-radius: 4px;
-  background: #eef2ff;
-  color: #4338ca;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #ffffff;
   font: inherit;
   cursor: pointer;
+}
+
+.uploadPicture {
+  gap: 8px;
+  padding: 0 12px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.removePicture {
+  width: 36px;
+  margin-left: auto;
+  border-color: transparent;
+  color: #64748b;
+}
+
+.uploadPicture svg,
+.removePicture svg {
+  width: 16px;
+  height: 16px;
+}
+
+.uploadPicture:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.removePicture:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.uploadPicture:focus-visible,
+.removePicture:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+
+.uploadPicture:disabled,
+.removePicture:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pictureFileName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #64748b;
+  font-size: 12px;
 }
 
 .field > span {

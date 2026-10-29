@@ -165,13 +165,13 @@
 }
 
 .roleOwner {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: #f3e8ff;
+  color: #6b21a8;
 }
 
 .roleAdmin {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #e6f6f2;
+  color: #0f766e;
 }
 
 .roleMember {
@@ -326,7 +326,8 @@
   }
 
   .roleBadge {
-    display: none;
+    padding: 2px 6px;
+    font-size: 11px;
   }
 
   .pagination {
