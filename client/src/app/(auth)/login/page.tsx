@@ -1,8 +1,12 @@
+
 "use client";
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+import AuthShell from "@/components/auth/AuthShell";
+import PasswordField from "@/components/auth/PasswordField";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { ApiError, getCurrentUser, login } from "@/lib/api";
@@ -15,6 +19,8 @@ import {
   saveInvitationReturn,
 } from "@/lib/invitation-return";
 
+import styles from "./login.module.css";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,9 +30,7 @@ export default function LoginPage() {
   const { setTokens } = useAuth();
   const router = useRouter();
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setLoading(true);
@@ -35,12 +39,9 @@ export default function LoginPage() {
       const data = await login(email.trim(), password);
       const user = await getCurrentUser(data.access);
 
-      setTokens(
-        data.access,
-        user,
-      );
-      const params = new URLSearchParams(window.location.search);
+      setTokens(data.access, user);
 
+      const params = new URLSearchParams(window.location.search);
       const returnPath =
         getSafeInvitationReturn(params.get("next")) ??
         readInvitationReturn();
@@ -63,103 +64,77 @@ export default function LoginPage() {
     }
   }
 
+  function getRegisterPath() {
+    const params = new URLSearchParams(window.location.search);
+    const returnPath =
+      getSafeInvitationReturn(params.get("next")) ??
+      readInvitationReturn();
+
+    if (returnPath) saveInvitationReturn(returnPath);
+
+    return getInvitationAuthUrl("/register", returnPath);
+  }
+
   return (
-    <main className="auth-page">
-      <section className="auth-brand-panel">
-        <div className="brand-content">
-          <div className="brand-mark">T</div>
-          <h1>TeamBoard</h1>
-          <p>
-            Organize your work, collaborate with your team,
-            and keep everything in one place.
-          </p>
-        </div>
-      </section>
+    <AuthShell>
+      <div className={styles.header}>
+        <h2>Welcome back</h2>
+        <p>Sign in to your TeamBoard account.</p>
+      </div>
 
-      <section className="auth-form-panel">
-        <div className="auth-card">
-          <div className="auth-header">
-            <h2>Welcome back</h2>
-            <p>Sign in to your TeamBoard account</p>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        {error && (
+          <div className={styles.errorBanner} role="alert">
+            <span aria-hidden="true">!</span>
+            <p>{error}</p>
           </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="auth-form">
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              label="Email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          label="Email address"
+          placeholder="you@example.com"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
 
-            <div className="password-field">
-              <div className="password-label-row">
-                <label htmlFor="password">Password</label>
-                <Link href="/forgot-password">
-                  Forgot password?
-                </Link>
-              </div>
+        <PasswordField
+          id="password"
+          name="password"
+          label="Password"
+          placeholder="Enter your password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          action={<Link href="/forgot-password">Forgot password?</Link>}
+          required
+        />
 
-              <input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) =>
-                  setPassword(event.target.value)
-                }
-                required
-              />
-            </div>
+        <Button
+          type="submit"
+          loading={loading}
+          className={styles.submit}
+        >
+          Sign in
+        </Button>
+      </form>
 
-            {error && (
-              <div className="form-error" role="alert">
-                {error}
-                {error.toLowerCase().includes("not verified") && (
-                  <>
-                    {" "}
-                    <Link href="/verify-email">
-                      Verify your email
-                    </Link>
-                  </>
-                )}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              loading={loading}
-              className="primary-button"
-            >
-              Sign in
-            </Button>
-          </form>
-
-          <p className="auth-footer">
-            Don&apos;t have an account?{" "}
-            <Link
-              href={getInvitationAuthUrl(
-                "/register",
-                typeof window === "undefined"
-                  ? null
-                  : new URLSearchParams(window.location.search).get("next"),
-              )}
-              onClick={() => {
-                const params = new URLSearchParams(window.location.search);
-                saveInvitationReturn(params.get("next"));
-              }}
-            >
-              Create an account
-            </Link>
-          </p>
-        </div>
-      </section>
-    </main>
+      <p className={styles.footer}>
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/register"
+          onClick={(event) => {
+            event.preventDefault();
+            router.push(getRegisterPath());
+          }}
+        >
+          Create one
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

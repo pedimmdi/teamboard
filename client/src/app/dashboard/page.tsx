@@ -29,6 +29,8 @@ function ProfileForm({
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  const { updateUser } = useAuth();
+
   const initials = useMemo(
     () => getInitials(firstName, lastName),
     [firstName, lastName],
@@ -58,13 +60,15 @@ function ProfileForm({
     setIsSaving(true);
 
     try {
-      await updateCurrentUser(accessToken, {
+      const updatedUser = await updateCurrentUser(accessToken, {
         first_name: normalizedFirstName,
         last_name: normalizedLastName,
       });
 
-      setFirstName(normalizedFirstName);
-      setLastName(normalizedLastName);
+      updateUser(updatedUser);
+
+      setFirstName(updatedUser.first_name);
+      setLastName(updatedUser.last_name);
       setSuccessMessage("Your profile has been updated.");
     } catch (error) {
       setErrorMessage(
@@ -76,6 +80,10 @@ function ProfileForm({
       setIsSaving(false);
     }
   };
+
+  const hasChanges =
+    firstName.trim() !== user.first_name ||
+    lastName.trim() !== user.last_name;
 
   return (
     <form className={styles.card} onSubmit={handleSubmit}>
@@ -141,7 +149,7 @@ function ProfileForm({
           type="button"
           className={styles.secondaryButton}
           onClick={handleCancel}
-          disabled={isSaving}
+          disabled={isSaving || !hasChanges}
         >
           Cancel
         </button>
@@ -149,7 +157,7 @@ function ProfileForm({
         <button
           type="submit"
           className={styles.primaryButton}
-          disabled={isSaving}
+          disabled={isSaving || !hasChanges}
         >
           {isSaving ? "Saving..." : "Save changes"}
         </button>

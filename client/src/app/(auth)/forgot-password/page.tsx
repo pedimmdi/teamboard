@@ -1,10 +1,15 @@
+
 "use client";
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+
+import AuthShell from "@/components/auth/AuthShell";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { requestPasswordReset } from "@/lib/api";
+
+import styles from "./forgot-password.module.css";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -20,6 +25,7 @@ export default function ForgotPasswordPage() {
 
     try {
       const result = await requestPasswordReset(email.trim());
+
       setMessage(
         result.detail ||
           "If an account exists for this email, a password reset link has been sent.",
@@ -36,61 +42,53 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="auth-page">
-      <section className="auth-brand-panel">
-        <div className="brand-content">
-          <div className="brand-mark">T</div>
-          <h1>TeamBoard</h1>
-          <p>Get back to work with your team.</p>
-        </div>
-      </section>
+    <AuthShell>
+      <div className={styles.header}>
+        <h2>Forgot your password?</h2>
+        <p>
+          Enter your email address and we&apos;ll send you a link
+          to reset your password.
+        </p>
+      </div>
 
-      <section className="auth-form-panel">
-        <div className="auth-card">
-          <div className="auth-header">
-            <h2>Forgot password?</h2>
-            <p>Enter your email and we’ll send you a reset link.</p>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          label="Email address"
+          placeholder="you@example.com"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+
+        {message && (
+          <div className={styles.success} role="status">
+            {message}
           </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="auth-form">
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              label="Email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
+        {error && (
+          <div className={styles.error} role="alert">
+            {error}
+          </div>
+        )}
 
-            {message && (
-              <div role="status" className="form-success">
-                {message}
-              </div>
-            )}
+        <Button
+          type="submit"
+          className={styles.submit}
+          loading={loading}
+        >
+          Send reset link
+        </Button>
+      </form>
 
-            {error && (
-              <div role="alert" className="form-error">
-                {error}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              loading={loading}
-              className="primary-button"
-            >
-              Send reset link
-            </Button>
-          </form>
-
-          <p className="auth-footer">
-            Remember your password? <Link href="/login">Sign in</Link>
-          </p>
-        </div>
-      </section>
-    </main>
+      <Link href="/login" className={styles.backLink}>
+        <span aria-hidden="true">←</span>
+        Back to sign in
+      </Link>
+    </AuthShell>
   );
 }

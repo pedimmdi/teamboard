@@ -1,0 +1,177 @@
+
+.layout {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 40% 60%;
+  background: #fff;
+}
+
+.brandPanel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 36px clamp(28px, 4vw, 64px);
+  background: #1e1b4b;
+  color: #fff;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.logoMark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.brandContent {
+  width: 100%;
+  max-width: 420px;
+  margin: auto 0;
+}
+
+.brandContent h1 {
+  font-size: clamp(25px, 2.5vw, 38px);
+  line-height: 1.2;
+  font-weight: 750;
+  letter-spacing: -0.9px;
+}
+
+.brandContent p {
+  max-width: 370px;
+  margin-top: 14px;
+  color: #c7c5e9;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.boardColumn {
+  min-width: 0;
+  min-height: 160px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #37318a;
+}
+
+.columnTitle {
+  display: block;
+  margin-bottom: 12px;
+  color: #dedcff;
+  font-size: 10px;
+}
+
+.boardCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 39px;
+  margin-bottom: 8px;
+  padding: 10px;
+  border-radius: 5px;
+  background: #24205e;
+}
+
+.cardLine,
+.cardLineShort {
+  height: 4px;
+  border-radius: 4px;
+  background: #6257ed;
+}
+
+.cardLine {
+  width: 75%;
+}
+
+.cardLineShort {
+  width: 45%;
+  background: #48419c;
+}
+
+.copyright {
+  margin-top: 32px;
+  color: #aaa7d0;
+  font-size: 11px;
+}
+
+.formPanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 48px 32px;
+}
+
+.formContainer {
+  width: min(400px, 100%);
+}
+
+@media (max-width: 760px) {
+  .layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brandPanel {
+    flex: none;
+    min-height: 155px;
+    padding: 20px 24px 22px;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .brandContent {
+    margin: 24px 0 0;
+  }
+
+  .brandContent h1 {
+    max-width: 240px;
+    font-size: 23px;
+  }
+
+  .brandContent p,
+  .board,
+  .copyright {
+    display: none;
+  }
+
+  .formPanel {
+    flex: 1;
+    align-items: flex-start;
+    padding: 32px 24px 48px;
+  }
+
+  .formContainer {
+    width: min(400px, 100%);
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .brandPanel {
+    padding-inline: 18px;
+  }
+
+  .formPanel {
+    padding-inline: 18px;
+  }
+}

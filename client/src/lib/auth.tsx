@@ -24,6 +24,7 @@ type AuthContextValue = {
     access: string,
     user: CurrentUser,
   ) => void;
+  updateUser: (user: CurrentUser) => void;
   logout: () => Promise<void>;
 };
 
@@ -60,6 +61,10 @@ export function AuthProvider({
     },
     [],
   );
+
+  const updateUser = useCallback((updatedUser: CurrentUser) => {
+    setUser(updatedUser);
+  }, []);
 
   useEffect(() => {
     async function restoreSession() {
@@ -151,6 +156,7 @@ export function AuthProvider({
         ),
         isLoading,
         setTokens,
+        updateUser,
         logout,
       }}
     >

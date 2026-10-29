@@ -1,0 +1,59 @@
+
+.content {
+  text-align: center;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 19px;
+  border-radius: 50%;
+}
+
+.icon svg {
+  width: 25px;
+  height: 25px;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.info {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.content h1 {
+  color: #0f172a;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.description {
+  margin-top: 9px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-top: 24px;
+}

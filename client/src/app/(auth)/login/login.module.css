@@ -1,0 +1,82 @@
+
+.header {
+  margin-bottom: 26px;
+}
+
+.header h2 {
+  color: #0f172a;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+}
+
+.header p {
+  margin-top: 7px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 19px;
+}
+
+.submit {
+  width: 100%;
+  min-height: 43px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.submit:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.submit:disabled {
+  opacity: 0.65;
+}
+
+.errorBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #fca5a5;
+  border-radius: 7px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.errorBanner span {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.footer {
+  margin-top: 22px;
+  color: #64748b;
+  text-align: center;
+  font-size: 13px;
+}
+
+.footer a {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}

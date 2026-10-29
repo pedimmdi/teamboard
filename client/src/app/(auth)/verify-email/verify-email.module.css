@@ -1,0 +1,32 @@
+
+.primaryButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 43px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  background: #4f46e5;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.primaryButton:hover {
+  background: #4338ca;
+}
+
+.secondaryLink {
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.secondaryLink:hover {
+  text-decoration: underline;
+}
+
+.loadingText {
+  color: #64748b;
+  font-size: 12px;
+}
