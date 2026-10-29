@@ -15,8 +15,6 @@ import {
   refreshToken,
 } from "@/lib/api";
 
-import { useRouter } from "next/navigation";
-
 type AuthContextValue = {
   accessToken: string | null;
   user: CurrentUser | null;
@@ -51,8 +49,6 @@ export function AuthProvider({
     setAccessToken(null);
     setUser(null);
   }, []);
-
-  const router = useRouter();
 
   const setTokens = useCallback(
     (
@@ -108,7 +104,6 @@ export function AuthProvider({
 
     function handleAuthLogout() {
       clearAuth();
-      router.push("/login");
     }
 
     window.addEventListener(
@@ -134,7 +129,7 @@ export function AuthProvider({
         handleAuthLogout,
       );
     };
-  }, [clearAuth, router]);
+  }, [clearAuth]);
 
   const logout = useCallback(async () => {
     try {

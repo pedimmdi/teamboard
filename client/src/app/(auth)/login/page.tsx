@@ -45,7 +45,11 @@ export default function LoginPage() {
         getSafeInvitationReturn(params.get("next")) ??
         readInvitationReturn();
 
-      clearInvitationReturn();
+      if (returnPath) {
+        saveInvitationReturn(returnPath);
+      } else {
+        clearInvitationReturn();
+      }
 
       router.replace(returnPath ?? "/dashboard");
     } catch (err) {

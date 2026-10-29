@@ -98,6 +98,8 @@ function InvitationContent() {
     setIsSwitchingAccount(true);
     setAccountError(null);
 
+    saveInvitationReturn(returnPath);
+
     try {
       await logout();
       router.replace(loginPath);

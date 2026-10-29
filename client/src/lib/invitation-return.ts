@@ -1,5 +1,5 @@
 const STORAGE_KEY = "teamboard:invitation-return";
-const MAX_AGE_MS = 30 * 60 * 1000;
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 type StoredInvitationReturn = {
   path: string;
