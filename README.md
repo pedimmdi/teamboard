@@ -9,7 +9,7 @@ The current implementation focuses on account management, authentication, sessio
 ### Backend
 
 - Custom user model with email-based identification
-- User profile management
+- User profile management with validated profile image uploads
 - JWT authentication with short-lived access tokens
 - Refresh token rotation using an HttpOnly cookie
 - Session tracking, session revocation, and active-session management
@@ -27,7 +27,8 @@ The current implementation focuses on account management, authentication, sessio
 - Email verification flow
 - Forgot-password and reset-password pages
 - Authenticated account dashboard
-- Profile editing
+- Profile editing, image preview, upload and removal
+- Profile pictures in workspace member lists and the account sidebar
 - Password and security settings
 - Active session management and session revocation
 - Automatic access-token refresh and session handling
@@ -378,7 +379,8 @@ These are planned capabilities, not claims that those modules are already implem
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-# Workspace rename upgrades
+
+## Workspace rename upgrades
 
 The backend app and API now use `workspaces`; the dashboard lives at
 `/dashboard/workspaces` and the API at `/api/v1/workspaces/`.
@@ -389,3 +391,18 @@ workspace IDs, slugs, memberships, invitations, content types and permission
 assignments are retained. Historical names remain only in upgrade migrations
 and their regression test. Upgrade databases from the previous release with all
 three former app migrations applied; do not fake or delete migration records.
+
+## Profile images
+
+Install the updated requirements (or rebuild the backend Docker image), then run
+`python manage.py migrate`. Authenticated users can upload an `avatar` with a
+multipart PATCH to `/api/v1/accounts/me/`, or remove it with JSON
+`{"avatar": null}`. Omitting the field keeps the current image.
+JPEG, PNG and WebP images are accepted up to 5 MB and 4096 × 4096 pixels.
+The account API and workspace member API return the image URL or `null`.
+Replaced images and deleted profiles are cleaned up after database commit.
+
+Uploads are stored in `config/media/`, which is ignored by Git and persists
+through the existing Docker bind mount. Django serves `/media/` when `DEBUG=True`.
+For production, serve `MEDIA_ROOT` at `/media/` through the deployment's media
+server or configure Django storage, and preserve uploaded files across deploys.

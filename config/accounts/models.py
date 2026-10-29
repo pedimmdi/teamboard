@@ -1,10 +1,16 @@
 import uuid
+from pathlib import Path
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 
 from .managers import UserManager
+from .validators import validate_avatar
+
+
+def profile_image_path(instance, filename):
+    return f'profile_images/{instance.user_id}/{uuid.uuid4().hex}{Path(filename).suffix.lower()}'
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -38,6 +44,12 @@ class Profile(models.Model):
     )
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
+    avatar = models.ImageField(
+        upload_to=profile_image_path,
+        blank=True,
+        null=True,
+        validators=[validate_avatar],
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

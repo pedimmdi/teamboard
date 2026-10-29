@@ -594,7 +594,7 @@ class WorkspaceMemberListView(
         return (
             WorkspaceMembership.objects
             .filter(workspace=workspace)
-            .select_related("user")
+            .select_related("user__profile")
             .order_by("joined_at", "pk")
         )
 

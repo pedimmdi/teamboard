@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Avatar from "@/components/ui/Avatar";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 
@@ -255,7 +256,7 @@ export default function DashboardLayout({
           </button>
 
           <div className={styles.userSummary}>
-            <div className={styles.smallAvatar}>{initials}</div>
+            <Avatar className={styles.smallAvatar} src={user.avatar} fallback={initials} />
 
             <div className={styles.userSummaryText}>
               <div className={styles.userName}>

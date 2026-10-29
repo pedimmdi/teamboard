@@ -18,6 +18,7 @@ export type CurrentUser = {
   email: string;
   first_name: string;
   last_name: string;
+  avatar: string | null;
   date_joined: string;
   is_email_verified: boolean;
 };
@@ -224,7 +225,9 @@ export async function apiFetch<T>(
         ...requestOptions,
         credentials: "include",
         headers: {
-          "Content-Type": "application/json",
+          ...(requestOptions.body instanceof FormData
+            ? {}
+            : { "Content-Type": "application/json" }),
           ...(requestToken
             ? {
                 Authorization: `Bearer ${requestToken}`,
@@ -464,16 +467,24 @@ export function revokeOtherSessions(token: string) {
 export type UpdateProfileInput = {
   first_name: string;
   last_name: string;
+  avatar?: File | null;
 };
 
 export function updateCurrentUser(
   token: string,
   data: UpdateProfileInput,
 ) {
+  let body: string | FormData = JSON.stringify(data);
+  if (data.avatar instanceof File) {
+    body = new FormData();
+    body.set("first_name", data.first_name);
+    body.set("last_name", data.last_name);
+    body.set("avatar", data.avatar);
+  }
   return apiFetch<CurrentUser>("/api/v1/accounts/me/", {
     method: "PATCH",
     token,
-    body: JSON.stringify(data),
+    body,
   });
 }
 
@@ -570,6 +581,7 @@ export type WorkspaceMember = {
   id: string;
   user_id: number;
   user_email: string;
+  avatar: string | null;
   role: WorkspaceRole;
   is_current_user: boolean;
   joined_at: string;

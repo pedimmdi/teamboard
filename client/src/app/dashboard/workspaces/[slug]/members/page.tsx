@@ -1,5 +1,6 @@
 
 "use client";
+import Avatar from "@/components/ui/Avatar";
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -124,9 +125,8 @@ export default function MembersPage() {
                   <tr key={member.id}>
                     <td>
                       <div className={styles.memberCell}>
-                        <span className={styles.avatar}>
-                          {member.user_email.charAt(0).toUpperCase()}
-                        </span>
+                        <Avatar className={styles.avatar} src={member.avatar}
+                          fallback={member.user_email.charAt(0).toUpperCase()} />
                         <span className={styles.email}>
                           {member.user_email}
                           {member.is_current_user && (
@@ -167,9 +167,8 @@ export default function MembersPage() {
               <div key={member.id} className={styles.mobileMember}>
                 <div className={styles.mobileMemberTop}>
                   <div className={styles.memberCell}>
-                    <span className={styles.avatar}>
-                      {member.user_email.charAt(0).toUpperCase()}
-                    </span>
+                    <Avatar className={styles.avatar} src={member.avatar}
+                      fallback={member.user_email.charAt(0).toUpperCase()} />
 
                     <div className={styles.mobileMemberInfo}>
                       <span className={styles.email}>

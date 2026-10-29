@@ -1,5 +1,6 @@
 from django.conf import settings
-from django.db.models.signals import post_save
+from django.db import transaction
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from .models import Profile
@@ -9,3 +10,22 @@ from .models import Profile
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
+
+
+@receiver(pre_save, sender=Profile)
+def remember_previous_avatar(sender, instance, using, **kwargs):
+    previous = sender.objects.using(using).filter(pk=instance.pk).first() if instance.pk else None
+    instance._previous_avatar = previous.avatar if previous else None
+
+
+@receiver(post_save, sender=Profile)
+def delete_replaced_avatar(sender, instance, using, **kwargs):
+    previous = getattr(instance, '_previous_avatar', None)
+    if previous and previous.name != instance.avatar.name:
+        transaction.on_commit(lambda: previous.delete(save=False), using=using, robust=True)
+
+
+@receiver(post_delete, sender=Profile)
+def delete_profile_avatar(sender, instance, using, **kwargs):
+    if instance.avatar:
+        transaction.on_commit(lambda: instance.avatar.delete(save=False), using=using, robust=True)

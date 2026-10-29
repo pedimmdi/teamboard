@@ -18,13 +18,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ResendVerificationEmail'
+              $ref: '#/components/schemas/ResendVerificationEmailRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ResendVerificationEmail'
+              $ref: '#/components/schemas/ResendVerificationEmailRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ResendVerificationEmail'
+              $ref: '#/components/schemas/ResendVerificationEmailRequest'
         required: true
       security:
       - BearerAuth: []
@@ -52,13 +52,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EmailVerification'
+              $ref: '#/components/schemas/EmailVerificationRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/EmailVerification'
+              $ref: '#/components/schemas/EmailVerificationRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/EmailVerification'
+              $ref: '#/components/schemas/EmailVerificationRequest'
         required: true
       security:
       - BearerAuth: []
@@ -86,21 +86,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
         required: true
       responses:
         '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Login'
-          description: ''
+          description: No response body
   /api/v1/accounts/logout/:
     post:
       operationId: v1_accounts_logout_create
@@ -143,13 +139,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedCurrentUser'
+              $ref: '#/components/schemas/PatchedCurrentUserRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedCurrentUser'
+              $ref: '#/components/schemas/PatchedCurrentUserRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedCurrentUser'
+              $ref: '#/components/schemas/PatchedCurrentUserRequest'
       security:
       - BearerAuth: []
       responses:
@@ -171,13 +167,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChangePassword'
+              $ref: '#/components/schemas/ChangePasswordRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ChangePassword'
+              $ref: '#/components/schemas/ChangePasswordRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ChangePassword'
+              $ref: '#/components/schemas/ChangePasswordRequest'
         required: true
       security:
       - BearerAuth: []
@@ -204,13 +200,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PasswordResetRequest'
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PasswordResetRequest'
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PasswordResetRequest'
+              $ref: '#/components/schemas/PasswordResetRequestRequest'
         required: true
       security:
       - BearerAuth: []
@@ -238,13 +234,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PasswordResetConfirm'
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PasswordResetConfirm'
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PasswordResetConfirm'
+              $ref: '#/components/schemas/PasswordResetConfirmRequest'
         required: true
       security:
       - BearerAuth: []
@@ -272,13 +268,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SessionRefreshToken'
+              $ref: '#/components/schemas/SessionRefreshTokenRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/SessionRefreshToken'
+              $ref: '#/components/schemas/SessionRefreshTokenRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/SessionRefreshToken'
+              $ref: '#/components/schemas/SessionRefreshTokenRequest'
         required: true
       responses:
         '200':
@@ -296,13 +292,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Register'
+              $ref: '#/components/schemas/RegisterRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Register'
+              $ref: '#/components/schemas/RegisterRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Register'
+              $ref: '#/components/schemas/RegisterRequest'
         required: true
       security:
       - BearerAuth: []
@@ -419,13 +415,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Workspace'
+              $ref: '#/components/schemas/WorkspaceRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Workspace'
+              $ref: '#/components/schemas/WorkspaceRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Workspace'
+              $ref: '#/components/schemas/WorkspaceRequest'
         required: true
       security:
       - BearerAuth: []
@@ -480,13 +476,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedWorkspace'
+              $ref: '#/components/schemas/PatchedWorkspaceRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedWorkspace'
+              $ref: '#/components/schemas/PatchedWorkspaceRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedWorkspace'
+              $ref: '#/components/schemas/PatchedWorkspaceRequest'
       security:
       - BearerAuth: []
       responses:
@@ -578,13 +574,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WorkspaceInvitationCreate'
+              $ref: '#/components/schemas/WorkspaceInvitationCreateRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/WorkspaceInvitationCreate'
+              $ref: '#/components/schemas/WorkspaceInvitationCreateRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/WorkspaceInvitationCreate'
+              $ref: '#/components/schemas/WorkspaceInvitationCreateRequest'
         required: true
       security:
       - BearerAuth: []
@@ -653,17 +649,6 @@ paths:
         required: true
       tags:
       - Workspaces - Invitations
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WorkspaceInvitation'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/WorkspaceInvitation'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/WorkspaceInvitation'
       security:
       - BearerAuth: []
       responses:
@@ -801,13 +786,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedWorkspaceMembershipRoleUpdate'
+              $ref: '#/components/schemas/PatchedWorkspaceMembershipRoleUpdateRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedWorkspaceMembershipRoleUpdate'
+              $ref: '#/components/schemas/PatchedWorkspaceMembershipRoleUpdateRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedWorkspaceMembershipRoleUpdate'
+              $ref: '#/components/schemas/PatchedWorkspaceMembershipRoleUpdateRequest'
       security:
       - BearerAuth: []
       responses:
@@ -842,13 +827,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WorkspaceOwnershipTransfer'
+              $ref: '#/components/schemas/WorkspaceOwnershipTransferRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/WorkspaceOwnershipTransfer'
+              $ref: '#/components/schemas/WorkspaceOwnershipTransferRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/WorkspaceOwnershipTransfer'
+              $ref: '#/components/schemas/WorkspaceOwnershipTransferRequest'
         required: true
       security:
       - BearerAuth: []
@@ -877,13 +862,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/WorkspaceInvitationAccept'
+              $ref: '#/components/schemas/WorkspaceInvitationAcceptRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/WorkspaceInvitationAccept'
+              $ref: '#/components/schemas/WorkspaceInvitationAcceptRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/WorkspaceInvitationAccept'
+              $ref: '#/components/schemas/WorkspaceInvitationAcceptRequest'
         required: true
       security:
       - BearerAuth: []
@@ -896,18 +881,21 @@ paths:
           description: Authentication is required.
 components:
   schemas:
-    ChangePassword:
+    ChangePasswordRequest:
       type: object
       properties:
         current_password:
           type: string
           writeOnly: true
+          minLength: 1
         new_password:
           type: string
           writeOnly: true
+          minLength: 1
         password_confirm:
           type: string
           writeOnly: true
+          minLength: 1
       required:
       - current_password
       - new_password
@@ -935,6 +923,10 @@ components:
         last_name:
           type: string
           maxLength: 150
+        avatar:
+          type: string
+          format: uri
+          nullable: true
         date_joined:
           type: string
           format: date-time
@@ -947,13 +939,15 @@ components:
       - email
       - id
       - is_email_verified
-    EmailVerification:
+    EmailVerificationRequest:
       type: object
       properties:
         uid:
           type: string
+          minLength: 1
         token:
           type: string
+          minLength: 1
       required:
       - token
       - uid
@@ -964,15 +958,17 @@ components:
           type: string
       required:
       - detail
-    Login:
+    LoginRequest:
       type: object
       properties:
         email:
           type: string
           writeOnly: true
+          minLength: 1
         password:
           type: string
           writeOnly: true
+          minLength: 1
       required:
       - email
       - password
@@ -1121,19 +1117,23 @@ components:
       - next
       - previous
       - results
-    PasswordResetConfirm:
+    PasswordResetConfirmRequest:
       type: object
       properties:
         uid:
           type: string
+          minLength: 1
         token:
           type: string
+          minLength: 1
         new_password:
           type: string
           writeOnly: true
+          minLength: 1
         password_confirm:
           type: string
           writeOnly: true
+          minLength: 1
       required:
       - new_password
       - password_confirm
@@ -1146,12 +1146,13 @@ components:
           type: string
       required:
       - detail
-    PasswordResetRequest:
+    PasswordResetRequestRequest:
       type: object
       properties:
         email:
           type: string
           format: email
+          minLength: 1
       required:
       - email
     PasswordResetRequestResponse:
@@ -1161,61 +1162,31 @@ components:
           type: string
       required:
       - detail
-    PatchedCurrentUser:
+    PatchedCurrentUserRequest:
       type: object
       properties:
-        id:
-          type: integer
-          readOnly: true
-        email:
-          type: string
-          format: email
-          readOnly: true
         first_name:
           type: string
           maxLength: 150
         last_name:
           type: string
           maxLength: 150
-        date_joined:
+        avatar:
           type: string
-          format: date-time
-          readOnly: true
-        is_email_verified:
-          type: boolean
-          readOnly: true
-    PatchedWorkspace:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        name:
-          type: string
-          maxLength: 150
-        slug:
-          type: string
-          readOnly: true
-        role:
+          format: binary
           nullable: true
-          readOnly: true
-          oneOf:
-          - $ref: '#/components/schemas/WorkspaceRoleEnum'
-          - $ref: '#/components/schemas/NullEnum'
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-    PatchedWorkspaceMembershipRoleUpdate:
+    PatchedWorkspaceMembershipRoleUpdateRequest:
       type: object
       properties:
         role:
           $ref: '#/components/schemas/WorkspaceMembershipRoleUpdateRoleEnum'
+    PatchedWorkspaceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
     Register:
       type: object
       properties:
@@ -1223,22 +1194,35 @@ components:
           type: string
           format: email
           maxLength: 254
-        password:
-          type: string
-          writeOnly: true
-        password_confirm:
-          type: string
-          writeOnly: true
       required:
       - email
-      - password
-      - password_confirm
-    ResendVerificationEmail:
+    RegisterRequest:
       type: object
       properties:
         email:
           type: string
           format: email
+          minLength: 1
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+      - password_confirm
+    ResendVerificationEmailRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
       required:
       - email
     ResendVerificationEmailResponse:
@@ -1268,6 +1252,14 @@ components:
           readOnly: true
       required:
       - access
+      - refresh
+    SessionRefreshTokenRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
       - refresh
     SessionRevokeResponse:
       type: object
@@ -1410,21 +1402,23 @@ components:
       - invited_by_email
       - revoked_at
       - status
-    WorkspaceInvitationAccept:
+    WorkspaceInvitationAcceptRequest:
       type: object
       properties:
         token:
           type: string
           writeOnly: true
+          minLength: 1
           maxLength: 200
       required:
       - token
-    WorkspaceInvitationCreate:
+    WorkspaceInvitationCreateRequest:
       type: object
       properties:
         email:
           type: string
           format: email
+          minLength: 1
           maxLength: 254
       required:
       - email
@@ -1442,6 +1436,11 @@ components:
           type: string
           format: email
           readOnly: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
         role:
           allOf:
           - $ref: '#/components/schemas/WorkspaceRoleEnum'
@@ -1454,6 +1453,7 @@ components:
           format: date-time
           readOnly: true
       required:
+      - avatar
       - id
       - is_current_user
       - joined_at
@@ -1468,7 +1468,7 @@ components:
       description: |-
         * `admin` - admin
         * `member` - member
-    WorkspaceOwnershipTransfer:
+    WorkspaceOwnershipTransferRequest:
       type: object
       properties:
         membership_id:
@@ -1476,6 +1476,15 @@ components:
           format: uuid
       required:
       - membership_id
+    WorkspaceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+      required:
+      - name
     WorkspaceRoleEnum:
       enum:
       - owner

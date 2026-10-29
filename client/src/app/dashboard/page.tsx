@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Avatar from "@/components/ui/Avatar";
 
 import { updateCurrentUser } from "@/lib/api";
 import { CurrentUser } from "@/lib/api";
@@ -24,6 +25,15 @@ function ProfileForm({
 }) {
   const [firstName, setFirstName] = useState(user.first_name);
   const [lastName, setLastName] = useState(user.last_name);
+  const [avatar, setAvatar] = useState<File | null | undefined>();
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -39,6 +49,9 @@ function ProfileForm({
   const handleCancel = () => {
     setFirstName(user.first_name);
     setLastName(user.last_name);
+    setAvatar(undefined);
+    setPreview(null);
+    if (fileInput.current) fileInput.current.value = "";
     setSuccessMessage("");
     setErrorMessage("");
   };
@@ -63,12 +76,16 @@ function ProfileForm({
       const updatedUser = await updateCurrentUser(accessToken, {
         first_name: normalizedFirstName,
         last_name: normalizedLastName,
+        ...(avatar !== undefined ? { avatar } : {}),
       });
 
       updateUser(updatedUser);
 
       setFirstName(updatedUser.first_name);
       setLastName(updatedUser.last_name);
+      setAvatar(undefined);
+      setPreview(null);
+      if (fileInput.current) fileInput.current.value = "";
       setSuccessMessage("Your profile has been updated.");
     } catch (error) {
       setErrorMessage(
@@ -82,13 +99,19 @@ function ProfileForm({
   };
 
   const hasChanges =
+    avatar !== undefined ||
     firstName.trim() !== user.first_name ||
     lastName.trim() !== user.last_name;
 
   return (
     <form className={styles.card} onSubmit={handleSubmit}>
       <div className={styles.identity}>
-        <div className={styles.largeAvatar}>{initials}</div>
+        <Avatar
+          className={styles.largeAvatar}
+          src={avatar === null ? null : preview ?? user.avatar}
+          fallback={initials}
+          size={64}
+        />
 
         <div className={styles.identityText}>
           <h2>
@@ -99,6 +122,49 @@ function ProfileForm({
       </div>
 
       <div className={styles.divider} />
+
+      <label className={styles.field}>
+        <span>Profile picture</span>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          disabled={isSaving}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            if (
+              !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+              file.size > 5 * 1024 * 1024
+            ) {
+              setErrorMessage("Choose a JPEG, PNG, or WebP image up to 5 MB.");
+              event.target.value = "";
+              return;
+            }
+            setErrorMessage("");
+            setSuccessMessage("");
+            setAvatar(file);
+            setPreview(URL.createObjectURL(file));
+          }}
+        />
+        <small className={styles.fieldHelp}>
+          JPEG, PNG, or WebP. Up to 5 MB and 4096 × 4096 pixels.
+        </small>
+      </label>
+      {(avatar || user.avatar) && avatar !== null && (
+        <button
+          type="button"
+          className={`${styles.secondaryButton} ${styles.removePicture}`}
+          disabled={isSaving}
+          onClick={() => {
+            setAvatar(user.avatar ? null : undefined);
+            setPreview(null);
+            if (fileInput.current) fileInput.current.value = "";
+          }}
+        >
+          Remove picture
+        </button>
+      )}
 
       <div className={styles.fieldRow}>
         <label className={styles.field}>

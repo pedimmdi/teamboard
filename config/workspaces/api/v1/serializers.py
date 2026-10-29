@@ -139,6 +139,11 @@ class WorkspaceInvitationAcceptSerializer(serializers.Serializer):
 
 
 class WorkspaceMembershipSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(
+        source="user.profile.avatar",
+        read_only=True,
+        allow_null=True,
+    )
     user_id = serializers.IntegerField(source="user.pk", read_only=True)
     user_email = serializers.EmailField(
         source="user.email",
@@ -152,6 +157,7 @@ class WorkspaceMembershipSerializer(serializers.ModelSerializer):
             "id",
             "user_id",
             "user_email",
+            "avatar",
             "role",
             "is_current_user",
             "joined_at",

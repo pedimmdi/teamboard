@@ -23,7 +23,8 @@ from rest_framework_simplejwt.serializers import (
     TokenRefreshSerializer,
 )
 from rest_framework_simplejwt.tokens import RefreshToken
-from accounts.models import User, UserSession
+from accounts.models import Profile, User, UserSession
+from accounts.validators import validate_avatar
 
 User = get_user_model()
 
@@ -223,6 +224,12 @@ class SessionRefreshTokenSerializer(TokenRefreshSerializer):
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(
+        source="profile.avatar",
+        required=False,
+        allow_null=True,
+        validators=[validate_avatar],
+    )
     first_name = serializers.CharField(
         source="profile.first_name",
         required=False,
@@ -243,6 +250,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
+            "avatar",
             "date_joined",
             "is_email_verified",
         )
@@ -251,11 +259,13 @@ class CurrentUserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         profile_data = validated_data.pop("profile", {})
 
-        for field, value in profile_data.items():
-            setattr(instance.profile, field, value)
-
         if profile_data:
-            instance.profile.save()
+            with transaction.atomic():
+                profile = Profile.objects.select_for_update().get(user=instance)
+                for field, value in profile_data.items():
+                    setattr(profile, field, value)
+                profile.save()
+                instance.profile = profile
 
         return instance
 
