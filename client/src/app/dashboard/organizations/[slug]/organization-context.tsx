@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -11,6 +10,7 @@ import type { Organization } from "@/lib/api";
 
 type OrganizationContextValue = {
   organization: Organization;
+  updateOrganization: (organization: Organization) => void;
 };
 
 const OrganizationContext =
@@ -18,26 +18,34 @@ const OrganizationContext =
 
 export function OrganizationProvider({
   organization,
+  updateOrganization,
   children,
 }: {
   organization: Organization;
+  updateOrganization: (organization: Organization) => void;
   children: ReactNode;
 }) {
   return (
-    <OrganizationContext.Provider value={{ organization }}>
+    <OrganizationContext.Provider
+      value={{ organization, updateOrganization }}
+    >
       {children}
     </OrganizationContext.Provider>
   );
 }
 
-export function useOrganization() {
+export function useOrganizationContext() {
   const context = useContext(OrganizationContext);
 
   if (!context) {
     throw new Error(
-      "useOrganization must be used inside OrganizationProvider.",
+      "Organization context must be used inside OrganizationProvider.",
     );
   }
 
-  return context.organization;
+  return context;
+}
+
+export function useOrganization() {
+  return useOrganizationContext().organization;
 }

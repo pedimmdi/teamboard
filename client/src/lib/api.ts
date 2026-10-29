@@ -736,3 +736,44 @@ export function revokeOrganizationInvitation(
     },
   );
 }
+
+export function updateOrganization(
+  token: string,
+  slug: string,
+  name: string,
+) {
+  return apiFetch<Organization>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/`,
+    {
+      method: "PATCH",
+      token,
+      body: JSON.stringify({ name }),
+    },
+  );
+}
+
+export function leaveOrganization(
+  token: string,
+  slug: string,
+) {
+  return apiFetch<null>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/leave/`,
+    {
+      method: "POST",
+      token,
+    },
+  );
+}
+
+export function deleteOrganization(
+  token: string,
+  slug: string,
+) {
+  return apiFetch<null>(
+    `/api/v1/organizations/${encodeURIComponent(slug)}/`,
+    {
+      method: "DELETE",
+      token,
+    },
+  );
+}

@@ -108,7 +108,10 @@ export default function OrganizationLayout({ children }: Props) {
               </div>
             </header>
 
-            <OrganizationProvider organization={organization}>
+            <OrganizationProvider
+              organization={organization}
+              updateOrganization={setOrganization}
+            >
               <OrganizationNav slug={slug} />
 
               <div className={styles.pageContent}>{children}</div>

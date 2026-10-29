@@ -1,0 +1,287 @@
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 960px;
+}
+
+.heading h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 30px;
+}
+
+.heading p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.card {
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.card h3 {
+  margin: 0 0 22px;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.field label {
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgb(79 70 229 / 12%);
+}
+
+.field input:disabled,
+.field input:read-only {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.helper {
+  margin-top: 8px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.idField {
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-width: 0;
+}
+
+.idField input {
+  padding-right: 76px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copyButton {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #4f46e5;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copyButton:hover {
+  background: #eef2ff;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.saveButton {
+  min-height: 40px;
+  padding: 10px 18px;
+  border: 1px solid #4f46e5;
+  border-radius: 8px;
+  background: #4f46e5;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saveButton:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error,
+.success {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+@media (max-width: 768px) {
+  .page {
+    gap: 16px;
+  }
+
+  .heading h2 {
+    font-size: 20px;
+  }
+
+  .card {
+    padding: 18px 16px;
+  }
+
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .formActions {
+    margin-top: 24px;
+  }
+
+  .saveButton {
+    width: 100%;
+  }
+}
+
+.dangerZone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dangerZone > h3 {
+  margin: 4px 0 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.dangerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 24px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.dangerRow > div {
+  min-width: 0;
+}
+
+.dangerRow h4 {
+  margin: 0 0 6px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.dangerRow p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.secondaryDangerButton,
+.deleteButton {
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.secondaryDangerButton {
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #b91c1c;
+}
+
+.secondaryDangerButton:hover {
+  background: #fef2f2;
+}
+
+.deleteButton {
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.deleteButton:hover {
+  background: #b91c1c;
+}
+
+@media (max-width: 768px) {
+  .dangerRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 18px 16px;
+  }
+
+  .secondaryDangerButton,
+  .deleteButton {
+    width: 100%;
+  }
+}
