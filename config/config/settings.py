@@ -168,6 +168,8 @@ REST_FRAMEWORK = {
         "email_resend": "5/min",
         "workspace_create": "5/hour",
         "workspace_invitation": "30/hour",
+        "project_create": "10/hour",
+        "project_member_add": "60/hour",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -256,6 +258,10 @@ SPECTACULAR_SETTINGS = {
         ],
         "WorkspaceMembershipUpdateRoleEnum": [
             ("admin", "Admin"),
+            ("member", "Member"),
+        ],
+        "ProjectRoleEnum": [
+            ("manager", "Manager"),
             ("member", "Member"),
         ],
     },

@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from .views import (
     WorkspaceDetailView,
@@ -71,5 +71,9 @@ urlpatterns = [
         "<slug:slug>/invitations/<uuid:invitation_id>/resend/",
         WorkspaceInvitationResendView.as_view(),
         name="workspace-invitation-resend",
+    ),
+    path(
+        "<slug:slug>/projects/",
+        include("projects.api.v1.urls"),
     ),
 ]

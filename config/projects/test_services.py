@@ -497,3 +497,93 @@ class ProjectServiceTests(TestCase):
                 role=ProjectMembership.Role.MANAGER,
             ).exists()
         )
+
+    def test_removing_workspace_member_cleans_multiple_projects(self):
+        first = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="First Project",
+        )
+        second = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Second Project",
+        )
+
+        add_project_member(
+            project=first,
+            actor=self.owner,
+            user=self.member,
+        )
+        add_project_member(
+            project=second,
+            actor=self.owner,
+            user=self.member,
+        )
+
+        WorkspaceMembership.objects.get(
+            workspace=self.workspace,
+            user=self.member,
+        ).delete()
+
+        self.assertFalse(
+            ProjectMembership.objects.filter(
+                user=self.member,
+                project__workspace=self.workspace,
+            ).exists()
+        )
+
+    def test_workspace_member_removal_preserves_other_workspace_projects(self):
+        first = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="First Project",
+        )
+        add_project_member(
+            project=first,
+            actor=self.owner,
+            user=self.member,
+        )
+
+        other_workspace = Workspace.objects.create(
+            name="Other Workspace",
+        )
+        WorkspaceMembership.objects.create(
+            workspace=other_workspace,
+            user=self.owner,
+            role=WorkspaceMembership.Role.OWNER,
+        )
+        WorkspaceMembership.objects.create(
+            workspace=other_workspace,
+            user=self.member,
+            role=WorkspaceMembership.Role.MEMBER,
+        )
+
+        second = create_project(
+            workspace=other_workspace,
+            created_by=self.owner,
+            name="Second Project",
+        )
+        add_project_member(
+            project=second,
+            actor=self.owner,
+            user=self.member,
+        )
+
+        WorkspaceMembership.objects.get(
+            workspace=self.workspace,
+            user=self.member,
+        ).delete()
+
+        self.assertFalse(
+            ProjectMembership.objects.filter(
+                project=first,
+                user=self.member,
+            ).exists()
+        )
+        self.assertTrue(
+            ProjectMembership.objects.filter(
+                project=second,
+                user=self.member,
+            ).exists()
+        )
