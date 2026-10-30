@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "drf_spectacular_sidecar",
     "accounts.apps.AccountsConfig",
     "workspaces.apps.WorkspacesConfig",
+    "projects.apps.ProjectsConfig",
 ]
 
 MIDDLEWARE = [

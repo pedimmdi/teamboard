@@ -14,7 +14,11 @@ class WorkspaceUpgradeTests(TransactionTestCase):
         first = ('workspaces', '0001_legacy_replacement')
         executor = MigrationExecutor(connection)
         latest = executor.loader.graph.leaf_nodes()
-        previous = [node for node in latest if node[0] != 'workspaces'] + [first]
+        previous = [
+            node
+            for node in latest
+            if node[0] not in ("workspaces", "projects")
+        ] + [first]
         executor.migrate(previous)
         try:
             apps = executor.loader.project_state(previous).apps
