@@ -7,6 +7,7 @@ from .views import (
     ProjectMemberListCreateView,
     ProjectMemberRoleUpdateView,
     ProjectMemberRemoveView,
+    ProjectLeaveView,
 )
 
 app_name = "projects_api_v1"
@@ -21,6 +22,11 @@ urlpatterns = [
         "<uuid:project_id>/",
         ProjectDetailView.as_view(),
         name="project-detail",
+    ),
+    path(
+        "<uuid:project_id>/leave/",
+        ProjectLeaveView.as_view(),
+        name="project-leave",
     ),
     path(
         "<uuid:project_id>/members/",

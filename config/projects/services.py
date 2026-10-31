@@ -242,3 +242,77 @@ def remove_project_member(
         )
 
     membership.delete()
+
+
+@transaction.atomic
+def delete_project(*, project, actor):
+    workspace = Workspace.objects.select_for_update().get(
+        pk=project.workspace_id,
+    )
+
+    project = get_object_or_404(
+        Project.objects.select_for_update(),
+        pk=project.pk,
+        workspace=workspace,
+    )
+
+    workspace_permission = WorkspaceMembership.objects.filter(
+        workspace=workspace,
+        user=actor,
+        role__in=[
+            WorkspaceMembership.Role.OWNER,
+            WorkspaceMembership.Role.ADMIN,
+        ],
+    ).exists()
+
+    if not workspace_permission:
+        raise PermissionDenied(
+            "Only workspace owners and admins can delete projects."
+        )
+
+    project_permission = ProjectMembership.objects.filter(
+        project=project,
+        user=actor,
+        role=ProjectMembership.Role.MANAGER,
+    ).exists()
+
+    if not project_permission:
+        raise PermissionDenied(
+            "Only project managers can delete projects."
+        )
+
+    project.delete()
+
+
+@transaction.atomic
+def leave_project(*, project, actor):
+    workspace = Workspace.objects.select_for_update().get(
+        pk=project.workspace_id,
+    )
+
+    project = get_object_or_404(
+        Project.objects.select_for_update(),
+        pk=project.pk,
+        workspace=workspace,
+    )
+
+    membership = get_object_or_404(
+        ProjectMembership.objects.select_for_update(),
+        project=project,
+        user=actor,
+        project__workspace__memberships__user=actor,
+    )
+
+    if membership.role == ProjectMembership.Role.MANAGER:
+        other_manager_exists = ProjectMembership.objects.filter(
+            project=project,
+            role=ProjectMembership.Role.MANAGER,
+            project__workspace__memberships__user_id__isnull=False,
+        ).exclude(pk=membership.pk).exists()
+
+        if not other_manager_exists:
+            raise ValidationError({
+                "detail": "A project must have at least one manager."
+            })
+
+    membership.delete()

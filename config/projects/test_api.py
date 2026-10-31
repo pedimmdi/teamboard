@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from projects.models import Project, ProjectMembership
+from projects.services import create_project
 from workspaces.models import Workspace, WorkspaceMembership
 
 
@@ -843,4 +844,513 @@ class ProjectAPITests(APITestCase):
                 project=project,
             ).count(),
             2,
+        )
+
+    def test_workspace_owner_project_manager_can_delete_project(self):
+        self.client.force_authenticate(user=self.owner)
+
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Delete Me",
+        )
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-detail",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
+        self.assertFalse(
+            Project.objects.filter(pk=project.pk).exists()
+        )
+
+    def test_workspace_member_project_manager_cannot_delete_project(self):
+        self.client.force_authenticate(user=self.member)
+
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Protected Project",
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.member,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-detail",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertTrue(
+            Project.objects.filter(pk=project.pk).exists()
+        )
+
+    def test_workspace_owner_without_project_membership_cannot_delete(self):
+        project = Project.objects.create(
+            workspace=self.workspace,
+            name="Private Project",
+            created_by=self.member,
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.member,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-detail",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+        self.assertTrue(
+            Project.objects.filter(pk=project.pk).exists()
+        )
+
+    def test_regular_project_member_cannot_delete_project(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Protected Project",
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.member,
+            role=ProjectMembership.Role.MEMBER,
+        )
+
+        self.client.force_authenticate(user=self.member)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-detail",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertTrue(
+            Project.objects.filter(pk=project.pk).exists()
+        )
+
+    def test_workspace_admin_project_manager_can_delete_project(self):
+        admin = self.member
+
+        WorkspaceMembership.objects.filter(
+            workspace=self.workspace,
+            user=admin,
+        ).update(role=WorkspaceMembership.Role.ADMIN)
+
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Admin Managed Project",
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=admin,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        self.client.force_authenticate(user=admin)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-detail",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
+        self.assertFalse(
+            Project.objects.filter(pk=project.pk).exists()
+        )
+
+    def test_unauthenticated_user_cannot_delete_project(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Protected Project",
+        )
+
+        self.client.force_authenticate(user=None)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-detail",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.delete(url)
+
+        self.assertIn(
+            response.status_code,
+            (
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+            ),
+        )
+        self.assertTrue(
+            Project.objects.filter(pk=project.pk).exists()
+        )
+
+    def test_cannot_delete_project_through_another_workspace(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Workspace One Project",
+        )
+
+        other_workspace = Workspace.objects.create(
+            name="Other Workspace",
+        )
+
+        WorkspaceMembership.objects.create(
+            workspace=other_workspace,
+            user=self.owner,
+            role=WorkspaceMembership.Role.OWNER,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-detail",
+            kwargs={
+                "slug": other_workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+        self.assertTrue(
+            Project.objects.filter(pk=project.pk).exists()
+        )
+
+    def test_deleting_project_removes_its_memberships(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Project With Members",
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.member,
+            role=ProjectMembership.Role.MEMBER,
+        )
+
+        project_id = project.pk
+
+        self.client.force_authenticate(user=self.owner)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-detail",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project_id,
+            },
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
+        self.assertFalse(
+            ProjectMembership.objects.filter(
+                project_id=project_id,
+            ).exists()
+        )
+
+    def test_regular_member_can_leave_project(self):
+        project = Project.objects.create(
+            workspace=self.workspace,
+            name="Leave Test",
+            created_by=self.owner,
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
+        )
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.member,
+            role=ProjectMembership.Role.MEMBER,
+        )
+
+        self.client.force_authenticate(user=self.member)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-leave",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.post(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
+        self.assertFalse(
+            ProjectMembership.objects.filter(
+                project=project,
+                user=self.member,
+            ).exists()
+        )
+        self.assertTrue(
+            WorkspaceMembership.objects.filter(
+                workspace=self.workspace,
+                user=self.member,
+            ).exists()
+        )
+        self.assertTrue(
+            Project.objects.filter(pk=project.pk).exists()
+        )
+
+        detail_url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-detail",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+        self.assertEqual(
+            self.client.get(detail_url).status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+    def test_last_manager_cannot_leave_project(self):
+        project = Project.objects.create(
+            workspace=self.workspace,
+            name="Last Manager",
+            created_by=self.owner,
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-leave",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.post(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertTrue(
+            ProjectMembership.objects.filter(
+                project=project,
+                user=self.owner,
+            ).exists()
+        )
+
+    def test_manager_can_leave_when_another_manager_exists(self):
+        project = Project.objects.create(
+            workspace=self.workspace,
+            name="Two Managers",
+            created_by=self.owner,
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
+        )
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.member,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-leave",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.post(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
+        self.assertFalse(
+            ProjectMembership.objects.filter(
+                project=project,
+                user=self.owner,
+            ).exists()
+        )
+        self.assertTrue(
+            ProjectMembership.objects.filter(
+                project=project,
+                user=self.member,
+                role=ProjectMembership.Role.MANAGER,
+            ).exists()
+        )
+
+    def test_non_member_cannot_leave_project(self):
+        project = Project.objects.create(
+            workspace=self.workspace,
+            name="Private Project",
+            created_by=self.owner,
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        self.client.force_authenticate(user=self.member)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-leave",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.post(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+    def test_outsider_cannot_leave_project(self):
+        project = Project.objects.create(
+            workspace=self.workspace,
+            name="Private Project",
+            created_by=self.owner,
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        self.client.force_authenticate(user=self.outsider)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-leave",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.post(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+    def test_unauthenticated_user_cannot_leave_project(self):
+        project = Project.objects.create(
+            workspace=self.workspace,
+            name="Private Project",
+            created_by=self.owner,
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        self.client.force_authenticate(user=None)
+
+        url = reverse(
+            "workspaces_api_v1:projects_api_v1:project-leave",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+            },
+        )
+
+        response = self.client.post(url)
+
+        self.assertIn(
+            response.status_code,
+            [
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+            ],
         )

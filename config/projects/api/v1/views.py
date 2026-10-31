@@ -14,6 +14,8 @@ from projects.services import (
     add_project_member,
     change_project_member_role,
     remove_project_member,
+    delete_project,
+    leave_project,
 )
 from projects.access import get_workspace_project_membership_or_404
 from workspaces.access import get_membership_or_404
@@ -151,6 +153,17 @@ class ProjectListCreateView(generics.GenericAPIView):
         request=ProjectUpdateSerializer,
         responses={200: ProjectSerializer},
     ),
+    delete=extend_schema(
+        tags=["Projects"],
+        summary="Delete project",
+        description=(
+            "Permanently deletes a project. "
+            "The requester must be a project manager and "
+            "a workspace owner or admin."
+        ),
+        operation_id="projects_delete",
+        responses={204: None},
+    ),
 )
 class ProjectDetailView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -243,6 +256,18 @@ class ProjectDetailView(generics.GenericAPIView):
                 context={"request": request},
             ).data
         )
+
+    def delete(self, request, *args, **kwargs):
+        membership = self.get_project_membership(
+            roles={ProjectMembership.Role.MANAGER},
+        )
+
+        delete_project(
+            project=membership.project,
+            actor=request.user,
+        )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema_view(
@@ -395,6 +420,36 @@ class ProjectMemberRemoveView(generics.GenericAPIView):
             project=membership.project,
             actor=request.user,
             membership_id=self.kwargs["membership_id"],
+        )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectLeaveView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["post", "options"]
+
+    @extend_schema(
+        tags=["Projects"],
+        summary="Leave project",
+        description=(
+            "Allows a project member to leave voluntarily. "
+            "The last project manager cannot leave."
+        ),
+        operation_id="projects_leave",
+        request=None,
+        responses={204: None},
+    )
+    def post(self, request, *args, **kwargs):
+        membership = get_workspace_project_membership_or_404(
+            workspace_slug=self.kwargs["slug"],
+            project_id=self.kwargs["project_id"],
+            user=request.user,
+        )
+
+        leave_project(
+            project=membership.project,
+            actor=request.user,
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
