@@ -3,6 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from accounts.models import UserSession
+from accounts.throttling import AvatarUploadThrottle
 from rest_framework import generics, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,6 +18,7 @@ from rest_framework_simplejwt.views import (
 )
 from drf_spectacular.utils import (
     extend_schema,
+    extend_schema_view,
     OpenApiParameter,
     OpenApiResponse,
     inline_serializer,
@@ -149,8 +151,15 @@ class RefreshTokenView(TokenRefreshView):
         return response
 
 
+@extend_schema_view(
+    patch=extend_schema(responses={
+        200: CurrentUserSerializer,
+        429: OpenApiResponse(description="Profile image upload rate exceeded."),
+    }),
+)
 class CurrentUserView(generics.RetrieveUpdateAPIView):
     serializer_class = CurrentUserSerializer
+    throttle_classes = [AvatarUploadThrottle]
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "patch", "head", "options"]
 

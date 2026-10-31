@@ -171,6 +171,7 @@ REST_FRAMEWORK = {
         "workspace_invitation": "30/hour",
         "project_create": "10/hour",
         "project_member_add": "60/hour",
+        "avatar_upload": "10/hour",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

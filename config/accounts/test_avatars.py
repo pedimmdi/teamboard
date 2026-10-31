@@ -1,13 +1,17 @@
 from io import BytesIO
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from PIL import Image
+from PIL.PngImagePlugin import PngInfo
 from rest_framework.test import APITestCase
 
 from workspaces.models import Workspace, WorkspaceMembership
+from accounts.throttling import AvatarUploadThrottle
 
 
 def image_file(name='photo.png', size=(24, 24), image_format='PNG'):
@@ -20,6 +24,7 @@ class ProfileAvatarTests(APITestCase):
     url = '/api/v1/accounts/me/'
 
     def setUp(self):
+        cache.clear()
         self.media = TemporaryDirectory()
         self.addCleanup(self.media.cleanup)
         settings = override_settings(MEDIA_ROOT=self.media.name)
@@ -123,3 +128,62 @@ class ProfileAvatarTests(APITestCase):
         avatar = self.upload().data['avatar']
         self.assertEqual(self.upload(first_name='x' * 151).status_code, 400)
         self.assertEqual(self.client.get(self.url).data['avatar'], avatar)
+
+    def test_exif_is_removed_and_orientation_is_applied(self):
+        output = BytesIO()
+        exif = Image.Exif()
+        exif[274] = 6
+        exif[315] = "Private camera owner"
+        Image.new("RGB", (32, 16), "blue").save(output, format="JPEG", exif=exif)
+        response = self.upload(avatar=SimpleUploadedFile("camera.jpg", output.getvalue(), content_type="image/jpeg"))
+        self.assertEqual(response.status_code, 200)
+        self.user.profile.refresh_from_db()
+        with self.user.profile.avatar.open("rb") as stored:
+            with Image.open(stored) as image:
+                self.assertEqual(image.size, (16, 32))
+                self.assertFalse(image.getexif())
+                self.assertNotIn("exif", image.info)
+
+    def test_admin_and_model_uploads_strip_png_metadata(self):
+        output = BytesIO()
+        metadata = PngInfo()
+        metadata.add_text("Author", "Private author")
+        Image.new("RGB", (16, 16), "blue").save(output, format="PNG", pnginfo=metadata)
+        self.user.profile.avatar = SimpleUploadedFile("camera.png", output.getvalue(), content_type="image/png")
+        self.user.profile.save()
+        with self.user.profile.avatar.open("rb") as stored:
+            with Image.open(stored) as image:
+                self.assertNotIn("Author", image.info)
+
+    def test_metadata_removal_preserves_palette_transparency(self):
+        output = BytesIO()
+        image = Image.new("P", (16, 16), 0)
+        image.putpalette([0, 0, 255] + [0] * 765)
+        image.save(output, format="PNG", transparency=0)
+        response = self.upload(avatar=SimpleUploadedFile("transparent.png", output.getvalue(), content_type="image/png"))
+        self.assertEqual(response.status_code, 200)
+        self.user.profile.refresh_from_db()
+        with self.user.profile.avatar.open("rb") as stored:
+            with Image.open(stored) as image:
+                self.assertEqual(image.convert("RGBA").getpixel((0, 0))[3], 0)
+
+    def test_upload_throttle_does_not_block_names_or_reads(self):
+        with patch.object(AvatarUploadThrottle, "THROTTLE_RATES", {"avatar_upload": "1/hour"}):
+            self.assertEqual(self.upload().status_code, 200)
+            self.assertEqual(self.upload().status_code, 429)
+            self.assertEqual(self.client.patch(self.url, {"first_name": "Alex"}, format="json").status_code, 200)
+            self.assertEqual(self.client.get(self.url).status_code, 200)
+            self.assertEqual(self.client.patch(self.url, {"avatar": None}, format="json").status_code, 200)
+
+    def test_name_only_model_save_does_not_delete_current_avatar(self):
+        self.upload()
+        self.user.profile.refresh_from_db()
+        current_name = self.user.profile.avatar.name
+        storage = self.user.profile.avatar.storage
+        self.user.profile.avatar = image_file("unused.png")
+        self.user.profile.first_name = "Alex"
+        with self.captureOnCommitCallbacks(execute=True):
+            self.user.profile.save(update_fields=["first_name"])
+        self.user.profile.refresh_from_db()
+        self.assertEqual(self.user.profile.avatar.name, current_name)
+        self.assertTrue(storage.exists(current_name))

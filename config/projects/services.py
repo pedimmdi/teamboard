@@ -24,7 +24,7 @@ def has_other_project_manager(*, project, excluded_membership_id):
 @transaction.atomic
 def create_project(*, workspace, created_by, name, description=""):
     # Serialize project creation against workspace membership changes.
-    workspace = Workspace.objects.select_for_update().get(
+    workspace = get_object_or_404(Workspace.objects.select_for_update(),
         pk=workspace.pk,
     )
 
@@ -85,10 +85,10 @@ def add_project_member(
     user,
     role=ProjectMembership.Role.MEMBER,
 ):
-    workspace = Workspace.objects.select_for_update().get(
+    workspace = get_object_or_404(Workspace.objects.select_for_update(),
         pk=project.workspace_id,
     )
-    project = Project.objects.select_for_update().get(
+    project = get_object_or_404(Project.objects.select_for_update(),
         pk=project.pk,
         workspace=workspace,
     )
@@ -146,10 +146,10 @@ def change_project_member_role(
     membership_id,
     role,
 ):
-    workspace = Workspace.objects.select_for_update().get(
+    workspace = get_object_or_404(Workspace.objects.select_for_update(),
         pk=project.workspace_id,
     )
-    project = Project.objects.select_for_update().get(
+    project = get_object_or_404(Project.objects.select_for_update(),
         pk=project.pk,
         workspace=workspace,
     )
@@ -204,10 +204,10 @@ def remove_project_member(
     actor,
     membership_id,
 ):
-    workspace = Workspace.objects.select_for_update().get(
+    workspace = get_object_or_404(Workspace.objects.select_for_update(),
         pk=project.workspace_id,
     )
-    project = Project.objects.select_for_update().get(
+    project = get_object_or_404(Project.objects.select_for_update(),
         pk=project.pk,
         workspace=workspace,
     )
@@ -241,7 +241,7 @@ def remove_project_member(
 
 @transaction.atomic
 def delete_project(*, project, actor):
-    workspace = Workspace.objects.select_for_update().get(
+    workspace = get_object_or_404(Workspace.objects.select_for_update(),
         pk=project.workspace_id,
     )
 
@@ -270,7 +270,7 @@ def delete_project(*, project, actor):
 
 @transaction.atomic
 def leave_project(*, project, actor):
-    workspace = Workspace.objects.select_for_update().get(
+    workspace = get_object_or_404(Workspace.objects.select_for_update(),
         pk=project.workspace_id,
     )
 

@@ -384,8 +384,10 @@ Run the full backend suite against PostgreSQL in the Docker environment:
 docker compose exec backend python -m pytest -v
 ```
 
-The suite covers accounts, session security, profile images, workspace permissions,
-memberships, invitations, and upgrades from the former workspace app name.
+The suite covers accounts, session security, profile images, workspace and project
+permissions, memberships, invitations, direct database constraints, concurrent
+mutations, admin deletion protection, schema consistency, and upgrades from the
+former workspace app name.
 Run the checks used by CI before committing:
 
 ```bash
@@ -507,8 +509,17 @@ Install the updated requirements (or rebuild the backend Docker image), then run
 multipart PATCH to `/api/v1/accounts/me/`, or remove it with JSON
 `{"avatar": null}`. Omitting the field keeps the current image.
 JPEG, PNG and WebP images are accepted up to 5 MB and 4096 × 4096 pixels.
+New images are re-encoded before storage, with orientation applied and EXIF,
+location, author and other source metadata removed. The same normalization runs
+for API and admin uploads. Uploads are limited to 10 per hour per authenticated
+user; reading a profile, editing names, and removing an image do not consume that
+upload allowance. Excess uploads return 429.
 The account API and workspace member API return the image URL or `null`.
 Replaced images and deleted profiles are cleaned up after database commit.
+The admin deletion confirmation protects workspace owners and the final project
+managers, including when selecting multiple users. Transfer ownership or assign
+replacement managers first. A concurrent protection failure produces an admin
+message rather than a server error.
 
 Uploads are stored in `config/media/`, which is ignored by Git and persists
 through the existing Docker bind mount. Django serves `/media/` when `DEBUG=True`.

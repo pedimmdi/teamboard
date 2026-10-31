@@ -4,6 +4,8 @@ from threading import Barrier
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, connections, transaction
 from django.test import TransactionTestCase
+from django.http import Http404
+from rest_framework.exceptions import ValidationError
 
 from projects.models import Project, ProjectMembership
 from workspaces.models import Workspace, WorkspaceMembership
@@ -60,7 +62,7 @@ class MembershipIntegrityTests(TransactionTestCase):
                         cursor.execute("SET LOCAL lock_timeout = '10s'")
                     operation()
                 return "committed"
-            except IntegrityError:
+            except (IntegrityError, ValidationError, Http404):
                 return "blocked"
             finally:
                 connections.close_all()
@@ -126,3 +128,27 @@ class MembershipIntegrityTests(TransactionTestCase):
         self.assertTrue(any(code in {200, 204} for code in results))
         self.assertTrue(all(code in {200, 204, 400, 409} for code in results), results)
         self.assertTrue(ProjectMembership.objects.filter(project=self.project, role="manager").exists())
+
+    def test_concurrent_project_creations_keep_unique_name(self):
+        from projects.services import create_project
+
+        create = lambda: create_project(workspace=self.workspace, created_by=self.owner, name="Concurrent")
+        self.assertCountEqual(self.race(create, create), ["committed", "blocked"])
+        self.assertEqual(Project.objects.filter(workspace=self.workspace, name="Concurrent").count(), 1)
+
+    def test_concurrent_member_additions_do_not_duplicate_membership(self):
+        from projects.services import add_project_member
+
+        add = lambda: add_project_member(project=self.project, actor=self.owner, user=self.member)
+        self.assertCountEqual(self.race(add, add), ["committed", "blocked"])
+        self.assertEqual(ProjectMembership.objects.filter(project=self.project, user=self.member).count(), 1)
+
+    def test_concurrent_project_deletion_and_member_addition(self):
+        from projects.services import add_project_member, delete_project
+
+        self.race(
+            lambda: delete_project(project=self.project, actor=self.owner),
+            lambda: add_project_member(project=self.project, actor=self.owner, user=self.member),
+        )
+        self.assertFalse(Project.objects.filter(pk=self.project.pk).exists())
+        self.assertFalse(ProjectMembership.objects.filter(project_id=self.project.pk).exists())

@@ -1,8 +1,17 @@
 from django import forms
 from django.contrib import admin
+from django.contrib import messages
+from django.contrib.admin.actions import delete_selected as default_delete_selected
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField, UserCreationForm
 from django.utils.html import format_html
+from django.db import IntegrityError, transaction
+from django.db.models.deletion import ProtectedError
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+
+from projects.models import ProjectMembership
+from workspaces.models import WorkspaceMembership
 
 from .models import Profile, User, UserSession
 
@@ -67,6 +76,51 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = ("date_joined", "last_login")
     inlines = (ProfileInline,)
     list_select_related = ("profile",)
+    actions = ["delete_selected"]
+
+    def get_deleted_objects(self, objs, request):
+        objs = list(objs)
+        deleted, counts, permissions, protected = super().get_deleted_objects(objs, request)
+        protection_start = len(protected)
+        user_ids = [obj.pk for obj in objs]
+        if WorkspaceMembership.objects.filter(user_id__in=user_ids, role="owner").exists():
+            protected.append("Transfer workspace ownership before deleting these users.")
+        manager_memberships = ProjectMembership.objects.filter(
+            user_id__in=user_ids, role="manager",
+        ).select_related("project")
+        for membership in manager_memberships:
+            if not ProjectMembership.objects.filter(project=membership.project, role="manager").exclude(user_id__in=user_ids).exists():
+                protected.append(f"Assign another manager to '{membership.project.name}' before deleting these users.")
+        # Django's default template prioritizes missing related-model deletion
+        # permissions over protected objects. Keep those permissions intact,
+        # while still showing the actionable ownership/manager explanation.
+        if permissions:
+            for reason in protected[protection_start:]:
+                self.message_user(request, reason, messages.ERROR)
+        return deleted, counts, permissions, protected
+
+    def deletion_conflict_message(self, exc):
+        if isinstance(exc, ProtectedError):
+            return str(exc.args[0])
+        constraint = getattr(getattr(exc.__cause__, "diag", None), "constraint_name", None)
+        if constraint in {"project_requires_manager", "project_membership_requires_workspace"}:
+            return "Assign another project manager before deleting this user."
+        raise exc
+
+    def delete_view(self, request, object_id, extra_context=None):
+        try:
+            return super().delete_view(request, object_id, extra_context)
+        except (ProtectedError, IntegrityError) as exc:
+            self.message_user(request, self.deletion_conflict_message(exc), messages.ERROR)
+            return HttpResponseRedirect(reverse("admin:accounts_user_changelist"))
+
+    @admin.action(permissions=["delete"], description="Delete selected users")
+    def delete_selected(self, request, queryset):
+        try:
+            with transaction.atomic():
+                return default_delete_selected(self, request, queryset)
+        except (ProtectedError, IntegrityError) as exc:
+            self.message_user(request, self.deletion_conflict_message(exc), messages.ERROR)
 
     @admin.display(description="Profile picture")
     def avatar_preview(self, obj):

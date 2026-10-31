@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.http import Http404
 from rest_framework.test import APITestCase
 
 from projects.models import ProjectMembership
@@ -41,3 +42,19 @@ class ProjectValidationTests(APITestCase):
             {"role": "invalid"}, format="json",
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_stale_project_service_calls_return_not_found(self):
+        from projects.services import add_project_member, change_project_member_role, remove_project_member
+
+        project = self.project
+        project_id = project.pk
+        membership_id = self.membership.pk
+        type(project).objects.filter(pk=project_id).delete()
+        operations = (
+            lambda: add_project_member(project=project, actor=self.owner, user=self.member),
+            lambda: change_project_member_role(project=project, actor=self.owner, membership_id=membership_id, role="member"),
+            lambda: remove_project_member(project=project, actor=self.owner, membership_id=membership_id),
+        )
+        for operation in operations:
+            with self.assertRaises(Http404):
+                operation()
