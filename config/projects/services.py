@@ -40,6 +40,8 @@ def create_project(*, workspace, created_by, name, description=""):
         )
 
     name = name.strip()
+    if len(description) > 5000:
+        raise ValidationError({"description": "Description cannot exceed 5000 characters."})
     if not name:
         raise ValidationError({
             "name": "Project name cannot be empty."

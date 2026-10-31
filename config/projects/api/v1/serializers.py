@@ -55,6 +55,7 @@ class ProjectCreateSerializer(serializers.Serializer):
         allow_blank=False,
     )
     description = serializers.CharField(
+        max_length=5000,
         required=False,
         allow_blank=True,
         trim_whitespace=False,
@@ -76,6 +77,7 @@ class ProjectUpdateSerializer(serializers.Serializer):
         required=False,
     )
     description = serializers.CharField(
+        max_length=5000,
         required=False,
         allow_blank=True,
         trim_whitespace=False,

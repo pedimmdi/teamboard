@@ -187,6 +187,7 @@ class ProjectDetailView(generics.GenericAPIView):
         return Response(serializer.data)
 
     def patch(self, request, *args, **kwargs):
+        self.get_project_membership(roles={ProjectMembership.Role.MANAGER})
         serializer = ProjectUpdateSerializer(
             data=request.data,
             partial=True,
@@ -380,6 +381,12 @@ class ProjectMemberRoleUpdateView(generics.GenericAPIView):
             workspace_slug=self.kwargs["slug"],
             project_id=self.kwargs["project_id"],
             user=request.user,
+        )
+
+        get_membership_or_404(
+            slug=self.kwargs["slug"],
+            user=request.user,
+            roles={"owner", "admin"},
         )
 
         serializer = self.get_serializer(data=request.data)

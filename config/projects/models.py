@@ -17,7 +17,7 @@ class Project(models.Model):
         related_name="projects",
     )
     name = models.CharField(max_length=150)
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, max_length=5000)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
