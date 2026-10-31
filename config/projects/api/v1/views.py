@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
-from django.shortcuts import get_object_or_404, get_object_or_404
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -116,10 +116,16 @@ class ProjectListCreateView(generics.GenericAPIView):
                     created_by=request.user,
                     **serializer.validated_data,
                 )
-        except IntegrityError:
+        except IntegrityError as exc:
+            if (
+                getattr(getattr(exc.__cause__, "diag", None), "constraint_name", None)
+                != "unique_project_name_per_workspace"
+            ):
+                raise
+
             raise ValidationError({
                 "name": "A project with this name already exists."
-            })
+            }) from exc
 
         output = ProjectSerializer(
             project,
@@ -176,8 +182,6 @@ class ProjectDetailView(generics.GenericAPIView):
 
         try:
             with transaction.atomic():
-                # Lock the workspace first to keep the same
-                # lock order used by project services.
                 workspace = get_object_or_404(
                     Workspace.objects.select_for_update(),
                     slug=self.kwargs["slug"],
@@ -193,7 +197,6 @@ class ProjectDetailView(generics.GenericAPIView):
                     workspace=workspace,
                 )
 
-                # Recheck membership inside the transaction.
                 self.get_project_membership(
                     roles={ProjectMembership.Role.MANAGER},
                 )
@@ -223,10 +226,16 @@ class ProjectDetailView(generics.GenericAPIView):
 
                 project.save()
 
-        except IntegrityError:
+        except IntegrityError as exc:
+            if (
+                getattr(getattr(exc.__cause__, "diag", None), "constraint_name", None)
+                != "unique_project_name_per_workspace"
+            ):
+                raise
+
             raise ValidationError({
                 "name": "A project with this name already exists."
-            })
+            }) from exc
 
         return Response(
             ProjectSerializer(
