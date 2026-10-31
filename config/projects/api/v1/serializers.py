@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 
 from projects.models import Project, ProjectMembership
 
@@ -62,6 +62,7 @@ class ProjectCreateSerializer(serializers.Serializer):
     )
 
 
+@extend_schema_serializer(many=False)
 class PaginatedProjectSerializer(serializers.Serializer):
     count = serializers.IntegerField()
     next = serializers.URLField(allow_null=True)
@@ -138,6 +139,7 @@ class ProjectMemberRoleUpdateSerializer(serializers.Serializer):
     )
 
 
+@extend_schema_serializer(many=False)
 class PaginatedProjectMembershipSerializer(serializers.Serializer):
     count = serializers.IntegerField()
     next = serializers.URLField(allow_null=True)

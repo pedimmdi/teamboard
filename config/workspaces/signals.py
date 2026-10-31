@@ -82,12 +82,7 @@ def prevent_removing_last_project_manager(
 
         if not other_manager_exists:
             raise ProtectedError(
-                (
-                    "This user is the last manager of project "
-                    f"'{manager_membership.project.name}'. "
-                    "Assign another manager before removing "
-                    "the user from the workspace."
-                ),
+                "Assign another manager before removing this user from the workspace.",
                 [manager_membership],
             )
 

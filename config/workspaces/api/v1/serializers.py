@@ -2,7 +2,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 
 from workspaces.models import (
     Workspace,
@@ -189,6 +189,7 @@ class WorkspaceOwnershipTransferSerializer(serializers.Serializer):
     membership_id = serializers.UUIDField()
 
 
+@extend_schema_serializer(many=False)
 class PaginatedWorkspaceSerializer(serializers.Serializer):
     count = serializers.IntegerField()
     next = serializers.URLField(allow_null=True)
@@ -196,6 +197,7 @@ class PaginatedWorkspaceSerializer(serializers.Serializer):
     results = WorkspaceSerializer(many=True)
 
 
+@extend_schema_serializer(many=False)
 class PaginatedWorkspaceMembershipSerializer(serializers.Serializer):
     count = serializers.IntegerField()
     next = serializers.URLField(allow_null=True)
@@ -203,6 +205,7 @@ class PaginatedWorkspaceMembershipSerializer(serializers.Serializer):
     results = WorkspaceMembershipSerializer(many=True)
 
 
+@extend_schema_serializer(many=False)
 class PaginatedWorkspaceInvitationSerializer(serializers.Serializer):
     count = serializers.IntegerField()
     next = serializers.URLField(allow_null=True)

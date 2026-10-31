@@ -2,7 +2,7 @@
 
 TeamBoard is a project management platform in development, built with Django REST Framework and Next.js. It is designed to support team collaboration, task management, and secure account access through a versioned REST API.
 
-The current implementation includes account management, authentication, session security, workspaces, role-based membership, and email invitations. Project and task management are the next development areas.
+The current implementation includes account management, authentication, session security, workspaces, role-based membership, email invitations, and project APIs. Task management is the next development area; project screens are not implemented in the frontend yet.
 
 ## Current Features
 
@@ -14,6 +14,9 @@ The current implementation includes account management, authentication, session 
 - Owner, admin, and member roles with workspace-scoped access
 - Member management, ownership transfer, and leaving a workspace
 - Email invitations with acceptance, resend, revocation, and expiration
+- Workspace-scoped project APIs with manager and member roles
+- Global project management for workspace owners and admins
+- Database constraints and triggers protecting project membership and manager integrity
 - JWT authentication with short-lived access tokens
 - Refresh token rotation using an HttpOnly cookie
 - Session tracking, session revocation, and active-session management
@@ -116,6 +119,15 @@ teamboard/
 │   │   ├── signals.py
 │   │   ├── tests.py
 │   │   └── test_migrations.py
+│   ├── projects/
+│   │   ├── api/v1/
+│   │   ├── migrations/
+│   │   ├── access.py
+│   │   ├── models.py
+│   │   ├── services.py
+│   │   ├── test_api.py
+│   │   ├── test_services.py
+│   │   └── test_db_invariants.py
 │   ├── config/
 │   │   ├── settings.py
 │   │   ├── urls.py
@@ -299,6 +311,49 @@ settings, `/dashboard/sessions` for sessions, and `/dashboard/workspaces` for
 workspaces. Each workspace has overview, members, invitations, and settings tabs.
 Invitation links preserve the acceptance flow through login or registration.
 
+### Projects
+
+Project endpoints are nested under `/api/v1/workspaces/<slug>/projects/`.
+
+| Functionality | Method and relative path |
+|---|---|
+| List accessible projects / create a project | `GET/POST /` |
+| Retrieve / edit / delete a project | `GET/PATCH/DELETE /<project_id>/` |
+| Leave a project | `POST /<project_id>/leave/` |
+| List / add project members | `GET/POST /<project_id>/members/` |
+| Change a project role | `PATCH /<project_id>/members/<membership_id>/role/` |
+| Remove a project member | `DELETE /<project_id>/members/<membership_id>/` |
+
+| Actor | Access |
+|---|---|
+| Workspace owner or admin | See every project in their workspace; create, edit, delete, add/remove members, and assign managers without personal project membership |
+| Project manager with regular workspace membership | See and edit their projects; add/remove regular project members; cannot assign manager roles or delete projects |
+| Project member | See their projects and member lists; leave their project |
+| Other workspace member / outsider | No access to the project's details or membership endpoints |
+
+Global management access does not create a project membership: the response's
+`role` reports the actual project membership and may be `null` for a workspace
+owner or admin. Leaving a project removes a personal membership; it does not
+revoke the global permissions of workspace owners or admins.
+
+Project names are unique within their workspace, ignoring case. Names allow
+150 characters and descriptions allow 5000 characters. Permission checks precede
+validation for updates and role changes. Ordinary members receive 403 for forbidden
+operations; inaccessible projects return 404 even for invalid request bodies.
+
+Every project requires at least one actual manager who belongs to its workspace.
+The final manager cannot leave, be removed, or be demoted until a replacement is
+assigned. Workspace removal and leave return 409 with
+`Assign another manager before removing this user from the workspace.`
+The frontend displays this `detail` message directly. Owners and admins can resolve
+the conflict by assigning another manager without first joining the project.
+
+Database triggers also reject project members outside the workspace and serialize
+membership writes against workspace departure. Invalid roles and relationship
+transfers are rejected by database constraints. Known constraint conflicts and
+retryable database concurrency failures return 409; unexpected database errors
+remain server errors rather than being disguised as validation failures.
+
 ## Authentication
 
 Protected API endpoints use JWT bearer authentication.
@@ -415,10 +470,10 @@ docker compose down -v
 
 ## Development Roadmap
 
-Account security, profile images, workspaces, memberships, and invitations are
+Account security, profile images, workspaces, projects, memberships, and invitations are
 implemented. Planned development includes:
 
-- Project and task management
+- Project screens and task management
 - Collaboration features
 - Integration and end-to-end testing
 

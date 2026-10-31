@@ -195,14 +195,11 @@ class ProjectDatabaseInvariantTests(TransactionTestCase):
             connections.close_all()
 
             try:
+                barrier.wait(timeout=10)
                 with transaction.atomic():
                     ProjectMembership.objects.filter(
                         pk=membership_id,
                     ).delete()
-
-                    # Both transactions reach this point before
-                    # either attempts to commit.
-                    barrier.wait(timeout=10)
 
                 return "deleted"
 

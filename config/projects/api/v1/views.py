@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError
@@ -66,12 +66,14 @@ class ProjectListCreateView(generics.GenericAPIView):
         )
 
     def get_queryset(self):
-        workspace = self.get_workspace_membership().workspace
+        membership = self.get_workspace_membership()
+        workspace = membership.workspace
+        visibility = Q() if membership.role in {"owner", "admin"} else Q(memberships__user=self.request.user)
 
         return (
             Project.objects.filter(
+                visibility,
                 workspace=workspace,
-                memberships__user=self.request.user,
             )
             .prefetch_related(
                 Prefetch(
@@ -158,8 +160,7 @@ class ProjectListCreateView(generics.GenericAPIView):
         summary="Delete project",
         description=(
             "Permanently deletes a project. "
-            "The requester must be a project manager and "
-            "a workspace owner or admin."
+            "The requester must be a workspace owner or admin."
         ),
         operation_id="projects_delete",
         responses={204: None},

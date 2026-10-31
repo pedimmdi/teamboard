@@ -712,6 +712,9 @@ class WorkspaceMemberRoleUpdateView(APIView):
         400: OpenApiResponse(
             description="The workspace owner cannot be removed.",
         ),
+        409: OpenApiResponse(
+            description="Assign another manager before removing this user from the workspace.",
+        ),
         403: OpenApiResponse(
             description="The authenticated user does not have permission to remove this member.",
         ),
@@ -870,6 +873,9 @@ class WorkspaceOwnershipTransferView(APIView):
         ),
         400: OpenApiResponse(
             description="Workspace owners cannot leave the workspace.",
+        ),
+        409: OpenApiResponse(
+            description="Assign another manager before removing this user from the workspace.",
         ),
         404: OpenApiResponse(
             description="Workspace or membership not found.",

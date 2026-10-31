@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError, PermissionDenied
 
 from projects.models import Project, ProjectMembership
+from projects.access import get_project_membership_or_404
 from workspaces.models import Workspace, WorkspaceMembership
 
 
@@ -92,21 +93,9 @@ def add_project_member(
         workspace=workspace,
     )
 
-    actor_membership = ProjectMembership.objects.filter(
-        project=project,
-        user=actor,
-        project__workspace__memberships__user=actor,
-    ).first()
-
-    if actor_membership is None:
-        raise PermissionDenied(
-            "You are not a member of this project."
-        )
-
-    if actor_membership.role != ProjectMembership.Role.MANAGER:
-        raise PermissionDenied(
-            "Only project managers can add members."
-        )
+    get_project_membership_or_404(
+        project_id=project.pk, user=actor, roles={ProjectMembership.Role.MANAGER},
+    )
 
     if not WorkspaceMembership.objects.filter(
         workspace=workspace,
@@ -177,14 +166,6 @@ def change_project_member_role(
             "Only workspace owners and admins can change project roles."
         )
 
-    if not ProjectMembership.objects.filter(
-        project=project,
-        user=actor,
-    ).exists():
-        raise PermissionDenied(
-            "You must be a project member."
-        )
-
     if role not in ProjectMembership.Role.values:
         raise ValidationError({
             "role": "Invalid project role."
@@ -231,19 +212,9 @@ def remove_project_member(
         workspace=workspace,
     )
 
-    actor_membership = ProjectMembership.objects.filter(
-        project=project,
-        user=actor,
-        project__workspace__memberships__user=actor,
-    ).first()
-
-    if (
-        actor_membership is None
-        or actor_membership.role != ProjectMembership.Role.MANAGER
-    ):
-        raise PermissionDenied(
-            "Only project managers can remove members."
-        )
+    get_project_membership_or_404(
+        project_id=project.pk, user=actor, roles={ProjectMembership.Role.MANAGER},
+    )
 
     membership = get_object_or_404(
         ProjectMembership.objects.select_for_update(),
@@ -251,11 +222,19 @@ def remove_project_member(
         project=project,
     )
 
-    if membership.role == ProjectMembership.Role.MANAGER:
+    privileged = WorkspaceMembership.objects.filter(
+        workspace=workspace, user=actor, role__in=["owner", "admin"],
+    ).exists()
+    if membership.role == ProjectMembership.Role.MANAGER and not privileged:
         raise PermissionDenied(
             "Managers cannot remove other project managers. "
             "Workspace owners and admins must manage manager roles."
         )
+
+    if membership.role == ProjectMembership.Role.MANAGER and not has_other_project_manager(
+        project=project, excluded_membership_id=membership.pk,
+    ):
+        raise ValidationError({"detail": "Assign another manager before removing this project manager."})
 
     membership.delete()
 
@@ -284,17 +263,6 @@ def delete_project(*, project, actor):
     if not workspace_permission:
         raise PermissionDenied(
             "Only workspace owners and admins can delete projects."
-        )
-
-    project_permission = ProjectMembership.objects.filter(
-        project=project,
-        user=actor,
-        role=ProjectMembership.Role.MANAGER,
-    ).exists()
-
-    if not project_permission:
-        raise PermissionDenied(
-            "Only project managers can delete projects."
         )
 
     project.delete()

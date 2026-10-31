@@ -558,7 +558,7 @@ class ProjectAPITests(APITestCase):
 
         response = self.client.delete(url)
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertTrue(
             ProjectMembership.objects.filter(pk=membership.pk).exists()
         )
@@ -672,7 +672,7 @@ class ProjectAPITests(APITestCase):
             ProjectMembership.objects.filter(pk=membership.pk).exists()
         )
 
-    def test_workspace_owner_without_project_membership_cannot_access(self):
+    def test_workspace_owner_without_project_membership_can_access(self):
         self.client.force_authenticate(user=self.owner)
 
         project = Project.objects.create(
@@ -696,7 +696,7 @@ class ProjectAPITests(APITestCase):
 
         response = self.client.get(url)
 
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
     def test_cannot_delete_using_role_update_endpoint(self):
@@ -916,7 +916,7 @@ class ProjectAPITests(APITestCase):
             Project.objects.filter(pk=project.pk).exists()
         )
 
-    def test_workspace_owner_without_project_membership_cannot_delete(self):
+    def test_workspace_owner_without_project_membership_can_delete(self):
         project = Project.objects.create(
             workspace=self.workspace,
             name="Private Project",
@@ -943,9 +943,9 @@ class ProjectAPITests(APITestCase):
 
         self.assertEqual(
             response.status_code,
-            status.HTTP_404_NOT_FOUND,
+            status.HTTP_204_NO_CONTENT,
         )
-        self.assertTrue(
+        self.assertFalse(
             Project.objects.filter(pk=project.pk).exists()
         )
 

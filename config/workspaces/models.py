@@ -66,6 +66,7 @@ class WorkspaceMembership(models.Model):
     class Meta:
         ordering = ["joined_at"]
         constraints = [
+            models.CheckConstraint(condition=models.Q(role__in=["owner", "admin", "member"]), name="valid_workspace_membership_role"),
             models.UniqueConstraint(
                 fields=["workspace", "user"],
                 name="unique_workspace_membership",

@@ -150,6 +150,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 
 REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "config.api_exceptions.api_exception_handler",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "accounts.authentication.SessionJWTAuthentication",
     ],
