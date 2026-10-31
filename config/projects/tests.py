@@ -25,8 +25,30 @@ class ProjectModelTests(TestCase):
             role=WorkspaceMembership.Role.OWNER,
         )
 
-    def test_create_project(self):
+    def create_project_with_manager(self, *, workspace=None, **kwargs):
+        workspace = workspace or self.workspace
+
         project = Project.objects.create(
+            workspace=workspace,
+            **kwargs,
+        )
+
+        WorkspaceMembership.objects.get_or_create(
+            workspace=workspace,
+            user=self.user,
+            defaults={"role": WorkspaceMembership.Role.MEMBER},
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.user,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        return project
+
+    def test_create_project(self):
+        project = self.create_project_with_manager(
             workspace=self.workspace,
             name="Website Redesign",
             description="Redesign the website",
@@ -42,12 +64,12 @@ class ProjectModelTests(TestCase):
             name="Second Workspace",
         )
 
-        first = Project.objects.create(
+        first = self.create_project_with_manager(
             workspace=self.workspace,
             name="Design Project",
             created_by=self.user,
         )
-        second = Project.objects.create(
+        second = self.create_project_with_manager(
             workspace=other_workspace,
             name="Design Project",
             created_by=self.user,
@@ -57,7 +79,7 @@ class ProjectModelTests(TestCase):
         self.assertNotEqual(first.workspace_id, second.workspace_id)
 
     def test_duplicate_project_name_in_same_workspace_is_blocked(self):
-        Project.objects.create(
+        self.create_project_with_manager(
             workspace=self.workspace,
             name="Design Project",
             created_by=self.user,
@@ -72,15 +94,10 @@ class ProjectModelTests(TestCase):
                 )
 
     def test_duplicate_project_membership_is_blocked(self):
-        project = Project.objects.create(
+        project = self.create_project_with_manager(
             workspace=self.workspace,
             name="Website",
             created_by=self.user,
-        )
-        ProjectMembership.objects.create(
-            project=project,
-            user=self.user,
-            role=ProjectMembership.Role.MANAGER,
         )
 
         with self.assertRaises(IntegrityError):
@@ -91,14 +108,10 @@ class ProjectModelTests(TestCase):
                 )
 
     def test_deleting_workspace_deletes_projects(self):
-        project = Project.objects.create(
+        project = self.create_project_with_manager(
             workspace=self.workspace,
             name="Website",
             created_by=self.user,
-        )
-        ProjectMembership.objects.create(
-            project=project,
-            user=self.user,
         )
 
         self.workspace.delete()
@@ -113,7 +126,7 @@ class ProjectModelTests(TestCase):
         )
 
     def test_deleting_creator_preserves_project(self):
-        project = Project.objects.create(
+        project = self.create_project_with_manager(
             workspace=self.workspace,
             name="Website",
             created_by=self.user,

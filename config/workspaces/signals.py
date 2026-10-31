@@ -63,12 +63,18 @@ def prevent_removing_last_project_manager(
     )
 
     for manager_membership in manager_memberships:
+        eligible_user_ids = (
+            WorkspaceMembership.objects.using(using)
+            .filter(workspace_id=instance.workspace_id)
+            .values("user_id")
+        )
+
         other_manager_exists = (
             ProjectMembership.objects.using(using)
             .filter(
                 project_id=manager_membership.project_id,
                 role=ProjectMembership.Role.MANAGER,
-                project__workspace__memberships__user_id__isnull=False,
+                user_id__in=eligible_user_ids,
             )
             .exclude(user_id=instance.user_id)
             .exists()

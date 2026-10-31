@@ -161,6 +161,11 @@ class ProjectAPITests(APITestCase):
         )
         ProjectMembership.objects.create(
             project=project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
+        )
+        ProjectMembership.objects.create(
+            project=project,
             user=self.member,
             role=ProjectMembership.Role.MEMBER,
         )
@@ -242,6 +247,11 @@ class ProjectAPITests(APITestCase):
             workspace=self.workspace,
             name="Private Project",
             created_by=self.owner,
+        )
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
         )
         ProjectMembership.objects.create(
             project=project,

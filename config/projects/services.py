@@ -6,6 +6,20 @@ from projects.models import Project, ProjectMembership
 from workspaces.models import Workspace, WorkspaceMembership
 
 
+def has_other_project_manager(*, project, excluded_membership_id):
+    eligible_user_ids = WorkspaceMembership.objects.filter(
+        workspace_id=project.workspace_id,
+    ).values("user_id")
+
+    return ProjectMembership.objects.filter(
+        project=project,
+        role=ProjectMembership.Role.MANAGER,
+        user_id__in=eligible_user_ids,
+    ).exclude(
+        pk=excluded_membership_id,
+    ).exists()
+
+
 @transaction.atomic
 def create_project(*, workspace, created_by, name, description=""):
     # Serialize project creation against workspace membership changes.
@@ -186,10 +200,10 @@ def change_project_member_role(
     if (
         membership.role == ProjectMembership.Role.MANAGER
         and role == ProjectMembership.Role.MEMBER
-        and not ProjectMembership.objects.filter(
+        and not has_other_project_manager(
             project=project,
-            role=ProjectMembership.Role.MANAGER,
-        ).exclude(pk=membership.pk).exists()
+            excluded_membership_id=membership.pk,
+        )
     ):
         raise ValidationError({
             "role": "A project must have at least one manager."
@@ -304,11 +318,10 @@ def leave_project(*, project, actor):
     )
 
     if membership.role == ProjectMembership.Role.MANAGER:
-        other_manager_exists = ProjectMembership.objects.filter(
+        other_manager_exists = has_other_project_manager(
             project=project,
-            role=ProjectMembership.Role.MANAGER,
-            project__workspace__memberships__user_id__isnull=False,
-        ).exclude(pk=membership.pk).exists()
+            excluded_membership_id=membership.pk,
+        )
 
         if not other_manager_exists:
             raise ValidationError({
