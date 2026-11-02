@@ -1134,7 +1134,7 @@ paths:
           type: string
         description: 'Order by created_at, updated_at, due_date, title, priority,
           or status. Prefix with ''-'' for descending order. Default: -created_at.
-          Priority uses alphabetical ordering.'
+          Priority ordering follows low, medium, high, urgent.'
       - name: page
         required: false
         in: query

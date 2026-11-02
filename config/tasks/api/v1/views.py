@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, IntegerField
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import generics, permissions, status
@@ -84,7 +84,7 @@ from .pagination import TaskPageNumberPagination
                     "Order by created_at, updated_at, due_date, "
                     "title, priority, or status. Prefix with "
                     "'-' for descending order. Default: -created_at. "
-                    "Priority uses alphabetical ordering."
+                    "Priority ordering follows low, medium, high, urgent."
                 ),
             ),
         ],
@@ -237,6 +237,35 @@ class TaskListCreateView(generics.GenericAPIView):
             raise ValidationError({
                 "ordering": "Invalid ordering field."
             })
+
+        if ordering_field == "priority":
+            queryset = queryset.annotate(
+                priority_rank=Case(
+                    When(
+                        priority=Task.Priority.LOW,
+                        then=Value(1),
+                    ),
+                    When(
+                        priority=Task.Priority.MEDIUM,
+                        then=Value(2),
+                    ),
+                    When(
+                        priority=Task.Priority.HIGH,
+                        then=Value(3),
+                    ),
+                    When(
+                        priority=Task.Priority.URGENT,
+                        then=Value(4),
+                    ),
+                    output_field=IntegerField(),
+                )
+            )
+
+            ordering = (
+                "-priority_rank"
+                if descending
+                else "priority_rank"
+            )
 
         # Secondary ordering ensures stable pagination.
         queryset = queryset.order_by(

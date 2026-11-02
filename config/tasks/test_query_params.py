@@ -204,10 +204,10 @@ class TaskQueryParameterTests(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("priority", response.data)
 
-    def test_invalid_assignee_uuid_returns_400(self):
+    def test_invalid_assignee_id_returns_400(self):
         response = self.client.get(
             self.url,
-            {"assignee": "not-a-uuid"},
+            {"assignee": "not-an-integer"},
         )
 
         self.assertEqual(response.status_code, 400)
@@ -370,3 +370,35 @@ class TaskQueryParameterTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_ordering_by_priority_ascending(self):
+        response = self.client.get(
+            self.url,
+            {"ordering": "priority"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self.titles(response),
+            [
+                "Update Documentation",
+                "Build Login API",
+                "Write Backend Tests",
+            ],
+        )
+
+    def test_ordering_by_priority_descending(self):
+        response = self.client.get(
+            self.url,
+            {"ordering": "-priority"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self.titles(response),
+            [
+                "Write Backend Tests",
+                "Build Login API",
+                "Update Documentation",
+            ],
+        )
