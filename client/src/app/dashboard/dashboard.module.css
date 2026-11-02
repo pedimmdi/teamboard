@@ -96,6 +96,15 @@
   color: #4f46e5;
 }
 
+.navItemDisabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.mobileAccountNav {
+  display: none;
+}
+
 .navIcon {
   width: 20px;
   height: 20px;
@@ -749,6 +758,34 @@
 }
 
 @media (max-width: 767px) {
+  .mobileAccountNav {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px 0;
+  }
+
+  .mobileAccountNav .navItem {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .mobileAccountNav .navIcon {
+    display: none;
+  }
+
+  .mobileAccountNav .signOutButton {
+    width: 36px;
+    flex: 0 0 36px;
+    padding: 8px;
+  }
+
+  .mobileAccountNav .signOutButton svg {
+    width: 20px;
+    height: 20px;
+  }
   .dashboard {
     min-height: 100dvh;
     display: flex;

@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import WorkspaceIcon from "@/components/ui/WorkspaceIcon";
 import Avatar from "@/components/ui/Avatar";
 import DesignIcon from "@/components/ui/DesignIcon";
 import WorkspaceSwitcher from "./workspace-switcher";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import {
+  dashboardWorkspaceKey,
+  loadDashboardWorkspace,
+} from "./dashboard-workspace";
 
 import { useAuth } from "@/lib/auth";
 
@@ -112,19 +115,65 @@ function NavItem({
   active,
   icon,
 }: {
-  href: string;
+  href: string | null;
   label: string;
   active: boolean;
   icon: ReactNode;
 }) {
+  if (!href) {
+    return (
+      <span
+        className={styles.navItem + " " + styles.navItemDisabled}
+        aria-disabled="true"
+      >
+        <span className={styles.navIcon}>{icon}</span>
+        <span>{label}</span>
+      </span>
+    );
+  }
   return (
     <Link
+      aria-current={active ? "page" : undefined}
       href={href}
       className={`${styles.navItem} ${active ? styles.navItemActive : ""}`}
     >
       <span className={styles.navIcon}>{icon}</span>
       <span>{label}</span>
     </Link>
+  );
+}
+
+function WorkspaceNavigation({
+  workspaceBase,
+  pathname,
+}: {
+  workspaceBase: string | null;
+  pathname: string;
+}) {
+  return (
+    <>
+      <NavItem
+        href={workspaceBase ? `${workspaceBase}/projects` : null}
+        label="Projects"
+        active={pathname.startsWith(`${workspaceBase}/projects`)}
+        icon={<DesignIcon name="folder" />}
+      />
+      <NavItem
+        href={workspaceBase ? `${workspaceBase}/members` : null}
+        label="People"
+        active={
+          pathname === `${workspaceBase}/members` ||
+          pathname === `${workspaceBase}/invitations`
+        }
+        icon={<DesignIcon name="users" />}
+      />
+      <NavItem
+        href={workspaceBase ? `${workspaceBase}/settings` : null}
+        label="Settings"
+        active={pathname === `${workspaceBase}/settings`}
+        icon={<DesignIcon name="settings" />}
+      />
+    </>
   );
 }
 
@@ -137,12 +186,43 @@ function getInitials(firstName: string, lastName: string) {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
-  const { slug } = useParams<{ slug?: string }>();
-  const workspaceBase = slug
-    ? `/dashboard/workspaces/${encodeURIComponent(slug)}`
-    : null;
+  const { slug: routeSlug } = useParams<{ slug?: string }>();
+  const [activeWorkspace, setActiveWorkspace] = useState<{
+    userId: number;
+    slug: string;
+  } | null>(null);
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, accessToken, isAuthenticated, isLoading, logout } = useAuth();
+  const userId = user?.id;
+  const slug =
+    routeSlug ||
+    (activeWorkspace?.userId === userId ? activeWorkspace?.slug : undefined);
+  const workspaceBase = slug
+    ? "/dashboard/workspaces/" + encodeURIComponent(slug)
+    : null;
+
+  useEffect(() => {
+    if (!accessToken || userId === undefined) return;
+    let cancelled = false;
+    const key = dashboardWorkspaceKey(userId);
+    let savedSlug: string | null = null;
+    try {
+      savedSlug = sessionStorage.getItem(key);
+    } catch {}
+    loadDashboardWorkspace(accessToken, routeSlug, savedSlug)
+      .then((workspace) => {
+        if (cancelled) return;
+        setActiveWorkspace(workspace ? { userId, slug: workspace.slug } : null);
+        try {
+          if (workspace) sessionStorage.setItem(key, workspace.slug);
+          else sessionStorage.removeItem(key);
+        } catch {}
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, userId, routeSlug]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -155,10 +235,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const initials = getInitials(user.first_name, user.last_name);
-
-  const isWorkspaces =
-    pathname === "/dashboard/workspaces" ||
-    pathname.startsWith("/dashboard/workspaces/");
 
   const isProfile = pathname === "/dashboard";
   const isSecurity = pathname === "/dashboard/security";
@@ -183,39 +259,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <nav className={styles.navigation} aria-label="Workspace">
             <div className={styles.sectionLabel}>WORKSPACE</div>
 
-            {workspaceBase ? (
-              <>
-                <NavItem
-                  href={`${workspaceBase}/projects`}
-                  label="Projects"
-                  active={pathname.startsWith(`${workspaceBase}/projects`)}
-                  icon={<DesignIcon name="folder" />}
-                />
-                <NavItem
-                  href={`${workspaceBase}/members`}
-                  label="People"
-                  active={
-                    pathname === `${workspaceBase}/members` ||
-                    pathname === `${workspaceBase}/invitations`
-                  }
-                  icon={<DesignIcon name="users" />}
-                />
-                <NavItem
-                  href={`${workspaceBase}/settings`}
-                  label="Settings"
-                  active={pathname === `${workspaceBase}/settings`}
-                  icon={<DesignIcon name="settings" />}
-                />
-              </>
-            ) : (
-              <NavItem
-                href="/dashboard/workspaces"
-                label="Workspaces"
-                active={isWorkspaces}
-                icon={<WorkspaceIcon />}
-              />
-            )}
-
+            <WorkspaceNavigation
+              workspaceBase={workspaceBase}
+              pathname={pathname}
+            />
             <div className={styles.sectionLabel}>ACCOUNT</div>
 
             <NavItem
@@ -271,99 +318,63 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       <header className={styles.mobileHeader}>
-        {workspaceBase ? (
-          <WorkspaceSwitcher slug={slug} mobile />
-        ) : (
-          <div className={styles.brand}>
-            <BrandMark />
-            <span>TeamBoard</span>
-          </div>
-        )}
-
-        {workspaceBase ? (
-          <Link
-            className={styles.mobileLogoutButton}
-            href="/dashboard"
-            aria-label="Account"
-          >
-            <UserIcon />
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className={styles.mobileLogoutButton}
-            onClick={handleLogout}
-            aria-label="Sign out"
-          >
-            <LogoutIcon />
-          </button>
-        )}
+        <WorkspaceSwitcher slug={slug} mobile />
+        <Link
+          className={styles.mobileLogoutButton}
+          href="/dashboard"
+          aria-label="Account"
+        >
+          <UserIcon />
+        </Link>
       </header>
 
-      <main className={styles.main}>{children}</main>
-
-      <nav className={styles.mobileTabBar} aria-label="Dashboard">
-        {workspaceBase ? (
-          <>
-            <NavItem
-              href={`${workspaceBase}/projects`}
-              label="Projects"
-              active={pathname.startsWith(`${workspaceBase}/projects`)}
-              icon={<DesignIcon name="folder" />}
-            />
-            <NavItem
-              href={`${workspaceBase}/members`}
-              label="People"
-              active={
-                pathname === `${workspaceBase}/members` ||
-                pathname === `${workspaceBase}/invitations`
-              }
-              icon={<DesignIcon name="users" />}
-            />
-            <NavItem
-              href={`${workspaceBase}/settings`}
-              label="Settings"
-              active={pathname === `${workspaceBase}/settings`}
-              icon={<DesignIcon name="settings" />}
-            />
-            <NavItem
-              href="/dashboard"
-              label="Account"
-              active={false}
-              icon={<UserIcon />}
-            />
-          </>
-        ) : (
-          <>
-            <NavItem
-              href="/dashboard/workspaces"
-              label="Workspaces"
-              active={isWorkspaces}
-              icon={<WorkspaceIcon />}
-            />
-
+      <main className={styles.main}>
+        {(isProfile || isSecurity || isSessions) && (
+          <nav
+            className={styles.mobileAccountNav}
+            aria-label="Account navigation"
+          >
             <NavItem
               href="/dashboard"
               label="Profile"
               active={isProfile}
               icon={<UserIcon />}
             />
-
             <NavItem
               href="/dashboard/security"
               label="Security"
               active={isSecurity}
               icon={<LockIcon />}
             />
-
             <NavItem
               href="/dashboard/sessions"
               label="Sessions"
               active={isSessions}
               icon={<MonitorIcon />}
             />
-          </>
+            <button
+              className={styles.signOutButton}
+              onClick={handleLogout}
+              aria-label="Sign out"
+            >
+              <LogoutIcon />
+            </button>
+          </nav>
         )}
+        {children}
+      </main>
+
+      <nav className={styles.mobileTabBar} aria-label="Dashboard">
+        <WorkspaceNavigation
+          workspaceBase={workspaceBase}
+          pathname={pathname}
+        />
+        <NavItem
+          href="/dashboard"
+          label="Account"
+          active={isProfile || isSecurity || isSessions}
+          icon={<UserIcon />}
+        />
       </nav>
     </div>
   );

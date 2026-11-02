@@ -314,6 +314,12 @@ The dashboard uses `/dashboard` for profiles, `/dashboard/security` for password
 settings, `/dashboard/sessions` for sessions, and `/dashboard/workspaces` for
 workspaces. Selecting a workspace opens its projects. The sidebar provides Projects,
 People, and Settings; the workspace switcher retains access to all workspaces.
+The same navigation remains visible on profile, security, and session pages.
+The last workspace selection is remembered per account for the current browser
+session and checked against the API before restoring it. An unavailable saved
+workspace falls back to an accessible workspace; accounts without workspaces see
+disabled workspace links and can create one through the switcher. Mobile account
+pages include Profile, Security, Sessions, and sign-out controls above the content.
 Invitation links preserve the acceptance flow through login or registration.
 
 ### Projects
