@@ -267,5 +267,17 @@ SPECTACULAR_SETTINGS = {
             ("manager", "Manager"),
             ("member", "Member"),
         ],
+        "TaskStatusEnum": [
+            ("todo", "To Do"),
+            ("in_progress", "In Progress"),
+            ("in_review", "In Review"),
+            ("done", "Done"),
+        ],
+        "TaskPriorityEnum": [
+            ("low", "Low"),
+            ("medium", "Medium"),
+            ("high", "High"),
+            ("urgent", "Urgent"),
+        ],
     },
 }

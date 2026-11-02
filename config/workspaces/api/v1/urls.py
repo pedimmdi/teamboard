@@ -76,4 +76,8 @@ urlpatterns = [
         "<slug:slug>/projects/",
         include("projects.api.v1.urls"),
     ),
+    path(
+        "<slug:slug>/projects/<uuid:project_id>/tasks/",
+        include("tasks.api.v1.urls"),
+    ),
 ]
