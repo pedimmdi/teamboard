@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from projects.models import Project
@@ -42,6 +43,13 @@ class TaskListCreateView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = TaskSerializer
     pagination_class = TaskPageNumberPagination
+    throttle_scope = "task_create"
+
+    def get_throttles(self):
+        if self.request.method == "POST":
+            return [ScopedRateThrottle()]
+
+        return []
 
     def get_project(self):
         get_task_project_access_or_404(
