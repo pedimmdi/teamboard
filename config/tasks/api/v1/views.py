@@ -1,9 +1,17 @@
+from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework.throttling import ScopedRateThrottle
-from drf_spectacular.utils import extend_schema, extend_schema_view
-
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
+)
 from projects.models import Project
 from tasks.access import (
     get_task_project_access_or_404,
@@ -15,7 +23,7 @@ from tasks.services import (
     update_task,
     delete_task,
 )
-
+from tasks.models import Task
 from .serializers import (
     TaskSerializer,
     TaskCreateSerializer,
@@ -29,6 +37,57 @@ from .pagination import TaskPageNumberPagination
         tags=["Tasks"],
         summary="List project tasks",
         operation_id="tasks_list",
+        parameters=[
+            OpenApiParameter(
+                name="status",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter tasks by status.",
+                enum=Task.Status.values,
+            ),
+            OpenApiParameter(
+                name="priority",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter tasks by priority.",
+                enum=Task.Priority.values,
+            ),
+            OpenApiParameter(
+                name="assignee",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Filter by assigned user ID.",
+            ),
+            OpenApiParameter(
+                name="unassigned",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Use true to return only unassigned tasks. "
+                    "Cannot be combined with assignee."
+                ),
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Case-insensitive search in title and "
+                    "description. Maximum 200 characters."
+                ),
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Order by created_at, updated_at, due_date, "
+                    "title, priority, or status. Prefix with "
+                    "'-' for descending order. Default: -created_at. "
+                    "Priority uses alphabetical ordering."
+                ),
+            ),
+        ],
         responses={200: TaskSerializer(many=True)},
     ),
     post=extend_schema(
@@ -69,7 +128,121 @@ class TaskListCreateView(generics.GenericAPIView):
             workspace_slug=kwargs["slug"],
             project_id=kwargs["project_id"],
             user=request.user,
-        ).order_by("-created_at", "-pk")
+        )
+
+        task_status = request.query_params.get("status")
+        priority = request.query_params.get("priority")
+        assignee = request.query_params.get("assignee")
+        unassigned = request.query_params.get("unassigned")
+
+        if task_status is not None:
+            if task_status not in Task.Status.values:
+                raise ValidationError({
+                    "status": "Invalid task status."
+                })
+
+            queryset = queryset.filter(
+                status=task_status,
+            )
+
+        if priority is not None:
+            if priority not in Task.Priority.values:
+                raise ValidationError({
+                    "priority": "Invalid task priority."
+                })
+
+            queryset = queryset.filter(
+                priority=priority,
+            )
+
+        if assignee is not None:
+            User = get_user_model()
+            pk_field = User._meta.pk
+
+            try:
+                assignee_id = pk_field.to_python(assignee)
+            except (
+                DjangoValidationError,
+                ValueError,
+                TypeError,
+            ):
+                raise ValidationError({
+                    "assignee": "Invalid user ID."
+                })
+
+            queryset = queryset.filter(
+                assignee_id=assignee_id,
+            )
+
+        if unassigned is not None:
+            if unassigned not in ("true", "false"):
+                raise ValidationError({
+                    "unassigned": "Must be true or false."
+                })
+
+            if unassigned == "true":
+                queryset = queryset.filter(
+                    assignee__isnull=True,
+                )
+
+        if assignee is not None and unassigned == "true":
+            raise ValidationError({
+                "unassigned": (
+                    "Cannot combine assignee with "
+                    "unassigned=true."
+                )
+            })
+
+        # Searching
+        search = request.query_params.get("search")
+
+        if search is not None:
+            search = search.strip()
+
+            if search:
+                if len(search) > 200:
+                    raise ValidationError({
+                        "search": (
+                            "Search query cannot exceed "
+                            "200 characters."
+                        )
+                    })
+
+                queryset = queryset.filter(
+                    Q(title__icontains=search)
+                    | Q(description__icontains=search)
+                )
+
+        # Ordering
+        ordering = request.query_params.get(
+            "ordering",
+            "-created_at",
+        )
+
+        allowed_ordering_fields = {
+            "created_at",
+            "updated_at",
+            "due_date",
+            "title",
+            "priority",
+            "status",
+        }
+
+        descending = ordering.startswith("-")
+        ordering_field = (
+            ordering[1:] if descending else ordering
+        )
+
+        if ordering_field not in allowed_ordering_fields:
+            raise ValidationError({
+                "ordering": "Invalid ordering field."
+            })
+
+        # Secondary ordering ensures stable pagination.
+        queryset = queryset.order_by(
+            ordering,
+            "-pk",
+        )
 
         page = self.paginate_queryset(queryset)
 

@@ -1123,6 +1123,18 @@ paths:
       operationId: tasks_list
       summary: List project tasks
       parameters:
+      - in: query
+        name: assignee
+        schema:
+          type: integer
+        description: Filter by assigned user ID.
+      - in: query
+        name: ordering
+        schema:
+          type: string
+        description: 'Order by created_at, updated_at, due_date, title, priority,
+          or status. Prefix with ''-'' for descending order. Default: -created_at.
+          Priority uses alphabetical ordering.'
       - name: page
         required: false
         in: query
@@ -1135,17 +1147,49 @@ paths:
         description: Number of results to return per page.
         schema:
           type: integer
+      - in: query
+        name: priority
+        schema:
+          type: string
+          enum:
+          - high
+          - low
+          - medium
+          - urgent
+        description: Filter tasks by priority.
       - in: path
         name: project_id
         schema:
           type: string
           format: uuid
         required: true
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Case-insensitive search in title and description. Maximum 200
+          characters.
       - in: path
         name: slug
         schema:
           type: string
         required: true
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - done
+          - in_progress
+          - in_review
+          - todo
+        description: Filter tasks by status.
+      - in: query
+        name: unassigned
+        schema:
+          type: boolean
+        description: Use true to return only unassigned tasks. Cannot be combined
+          with assignee.
       tags:
       - Tasks
       security:
