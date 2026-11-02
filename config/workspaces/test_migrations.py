@@ -17,7 +17,7 @@ class WorkspaceUpgradeTests(TransactionTestCase):
         previous = [
             node
             for node in latest
-            if node[0] not in ("workspaces", "projects")
+            if node[0] not in ("workspaces", "projects", "tasks")
         ] + [first]
         executor.migrate(previous)
         try:
