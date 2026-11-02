@@ -15,6 +15,7 @@ export default function WorkspaceNav({ slug }: Props) {
   const basePath = `/dashboard/workspaces/${encodeURIComponent(slug)}`;
 
   const items = [
+    { label: "Projects", href: `${basePath}/projects` },
     { label: "Overview", href: basePath },
     { label: "Members", href: `${basePath}/members` },
     { label: "Invitations", href: `${basePath}/invitations` },

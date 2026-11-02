@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 import {
   ApiError,
@@ -28,6 +28,7 @@ export default function RemoveMemberModal({
 }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState(false);
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
@@ -53,7 +54,7 @@ export default function RemoveMemberModal({
       if (event.key !== "Tab") return;
 
       const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-        'button:not(:disabled)',
+        "button:not(:disabled), a[href]",
       );
 
       if (!focusable?.length) return;
@@ -86,18 +87,13 @@ export default function RemoveMemberModal({
     setError(null);
 
     try {
-      await removeWorkspaceMember(
-        accessToken,
-        slug,
-        member.id,
-      );
+      await removeWorkspaceMember(accessToken, slug, member.id);
 
       onRemoved();
     } catch (err) {
+      setBlocked(err instanceof ApiError && err.status === 409);
       setError(
-        err instanceof ApiError
-          ? err.message
-          : "Unable to remove member.",
+        err instanceof ApiError ? err.message : "Unable to remove member.",
       );
     } finally {
       setIsSubmitting(false);
@@ -124,17 +120,14 @@ export default function RemoveMemberModal({
       >
         <h2 id="remove-member-title">Remove member</h2>
 
-        <p
-          id="remove-member-description"
-          className={styles.description}
-        >
-          Are you sure you want to remove{" "}
-          <strong>{member.user_email}</strong> from this workspace?
+        <p id="remove-member-description" className={styles.description}>
+          Are you sure you want to remove <strong>{member.user_email}</strong>{" "}
+          from this workspace?
         </p>
 
         <p className={styles.note}>
-          This person will lose access to the workspace.
-          Their TeamBoard account will not be deleted.
+          This person will lose access to the workspace. Their TeamBoard account
+          will not be deleted.
         </p>
 
         {error && (
@@ -150,17 +143,26 @@ export default function RemoveMemberModal({
             disabled={isSubmitting}
             onClick={onClose}
           >
-            Cancel
+            {blocked ? "Close" : "Cancel"}
           </button>
 
-          <button
-            type="button"
-            className={styles.removeButton}
-            disabled={isSubmitting}
-            onClick={handleRemove}
-          >
-            {isSubmitting ? "Removing..." : "Remove member"}
-          </button>
+          {blocked ? (
+            <Link
+              className={styles.cancelButton}
+              href={`/dashboard/workspaces/${encodeURIComponent(slug)}/projects`}
+            >
+              View projects
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className={styles.removeButton}
+              disabled={isSubmitting}
+              onClick={handleRemove}
+            >
+              {isSubmitting ? "Removing..." : "Remove member"}
+            </button>
+          )}
         </div>
       </div>
     </div>

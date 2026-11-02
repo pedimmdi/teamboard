@@ -1559,6 +1559,11 @@ components:
           type: string
           format: email
           readOnly: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
         role:
           allOf:
           - $ref: '#/components/schemas/ProjectRoleEnum'
@@ -1571,6 +1576,7 @@ components:
           format: date-time
           readOnly: true
       required:
+      - avatar
       - id
       - is_current_user
       - joined_at

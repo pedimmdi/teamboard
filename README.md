@@ -2,7 +2,7 @@
 
 TeamBoard is a project management platform in development, built with Django REST Framework and Next.js. It is designed to support team collaboration, task management, and secure account access through a versioned REST API.
 
-The current implementation includes account management, authentication, session security, workspaces, role-based membership, email invitations, and project APIs. Task management is the next development area; project screens are not implemented in the frontend yet.
+The current implementation includes account management, authentication, session security, workspaces, role-based membership, email invitations, and project management on both the API and responsive web dashboard. Task management is the next development area.
 
 ## Current Features
 
@@ -38,6 +38,9 @@ The current implementation includes account management, authentication, session 
 - Profile pictures in workspace member lists and the account sidebar
 - Workspace listing, creation, overview, members, invitations, and settings
 - Shared workspace navigation icon and distinct role badges on desktop and mobile
+- Workspace switcher with role labels, desktop dropdown, and mobile sheet
+- Project listing, creation, overview, member management, and settings
+- Role-aware project actions, inline validation, and protected-action dialogs
 - Compact profile image controls with upload and removal in one row
 - Password and security settings
 - Active session management and session revocation
@@ -255,6 +258,7 @@ To validate the frontend before committing changes:
 cd client
 npm ci
 npm run lint
+npm test
 npm run build
 ```
 
@@ -308,7 +312,8 @@ leaving a workspace.
 
 The dashboard uses `/dashboard` for profiles, `/dashboard/security` for password
 settings, `/dashboard/sessions` for sessions, and `/dashboard/workspaces` for
-workspaces. Each workspace has overview, members, invitations, and settings tabs.
+workspaces. Selecting a workspace opens its projects. The sidebar provides Projects,
+People, and Settings; the workspace switcher retains access to all workspaces.
 Invitation links preserve the acceptance flow through login or registration.
 
 ### Projects
@@ -335,6 +340,16 @@ Global management access does not create a project membership: the response's
 `role` reports the actual project membership and may be `null` for a workspace
 owner or admin. Leaving a project removes a personal membership; it does not
 revoke the global permissions of workspace owners or admins.
+
+The dashboard lives at `/dashboard/workspaces/<slug>/projects`. Each project has
+Overview, Members, and Settings screens. Owners and admins see all workspace
+projects; regular members see only their assigned projects. Manager, Member, and
+Admin access badges reflect personal membership and inherited access. Desktop
+tables become cards on smaller screens, with mobile sheets for forms and actions.
+Project creation and editing validate names and the 5000-character description;
+deletion requires entering the exact project name. Protected actions display the
+API explanation and offer a route to manage members where appropriate. The
+overview's task area is a placeholder until task management is implemented.
 
 Project names are unique within their workspace, ignoring case. Names allow
 150 characters and descriptions allow 5000 characters. Permission checks precede
@@ -398,12 +413,13 @@ docker compose exec backend python manage.py spectacular --validate --fail-on-wa
 
 ### Frontend
 
-Run lint and production build checks:
+Run API-client and permission tests, lint, and production build checks:
 
 ```bash
 cd client
 npm ci
 npm run lint
+npm test
 npm run build
 ```
 
@@ -414,7 +430,7 @@ GitHub Actions runs on pushes, pull requests, and manual workflow dispatches.
 The current workflow contains two independent jobs:
 
 - **Backend:** installs Python dependencies, starts PostgreSQL, checks Django configuration and migration consistency, validates the OpenAPI schema, and runs the full pytest suite.
-- **Frontend:** installs Node.js dependencies using `npm ci`, runs ESLint, and builds the Next.js application.
+- **Frontend:** installs Node.js dependencies using `npm ci`, runs ESLint and the frontend tests, and builds the Next.js application.
 
 Integration and end-to-end browser tests are not currently part of the workflow.
 
@@ -475,7 +491,7 @@ docker compose down -v
 Account security, profile images, workspaces, projects, memberships, and invitations are
 implemented. Planned development includes:
 
-- Project screens and task management
+- Task management and project boards
 - Collaboration features
 - Integration and end-to-end testing
 
@@ -514,7 +530,7 @@ location, author and other source metadata removed. The same normalization runs
 for API and admin uploads. Uploads are limited to 10 per hour per authenticated
 user; reading a profile, editing names, and removing an image do not consume that
 upload allowance. Excess uploads return 429.
-The account API and workspace member API return the image URL or `null`.
+The account API, workspace member API, and project member API return the image URL or `null`.
 Replaced images and deleted profiles are cleaned up after database commit.
 The admin deletion confirmation protects workspace owners and the final project
 managers, including when selecting multiple users. Transfer ownership or assign

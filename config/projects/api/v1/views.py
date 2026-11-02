@@ -311,7 +311,7 @@ class ProjectMemberListCreateView(generics.GenericAPIView):
                 project=membership.project,
                 project__workspace__memberships__user=request.user,
             )
-            .select_related("user")
+            .select_related("user__profile")
             .order_by("joined_at", "pk")
         )
 

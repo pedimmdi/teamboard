@@ -93,6 +93,7 @@ class ProjectUpdateSerializer(serializers.Serializer):
 
 
 class ProjectMembershipSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(source="user.profile.avatar", read_only=True, allow_null=True)
     user_id = serializers.IntegerField(
         source="user.pk",
         read_only=True,
@@ -109,6 +110,7 @@ class ProjectMembershipSerializer(serializers.ModelSerializer):
             "id",
             "user_id",
             "user_email",
+            "avatar",
             "role",
             "is_current_user",
             "joined_at",

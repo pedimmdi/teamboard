@@ -12,6 +12,7 @@ from rest_framework.test import APITestCase
 
 from workspaces.models import Workspace, WorkspaceMembership
 from accounts.throttling import AvatarUploadThrottle
+from projects.services import create_project, add_project_member
 
 
 def image_file(name='photo.png', size=(24, 24), image_format='PNG'):
@@ -110,6 +111,20 @@ class ProfileAvatarTests(APITestCase):
         other = get_user_model().objects.create_user(email='member@example.com')
         WorkspaceMembership.objects.create(workspace=workspace, user=other)
         response = self.client.get(f'/api/v1/workspaces/{workspace.slug}/members/')
+        self.assertEqual(response.status_code, 200)
+        members = {member['user_id']: member for member in response.data['results']}
+        self.assertEqual(members[self.user.pk]['avatar'], avatar)
+        self.assertIsNone(members[other.pk]['avatar'])
+
+    def test_project_member_list_includes_avatar_and_null_fallback(self):
+        avatar = self.upload().data['avatar']
+        workspace = Workspace.objects.create(name='Project avatar team')
+        WorkspaceMembership.objects.create(workspace=workspace, user=self.user, role='owner')
+        other = get_user_model().objects.create_user(email='project-member@example.com')
+        WorkspaceMembership.objects.create(workspace=workspace, user=other)
+        project = create_project(workspace=workspace, created_by=self.user, name='Avatar project')
+        add_project_member(project=project, actor=self.user, user=other)
+        response = self.client.get(f'/api/v1/workspaces/{workspace.slug}/projects/{project.pk}/members/')
         self.assertEqual(response.status_code, 200)
         members = {member['user_id']: member for member in response.data['results']}
         self.assertEqual(members[self.user.pk]['avatar'], avatar)

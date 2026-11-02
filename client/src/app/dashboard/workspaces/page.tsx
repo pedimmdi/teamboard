@@ -221,7 +221,7 @@ export default function WorkspacesPage() {
                   key={workspace.id}
                   href={`/dashboard/workspaces/${encodeURIComponent(
                     workspace.slug,
-                  )}`}
+                  )}/projects`}
                   className={styles.workspaceCard}
                 >
                   <div className={styles.workspaceIcon}>

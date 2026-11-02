@@ -811,3 +811,128 @@ export function acceptWorkspaceInvitation(
     },
   );
 }
+
+export type ProjectRole = "manager" | "member";
+export type Project = {
+  id: string;
+  name: string;
+  description: string;
+  role: ProjectRole | null;
+  created_at: string;
+  updated_at: string;
+};
+export type ProjectMember = {
+  id: string;
+  user_id: number;
+  user_email: string;
+  avatar?: string | null;
+  role: ProjectRole;
+  is_current_user: boolean;
+  joined_at: string;
+};
+export type PaginatedProjects = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Project[];
+};
+export type PaginatedProjectMembers = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: ProjectMember[];
+};
+export type ProjectInput = { name: string; description: string };
+
+function projectsPath(slug: string, projectId?: string) {
+  const base = `/api/v1/workspaces/${encodeURIComponent(slug)}/projects/`;
+  return projectId ? `${base}${encodeURIComponent(projectId)}/` : base;
+}
+
+export function getProjects(token: string, slug: string, page = 1) {
+  return apiFetch<PaginatedProjects>(
+    `${projectsPath(slug)}?${new URLSearchParams({ page: String(page) })}`,
+    { token },
+  );
+}
+export function createProject(token: string, slug: string, data: ProjectInput) {
+  return apiFetch<Project>(projectsPath(slug), {
+    token,
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+export function getProject(token: string, slug: string, projectId: string) {
+  return apiFetch<Project>(projectsPath(slug, projectId), { token });
+}
+export function updateProject(
+  token: string,
+  slug: string,
+  projectId: string,
+  data: Partial<ProjectInput>,
+) {
+  return apiFetch<Project>(projectsPath(slug, projectId), {
+    token,
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+export function deleteProject(token: string, slug: string, projectId: string) {
+  return apiFetch<null>(projectsPath(slug, projectId), {
+    token,
+    method: "DELETE",
+  });
+}
+export function leaveProject(token: string, slug: string, projectId: string) {
+  return apiFetch<null>(`${projectsPath(slug, projectId)}leave/`, {
+    token,
+    method: "POST",
+  });
+}
+export function getProjectMembers(
+  token: string,
+  slug: string,
+  projectId: string,
+  page = 1,
+) {
+  return apiFetch<PaginatedProjectMembers>(
+    `${projectsPath(slug, projectId)}members/?${new URLSearchParams({ page: String(page) })}`,
+    { token },
+  );
+}
+export function addProjectMember(
+  token: string,
+  slug: string,
+  projectId: string,
+  userId: number,
+  role: ProjectRole,
+) {
+  return apiFetch<ProjectMember>(`${projectsPath(slug, projectId)}members/`, {
+    token,
+    method: "POST",
+    body: JSON.stringify({ user_id: userId, role }),
+  });
+}
+export function updateProjectMemberRole(
+  token: string,
+  slug: string,
+  projectId: string,
+  membershipId: string,
+  role: ProjectRole,
+) {
+  return apiFetch<ProjectMember>(
+    `${projectsPath(slug, projectId)}members/${encodeURIComponent(membershipId)}/role/`,
+    { token, method: "PATCH", body: JSON.stringify({ role }) },
+  );
+}
+export function removeProjectMember(
+  token: string,
+  slug: string,
+  projectId: string,
+  membershipId: string,
+) {
+  return apiFetch<null>(
+    `${projectsPath(slug, projectId)}members/${encodeURIComponent(membershipId)}/`,
+    { token, method: "DELETE" },
+  );
+}
