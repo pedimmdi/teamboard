@@ -1970,10 +1970,30 @@ components:
           type: integer
           readOnly: true
           nullable: true
+        assignee_email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        assignee_avatar:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
         created_by:
           type: integer
           readOnly: true
           nullable: true
+        created_by_email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        created_by_avatar:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
         due_date:
           type: string
           format: date
@@ -1989,8 +2009,12 @@ components:
           readOnly: true
       required:
       - assignee
+      - assignee_avatar
+      - assignee_email
       - created_at
       - created_by
+      - created_by_avatar
+      - created_by_email
       - description
       - due_date
       - id

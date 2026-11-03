@@ -53,7 +53,9 @@ def get_task_or_404(
         Task.objects.select_related(
             "project",
             "assignee",
+            "assignee__profile",
             "created_by",
+            "created_by__profile",
         ),
         pk=task_id,
         project_id=project_id,
@@ -81,5 +83,7 @@ def get_accessible_project_tasks(
         project_id=project_id,
     ).select_related(
         "assignee",
+        "assignee__profile",
         "created_by",
+        "created_by__profile",
     )

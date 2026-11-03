@@ -482,3 +482,116 @@ class TaskAPITests(APITestCase):
                 )
         finally:
             cache.clear()
+
+    def test_task_response_includes_user_details(self):
+        task = self.create_task(
+            title="Task with user details",
+            assignee=self.member,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.get_detail_url(task),
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(
+            response.data["assignee"],
+            self.member.pk,
+        )
+        self.assertEqual(
+            response.data["assignee_email"],
+            self.member.email,
+        )
+        self.assertIsNone(
+            response.data["assignee_avatar"],
+        )
+
+        self.assertEqual(
+            response.data["created_by"],
+            self.owner.pk,
+        )
+        self.assertEqual(
+            response.data["created_by_email"],
+            self.owner.email,
+        )
+        self.assertIsNone(
+            response.data["created_by_avatar"],
+        )
+
+    def test_creator_email_remains_after_leaving_project(self):
+        task = self.create_task(
+            title="Task created by former member",
+        )
+
+        # Ensure the project keeps an eligible manager.
+        ProjectMembership.objects.create(
+            project=self.project,
+            user=self.admin,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        # The task creator leaves the project.
+        ProjectMembership.objects.filter(
+            project=self.project,
+            user=self.owner,
+        ).delete()
+
+        self.assertFalse(
+            ProjectMembership.objects.filter(
+                project=self.project,
+                user=self.owner,
+            ).exists()
+        )
+
+        # Another manager retrieves the task.
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.get(
+            self.get_detail_url(task),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["created_by"],
+            self.owner.pk,
+        )
+        self.assertEqual(
+            response.data["created_by_email"],
+            self.owner.email,
+        )
+
+    def test_task_list_does_not_have_n_plus_one_queries(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.client.force_authenticate(user=self.owner)
+
+        self.create_task(
+            title="Task 1",
+            assignee=self.member,
+        )
+
+        with CaptureQueriesContext(connection) as small_queries:
+            small_response = self.client.get(self.list_url)
+
+        self.assertEqual(small_response.status_code, 200)
+
+        for index in range(2, 11):
+            self.create_task(
+                title=f"Task {index}",
+                assignee=self.member,
+            )
+
+        with CaptureQueriesContext(connection) as large_queries:
+            large_response = self.client.get(self.list_url)
+
+        self.assertEqual(large_response.status_code, 200)
+
+        self.assertEqual(
+            len(small_queries),
+            len(large_queries),
+            "Task list query count increased with more tasks.",
+        )

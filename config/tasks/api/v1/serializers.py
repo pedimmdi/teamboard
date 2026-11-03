@@ -8,6 +8,27 @@ User = get_user_model()
 
 
 class TaskSerializer(serializers.ModelSerializer):
+    assignee_email = serializers.EmailField(
+        source="assignee.email",
+        read_only=True,
+        allow_null=True,
+    )
+    created_by_email = serializers.EmailField(
+        source="created_by.email",
+        read_only=True,
+        allow_null=True,
+    )
+    assignee_avatar = serializers.ImageField(
+        source="assignee.profile.avatar",
+        read_only=True,
+        allow_null=True,
+    )
+    created_by_avatar = serializers.ImageField(
+        source="created_by.profile.avatar",
+        read_only=True,
+        allow_null=True,
+    )
+
     class Meta:
         model = Task
         fields = (
@@ -18,7 +39,11 @@ class TaskSerializer(serializers.ModelSerializer):
             "status",
             "priority",
             "assignee",
+            "assignee_email",
+            "assignee_avatar",
             "created_by",
+            "created_by_email",
+            "created_by_avatar",
             "due_date",
             "created_at",
             "updated_at",
