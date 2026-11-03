@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q, Case, When, Value, IntegerField
+from django.db.models import Q, Case, When, Value, IntegerField, F
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import generics, permissions, status
@@ -82,9 +82,13 @@ from .pagination import TaskPageNumberPagination
                 location=OpenApiParameter.QUERY,
                 description=(
                     "Order by created_at, updated_at, due_date, "
-                    "title, priority, or status. Prefix with "
-                    "'-' for descending order. Default: -created_at. "
-                    "Priority ordering follows low, medium, high, urgent."
+                    "title, priority, or status. Prefix with '-' "
+                    "for descending order. Default: -created_at. "
+                    "Priority ordering follows low, medium, high, urgent. "
+                    "Status ordering follows todo, in_progress, "
+                    "in_review, done. "
+                    "Tasks without a due_date always appear last "
+                    "when ordering by due_date."
                 ),
             ),
         ],
@@ -238,38 +242,49 @@ class TaskListCreateView(generics.GenericAPIView):
                 "ordering": "Invalid ordering field."
             })
 
-        if ordering_field == "priority":
-            queryset = queryset.annotate(
-                priority_rank=Case(
-                    When(
-                        priority=Task.Priority.LOW,
-                        then=Value(1),
-                    ),
-                    When(
-                        priority=Task.Priority.MEDIUM,
-                        then=Value(2),
-                    ),
-                    When(
-                        priority=Task.Priority.HIGH,
-                        then=Value(3),
-                    ),
-                    When(
-                        priority=Task.Priority.URGENT,
-                        then=Value(4),
-                    ),
+        if ordering_field in ("priority", "status"):
+            if ordering_field == "priority":
+                rank_field = "priority_rank"
+                rank_expression = Case(
+                    When(priority=Task.Priority.LOW, then=Value(1)),
+                    When(priority=Task.Priority.MEDIUM, then=Value(2)),
+                    When(priority=Task.Priority.HIGH, then=Value(3)),
+                    When(priority=Task.Priority.URGENT, then=Value(4)),
                     output_field=IntegerField(),
                 )
+            else:
+                rank_field = "status_rank"
+                rank_expression = Case(
+                    When(status=Task.Status.TODO, then=Value(1)),
+                    When(status=Task.Status.IN_PROGRESS, then=Value(2)),
+                    When(status=Task.Status.IN_REVIEW, then=Value(3)),
+                    When(status=Task.Status.DONE, then=Value(4)),
+                    output_field=IntegerField(),
+                )
+
+            queryset = queryset.annotate(
+                **{rank_field: rank_expression}
             )
 
-            ordering = (
-                "-priority_rank"
+            ordering_expression = (
+                F(rank_field).desc()
                 if descending
-                else "priority_rank"
+                else F(rank_field).asc()
             )
+
+        elif ordering_field == "due_date":
+            ordering_expression = (
+                F("due_date").desc(nulls_last=True)
+                if descending
+                else F("due_date").asc(nulls_last=True)
+            )
+
+        else:
+            ordering_expression = ordering
 
         # Secondary ordering ensures stable pagination.
         queryset = queryset.order_by(
-            ordering,
+            ordering_expression,
             "-pk",
         )
 

@@ -1134,7 +1134,9 @@ paths:
           type: string
         description: 'Order by created_at, updated_at, due_date, title, priority,
           or status. Prefix with ''-'' for descending order. Default: -created_at.
-          Priority ordering follows low, medium, high, urgent.'
+          Priority ordering follows low, medium, high, urgent. Status ordering follows
+          todo, in_progress, in_review, done. Tasks without a due_date always appear
+          last when ordering by due_date.'
       - name: page
         required: false
         in: query

@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -594,4 +595,162 @@ class TaskAPITests(APITestCase):
             len(small_queries),
             len(large_queries),
             "Task list query count increased with more tasks.",
+        )
+
+    def test_task_list_orders_status_by_workflow(self):
+        self.create_task(
+            title="Done task",
+            status=Task.Status.DONE,
+        )
+        self.create_task(
+            title="Review task",
+            status=Task.Status.IN_REVIEW,
+        )
+        self.create_task(
+            title="Todo task",
+            status=Task.Status.TODO,
+        )
+        self.create_task(
+            title="Progress task",
+            status=Task.Status.IN_PROGRESS,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.list_url,
+            {"ordering": "status"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        actual_statuses = [
+            task["status"]
+            for task in response.data["results"]
+        ]
+
+        self.assertEqual(
+            actual_statuses,
+            [
+                Task.Status.TODO,
+                Task.Status.IN_PROGRESS,
+                Task.Status.IN_REVIEW,
+                Task.Status.DONE,
+            ],
+        )
+
+    def test_task_list_orders_status_by_reverse_workflow(self):
+        self.create_task(
+            title="Todo task",
+            status=Task.Status.TODO,
+        )
+        self.create_task(
+            title="Review task",
+            status=Task.Status.IN_REVIEW,
+        )
+        self.create_task(
+            title="Done task",
+            status=Task.Status.DONE,
+        )
+        self.create_task(
+            title="Progress task",
+            status=Task.Status.IN_PROGRESS,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.list_url,
+            {"ordering": "-status"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        actual_statuses = [
+            task["status"]
+            for task in response.data["results"]
+        ]
+
+        self.assertEqual(
+            actual_statuses,
+            [
+                Task.Status.DONE,
+                Task.Status.IN_REVIEW,
+                Task.Status.IN_PROGRESS,
+                Task.Status.TODO,
+            ],
+        )
+
+    def test_task_list_orders_due_date_ascending_nulls_last(self):
+        self.create_task(
+            title="No due date",
+            due_date=None,
+        )
+        self.create_task(
+            title="Later due date",
+            due_date=date(2027, 3, 20),
+        )
+        self.create_task(
+            title="Earlier due date",
+            due_date=date(2027, 1, 10),
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.list_url,
+            {"ordering": "due_date"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        actual_titles = [
+            task["title"]
+            for task in response.data["results"]
+        ]
+
+        self.assertEqual(
+            actual_titles,
+            [
+                "Earlier due date",
+                "Later due date",
+                "No due date",
+            ],
+        )
+
+    def test_task_list_orders_due_date_descending_nulls_last(self):
+        self.create_task(
+            title="No due date",
+            due_date=None,
+        )
+        self.create_task(
+            title="Earlier due date",
+            due_date=date(2027, 1, 10),
+        )
+        self.create_task(
+            title="Later due date",
+            due_date=date(2027, 3, 20),
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.list_url,
+            {"ordering": "-due_date"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        actual_titles = [
+            task["title"]
+            for task in response.data["results"]
+        ]
+
+        self.assertEqual(
+            actual_titles,
+            [
+                "Later due date",
+                "Earlier due date",
+                "No due date",
+            ],
         )
