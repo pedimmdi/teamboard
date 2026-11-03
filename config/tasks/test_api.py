@@ -103,6 +103,1139 @@ class TaskAPITests(APITestCase):
             **kwargs,
         )
 
+    def test_created_task_has_initial_position(self):
+        self.client.force_authenticate(user=self.member)
+
+        response = self.client.post(
+            self.list_url,
+            {"title": "First Kanban Task"},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_201_CREATED,
+        )
+
+        self.assertIn("position", response.data)
+        self.assertEqual(response.data["position"], 0)
+
+        task = Task.objects.get(pk=response.data["id"])
+        self.assertEqual(task.position, 0)
+
+    def test_new_tasks_get_sequential_positions(self):
+        self.client.force_authenticate(user=self.member)
+
+        first_response = self.client.post(
+            self.list_url,
+            {"title": "First Task"},
+            format="json",
+        )
+        second_response = self.client.post(
+            self.list_url,
+            {"title": "Second Task"},
+            format="json",
+        )
+        third_response = self.client.post(
+            self.list_url,
+            {"title": "Third Task"},
+            format="json",
+        )
+
+        for response in (
+            first_response,
+            second_response,
+            third_response,
+        ):
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_201_CREATED,
+            )
+
+        self.assertEqual(
+            [
+                first_response.data["position"],
+                second_response.data["position"],
+                third_response.data["position"],
+            ],
+            [0, 1, 2],
+        )
+
+        self.assertEqual(
+            list(
+                Task.objects.filter(
+                    project=self.project,
+                    status=Task.Status.TODO,
+                )
+                .order_by("position")
+                .values_list("position", flat=True)
+            ),
+            [0, 1, 2],
+        )
+
+    def test_positions_are_independent_per_status(self):
+        self.client.force_authenticate(user=self.member)
+
+        tasks = [
+            ("Todo 1", Task.Status.TODO),
+            ("Progress 1", Task.Status.IN_PROGRESS),
+            ("Todo 2", Task.Status.TODO),
+            ("Progress 2", Task.Status.IN_PROGRESS),
+        ]
+
+        positions = []
+
+        for title, task_status in tasks:
+            response = self.client.post(
+                self.list_url,
+                {
+                    "title": title,
+                    "status": task_status,
+                },
+                format="json",
+            )
+
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_201_CREATED,
+            )
+
+            positions.append(response.data["position"])
+
+        self.assertEqual(positions, [0, 0, 1, 1])
+
+    def test_positions_are_independent_per_project(self):
+        self.client.force_authenticate(user=self.member)
+
+        first_response = self.client.post(
+            self.list_url,
+            {"title": "Project One Task"},
+            format="json",
+        )
+
+        self.assertEqual(
+            first_response.status_code,
+            status.HTTP_201_CREATED,
+        )
+
+        other_project = Project.objects.create(
+            workspace=self.workspace,
+            name="Another Kanban Project",
+            created_by=self.owner,
+        )
+
+        ProjectMembership.objects.create(
+            project=other_project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        ProjectMembership.objects.create(
+            project=other_project,
+            user=self.member,
+            role=ProjectMembership.Role.MEMBER,
+        )
+
+        second_response = self.client.post(
+            self.get_list_url(other_project),
+            {"title": "Project Two Task"},
+            format="json",
+        )
+
+        self.assertEqual(
+            second_response.status_code,
+            status.HTTP_201_CREATED,
+        )
+
+        self.assertEqual(first_response.data["position"], 0)
+        self.assertEqual(second_response.data["position"], 0)
+
+    def test_status_change_moves_task_to_end_of_destination(self):
+        self.client.force_authenticate(user=self.member)
+
+        moving_task = self.create_task(
+            title="Moving Task",
+            status=Task.Status.TODO,
+            position=0,
+        )
+
+        existing_task = self.create_task(
+            title="Existing Progress Task",
+            status=Task.Status.IN_PROGRESS,
+            position=0,
+        )
+
+        response = self.client.patch(
+            self.get_detail_url(moving_task),
+            {"status": Task.Status.IN_PROGRESS},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        moving_task.refresh_from_db()
+        existing_task.refresh_from_db()
+
+        self.assertEqual(
+            moving_task.status,
+            Task.Status.IN_PROGRESS,
+        )
+        self.assertEqual(moving_task.position, 1)
+        self.assertEqual(response.data["position"], 1)
+        self.assertEqual(existing_task.position, 0)
+
+    def test_status_update_to_same_status_preserves_position(self):
+        self.client.force_authenticate(user=self.member)
+
+        first_task = self.create_task(
+            title="First Task",
+            status=Task.Status.TODO,
+            position=0,
+        )
+
+        second_task = self.create_task(
+            title="Second Task",
+            status=Task.Status.TODO,
+            position=1,
+        )
+
+        response = self.client.patch(
+            self.get_detail_url(first_task),
+            {"status": Task.Status.TODO},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        first_task.refresh_from_db()
+        second_task.refresh_from_db()
+
+        self.assertEqual(first_task.position, 0)
+        self.assertEqual(second_task.position, 1)
+
+    def test_regular_task_update_preserves_position(self):
+        self.client.force_authenticate(user=self.member)
+
+        task = self.create_task(
+            title="Original Title",
+            status=Task.Status.TODO,
+            position=2,
+        )
+
+        response = self.client.patch(
+            self.get_detail_url(task),
+            {"title": "Updated Title"},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        task.refresh_from_db()
+
+        self.assertEqual(task.title, "Updated Title")
+        self.assertEqual(task.position, 2)
+
+    def test_move_task_reorders_within_same_status(self):
+        self.client.force_authenticate(user=self.member)
+
+        first = self.create_task(
+            title="First",
+            position=0,
+        )
+        second = self.create_task(
+            title="Second",
+            position=1,
+        )
+        third = self.create_task(
+            title="Third",
+            position=2,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": third.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.TODO,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            list(
+                Task.objects.filter(
+                    project=self.project,
+                    status=Task.Status.TODO,
+                )
+                .order_by("position")
+                .values_list("pk", flat=True)
+            ),
+            [third.pk, first.pk, second.pk],
+        )
+
+        self.assertEqual(
+            list(
+                Task.objects.filter(
+                    project=self.project,
+                    status=Task.Status.TODO,
+                )
+                .order_by("position")
+                .values_list("position", flat=True)
+            ),
+            [0, 1, 2],
+        )
+
+    def test_move_task_between_status_columns(self):
+        self.client.force_authenticate(user=self.member)
+
+        source_first = self.create_task(
+            title="Source First",
+            status=Task.Status.TODO,
+            position=0,
+        )
+        moving = self.create_task(
+            title="Moving",
+            status=Task.Status.TODO,
+            position=1,
+        )
+        source_last = self.create_task(
+            title="Source Last",
+            status=Task.Status.TODO,
+            position=2,
+        )
+        destination = self.create_task(
+            title="Destination",
+            status=Task.Status.IN_PROGRESS,
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": moving.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.IN_PROGRESS,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(
+            list(
+                Task.objects.filter(
+                    project=self.project,
+                    status=Task.Status.TODO,
+                )
+                .order_by("position")
+                .values_list("pk", "position")
+            ),
+            [
+                (source_first.pk, 0),
+                (source_last.pk, 1),
+            ],
+        )
+
+        self.assertEqual(
+            list(
+                Task.objects.filter(
+                    project=self.project,
+                    status=Task.Status.IN_PROGRESS,
+                )
+                .order_by("position")
+                .values_list("pk", "position")
+            ),
+            [
+                (moving.pk, 0),
+                (destination.pk, 1),
+            ],
+        )
+
+    def test_move_task_rejects_out_of_range_position(self):
+        self.client.force_authenticate(user=self.member)
+
+        task = self.create_task(
+            title="Unchanged Task",
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.TODO,
+                "position": 99,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.TODO)
+        self.assertEqual(task.position, 0)
+
+    def test_move_task_rejects_negative_position(self):
+        self.client.force_authenticate(user=self.member)
+
+        task = self.create_task(
+            title="Negative Position Task",
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.TODO,
+                "position": -1,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        task.refresh_from_db()
+        self.assertEqual(task.position, 0)
+
+    def test_move_task_to_same_position_is_idempotent(self):
+        self.client.force_authenticate(user=self.member)
+
+        first = self.create_task(
+            title="First",
+            position=0,
+        )
+        second = self.create_task(
+            title="Second",
+            position=1,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": second.pk,
+            },
+        )
+
+        for _ in range(2):
+            response = self.client.post(
+                move_url,
+                {
+                    "status": Task.Status.TODO,
+                    "position": 1,
+                },
+                format="json",
+            )
+
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_200_OK,
+            )
+
+        self.assertEqual(
+            list(
+                Task.objects.filter(
+                    project=self.project,
+                    status=Task.Status.TODO,
+                )
+                .order_by("position")
+                .values_list("pk", "position")
+            ),
+            [
+                (first.pk, 0),
+                (second.pk, 1),
+            ],
+        )
+
+    def test_status_change_compacts_source_positions(self):
+        self.client.force_authenticate(user=self.member)
+
+        first = self.create_task(
+            title="First",
+            status=Task.Status.TODO,
+            position=0,
+        )
+        moving = self.create_task(
+            title="Moving",
+            status=Task.Status.TODO,
+            position=1,
+        )
+        last = self.create_task(
+            title="Last",
+            status=Task.Status.TODO,
+            position=2,
+        )
+
+        response = self.client.patch(
+            self.get_detail_url(moving),
+            {"status": Task.Status.IN_PROGRESS},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            list(
+                Task.objects.filter(
+                    project=self.project,
+                    status=Task.Status.TODO,
+                )
+                .order_by("position", "pk")
+                .values_list("pk", "position")
+            ),
+            [
+                (first.pk, 0),
+                (last.pk, 1),
+            ],
+        )
+
+        moving.refresh_from_db()
+        self.assertEqual(moving.position, 0)
+
+    def test_deleting_task_compacts_remaining_positions(self):
+        self.client.force_authenticate(user=self.owner)
+
+        first = self.create_task(
+            title="First",
+            position=0,
+        )
+        middle = self.create_task(
+            title="Middle",
+            position=1,
+        )
+        last = self.create_task(
+            title="Last",
+            position=2,
+        )
+
+        response = self.client.delete(
+            self.get_detail_url(middle),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
+
+        self.assertFalse(
+            Task.objects.filter(pk=middle.pk).exists()
+        )
+
+        self.assertEqual(
+            list(
+                Task.objects.filter(
+                    project=self.project,
+                    status=Task.Status.TODO,
+                )
+                .order_by("position", "pk")
+                .values_list("pk", "position")
+            ),
+            [
+                (first.pk, 0),
+                (last.pk, 1),
+            ],
+        )
+
+    def test_list_tasks_can_order_by_position(self):
+        self.client.force_authenticate(user=self.member)
+
+        first = self.create_task(
+            title="First",
+            status=Task.Status.TODO,
+            position=0,
+        )
+        second = self.create_task(
+            title="Second",
+            status=Task.Status.TODO,
+            position=1,
+        )
+        third = self.create_task(
+            title="Third",
+            status=Task.Status.TODO,
+            position=2,
+        )
+
+        response = self.client.get(
+            self.list_url,
+            {
+                "status": Task.Status.TODO,
+                "ordering": "position",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        self.assertEqual(
+            [
+                item["id"]
+                for item in response.data["results"]
+            ],
+            [
+                str(first.pk),
+                str(second.pk),
+                str(third.pk),
+            ],
+        )
+
+        self.assertEqual(
+            [
+                item["position"]
+                for item in response.data["results"]
+            ],
+            [0, 1, 2],
+        )
+
+    def test_unauthenticated_user_cannot_move_task(self):
+        task = self.create_task(
+            title="Protected Task",
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.IN_PROGRESS,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertIn(
+            response.status_code,
+            (
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+            ),
+        )
+
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.TODO)
+        self.assertEqual(task.position, 0)
+
+    def test_outsider_cannot_move_task(self):
+        self.client.force_authenticate(user=self.outsider)
+
+        task = self.create_task(
+            title="Private Task",
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.IN_PROGRESS,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.TODO)
+        self.assertEqual(task.position, 0)
+
+    def test_workspace_member_without_project_access_cannot_move_task(self):
+        self.client.force_authenticate(
+            user=self.workspace_member,
+        )
+
+        task = self.create_task(
+            title="Project Private Task",
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.IN_PROGRESS,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.TODO)
+        self.assertEqual(task.position, 0)
+
+    def test_move_task_cannot_cross_project_boundary(self):
+        self.client.force_authenticate(user=self.member)
+
+        other_project = Project.objects.create(
+            workspace=self.workspace,
+            name="Other Project",
+            created_by=self.owner,
+        )
+
+        ProjectMembership.objects.create(
+            project=other_project,
+            user=self.owner,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        ProjectMembership.objects.create(
+            project=other_project,
+            user=self.member,
+            role=ProjectMembership.Role.MEMBER,
+        )
+
+        task = Task.objects.create(
+            project=other_project,
+            title="Other Project Task",
+            created_by=self.owner,
+            status=Task.Status.TODO,
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.IN_PROGRESS,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        task.refresh_from_db()
+        self.assertEqual(task.project_id, other_project.pk)
+        self.assertEqual(task.status, Task.Status.TODO)
+        self.assertEqual(task.position, 0)
+
+    def test_move_task_updates_timestamp_only_for_moved_task(self):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        self.client.force_authenticate(user=self.member)
+
+        first = self.create_task(
+            title="First",
+            status=Task.Status.TODO,
+            position=0,
+        )
+        second = self.create_task(
+            title="Second",
+            status=Task.Status.TODO,
+            position=1,
+        )
+
+        old_timestamp = timezone.now() - timedelta(days=1)
+
+        Task.objects.filter(
+            pk__in=[first.pk, second.pk],
+        ).update(updated_at=old_timestamp)
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": second.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.TODO,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+
+        self.assertEqual(first.position, 1)
+        self.assertEqual(second.position, 0)
+
+        self.assertEqual(
+            first.updated_at,
+            old_timestamp,
+        )
+
+        self.assertGreater(
+            second.updated_at,
+            old_timestamp,
+        )
+
+    def test_move_task_requires_status(self):
+        self.client.force_authenticate(user=self.member)
+
+        task = self.create_task(
+            title="Task",
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {"position": 0},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("status", response.data)
+
+    def test_move_task_requires_position(self):
+        self.client.force_authenticate(user=self.member)
+
+        task = self.create_task(
+            title="Task",
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {"status": Task.Status.TODO},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("position", response.data)
+
+    def test_move_task_rejects_invalid_status(self):
+        self.client.force_authenticate(user=self.member)
+
+        task = self.create_task(
+            title="Task",
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": "invalid_status",
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("status", response.data)
+
+    def test_invalid_move_does_not_change_any_task(self):
+        self.client.force_authenticate(user=self.member)
+
+        first = self.create_task(
+            title="First",
+            status=Task.Status.TODO,
+            position=0,
+        )
+        second = self.create_task(
+            title="Second",
+            status=Task.Status.TODO,
+            position=1,
+        )
+        destination = self.create_task(
+            title="Destination",
+            status=Task.Status.IN_PROGRESS,
+            position=0,
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": second.pk,
+            },
+        )
+
+        before = list(
+            Task.objects.filter(
+                project=self.project,
+            )
+            .order_by("pk")
+            .values_list("pk", "status", "position")
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.IN_PROGRESS,
+                "position": 99,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+        after = list(
+            Task.objects.filter(
+                project=self.project,
+            )
+            .order_by("pk")
+            .values_list("pk", "status", "position")
+        )
+
+        self.assertEqual(before, after)
+
+    def test_kanban_positions_remain_contiguous_after_mixed_operations(self):
+        self.client.force_authenticate(user=self.owner)
+
+        created_ids = []
+
+        for index in range(4):
+            response = self.client.post(
+                self.list_url,
+                {"title": f"Kanban Task {index}"},
+                format="json",
+            )
+
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_201_CREATED,
+            )
+            created_ids.append(response.data["id"])
+
+        # Move the third task to the beginning.
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": created_ids[2],
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.TODO,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        # Change the second task's status using PATCH.
+        second_task = Task.objects.get(pk=created_ids[1])
+
+        response = self.client.patch(
+            self.get_detail_url(second_task),
+            {"status": Task.Status.IN_PROGRESS},
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        # Move the fourth task into the progress column.
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": self.project.pk,
+                "task_id": created_ids[3],
+            },
+        )
+
+        response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.IN_PROGRESS,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+
+        # Delete the first task.
+        first_task = Task.objects.get(pk=created_ids[0])
+
+        response = self.client.delete(
+            self.get_detail_url(first_task),
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
+
+        # Verify all remaining columns have contiguous positions.
+        for task_status in Task.Status.values:
+            positions = list(
+                Task.objects.filter(
+                    project=self.project,
+                    status=task_status,
+                )
+                .order_by("position", "pk")
+                .values_list("position", flat=True)
+            )
+
+            self.assertEqual(
+                positions,
+                list(range(len(positions))),
+                msg=f"Invalid positions for {task_status}",
+            )
+
+        self.assertEqual(
+            Task.objects.filter(project=self.project).count(),
+            3,
+        )
+
     def test_project_member_can_create_task(self):
         self.client.force_authenticate(user=self.member)
 

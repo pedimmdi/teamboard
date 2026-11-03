@@ -23,12 +23,14 @@ from tasks.services import (
     create_task,
     update_task,
     delete_task,
+    move_task,
 )
 from tasks.models import Task
 from .serializers import (
     TaskSerializer,
     TaskCreateSerializer,
     TaskUpdateSerializer,
+    TaskMoveSerializer,
 )
 from .pagination import TaskPageNumberPagination
 
@@ -119,7 +121,8 @@ from .pagination import TaskPageNumberPagination
                 location=OpenApiParameter.QUERY,
                 description=(
                     "Order by created_at, updated_at, due_date, "
-                    "title, priority, or status. Prefix with '-' "
+                    "title, priority, status, or position. "
+                    "Prefix with '-' "
                     "for descending order. Default: -created_at. "
                     "Priority ordering follows low, medium, high, urgent. "
                     "Status ordering follows todo, in_progress, "
@@ -311,6 +314,7 @@ class TaskListCreateView(generics.GenericAPIView):
             "title",
             "priority",
             "status",
+            "position",
         }
 
         descending = ordering.startswith("-")
@@ -505,4 +509,51 @@ class TaskDetailView(generics.GenericAPIView):
 
         return Response(
             status=status.HTTP_204_NO_CONTENT,
+        )
+
+
+@extend_schema_view(
+    post=extend_schema(
+        tags=["Tasks"],
+        summary="Move or reorder task",
+        operation_id="tasks_move",
+        request=TaskMoveSerializer,
+        responses={200: TaskSerializer},
+    ),
+)
+class TaskMoveView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = TaskMoveSerializer
+    http_method_names = [
+        "post",
+        "options",
+    ]
+
+    def post(self, request, *args, **kwargs):
+        task = get_task_or_404(
+            workspace_slug=kwargs["slug"],
+            project_id=kwargs["project_id"],
+            task_id=kwargs["task_id"],
+            user=request.user,
+        )
+
+        serializer = TaskMoveSerializer(
+            data=request.data,
+        )
+        serializer.is_valid(raise_exception=True)
+
+        task = move_task(
+            task=task,
+            actor=request.user,
+            **serializer.validated_data,
+        )
+
+        output = TaskSerializer(
+            task,
+            context={"request": request},
+        )
+
+        return Response(
+            output.data,
+            status=status.HTTP_200_OK,
         )

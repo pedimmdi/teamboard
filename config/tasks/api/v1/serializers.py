@@ -45,6 +45,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "created_by_email",
             "created_by_avatar",
             "due_date",
+            "position",
             "created_at",
             "updated_at",
         )
@@ -132,3 +133,15 @@ class TaskUpdateSerializer(serializers.Serializer):
             )
 
         return attrs
+
+
+class TaskMoveSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=Task.Status.choices,
+        required=True,
+    )
+
+    position = serializers.IntegerField(
+        min_value=0,
+        required=True,
+    )

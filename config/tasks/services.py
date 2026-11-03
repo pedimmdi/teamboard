@@ -1,7 +1,9 @@
 from datetime import date, datetime
 
 from django.db import transaction
+from django.db.models import Max
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from projects.access import get_project_membership_or_404
@@ -59,6 +61,33 @@ def _validate_assignee(*, project, assignee):
                 "and its workspace."
             )
         })
+
+
+def _compact_task_positions(*, project, status):
+    """
+    Reassign consecutive positions within a project/status column.
+
+    Caller must hold the project lock inside a transaction.
+    """
+    tasks = list(
+        Task.objects.filter(
+            project=project,
+            status=status,
+        ).order_by("position", "pk")
+    )
+
+    changed_tasks = []
+
+    for index, task in enumerate(tasks):
+        if task.position != index:
+            task.position = index
+            changed_tasks.append(task)
+
+    if changed_tasks:
+        Task.objects.bulk_update(
+            changed_tasks,
+            ["position"],
+        )
 
 
 def _validate_due_date(value):
@@ -161,6 +190,17 @@ def create_task(
 
     due_date = _validate_due_date(due_date)
 
+    max_position = Task.objects.filter(
+        project=project,
+        status=status,
+    ).aggregate(
+        max_position=Max("position"),
+    )["max_position"]
+
+    next_position = (
+        0 if max_position is None else max_position + 1
+    )
+
     return Task.objects.create(
         project=project,
         title=title,
@@ -170,6 +210,7 @@ def create_task(
         assignee=assignee,
         created_by=actor,
         due_date=due_date,
+        position=next_position,
     )
 
 
@@ -227,6 +268,21 @@ def update_task(
         )
         task.assignee = assignee
 
+    old_status = task.status
+    status_changed = new_status != old_status
+
+    if status_changed:
+        max_position = Task.objects.filter(
+            project=project,
+            status=new_status,
+        ).aggregate(
+            max_position=Max("position"),
+        )["max_position"]
+
+        task.position = (
+            0 if max_position is None else max_position + 1
+        )
+
     task.title = new_title
     task.description = new_description
     task.status = new_status
@@ -236,6 +292,12 @@ def update_task(
         task.due_date = _validate_due_date(due_date)
 
     task.save()
+
+    if status_changed:
+        _compact_task_positions(
+            project=project,
+            status=old_status,
+        )
 
     return task
 
@@ -256,4 +318,138 @@ def delete_task(*, task, actor):
         project=project,
     )
 
+    old_status = task.status
+
     task.delete()
+
+    _compact_task_positions(
+        project=project,
+        status=old_status,
+    )
+
+
+@transaction.atomic
+def move_task(*, task, actor, status, position):
+    project = _lock_project(project_id=task.project_id)
+
+    get_project_membership_or_404(
+        project_id=project.pk,
+        user=actor,
+    )
+
+    task = get_object_or_404(
+        Task.objects.select_for_update(),
+        pk=task.pk,
+        project=project,
+    )
+
+    source_status = task.status
+
+    if status not in Task.Status.values:
+        raise ValidationError({
+            "status": "Invalid task status."
+        })
+
+    if isinstance(position, bool) or not isinstance(position, int):
+        raise ValidationError({
+            "position": "Position must be an integer."
+        })
+
+    if position < 0:
+        raise ValidationError({
+            "position": "Position must be non-negative."
+        })
+
+    source_tasks = list(
+        Task.objects.filter(
+            project=project,
+            status=source_status,
+        ).order_by("position", "pk")
+    )
+
+    if status == source_status:
+        ordered_tasks = [
+            item for item in source_tasks
+            if item.pk != task.pk
+        ]
+
+        if position > len(ordered_tasks):
+            raise ValidationError({
+                "position": "Position is out of range."
+            })
+
+        ordered_tasks.insert(position, task)
+
+        changed_tasks = []
+
+        for index, item in enumerate(ordered_tasks):
+            if item.position != index:
+                item.position = index
+                changed_tasks.append(item)
+
+        if changed_tasks:
+            Task.objects.bulk_update(
+                changed_tasks,
+                ["position"],
+            )
+
+    else:
+        destination_tasks = list(
+            Task.objects.filter(
+                project=project,
+                status=status,
+            ).order_by("position", "pk")
+        )
+
+        if position > len(destination_tasks):
+            raise ValidationError({
+                "position": "Position is out of range."
+            })
+
+        remaining_source = [
+            item for item in source_tasks
+            if item.pk != task.pk
+        ]
+
+        task.status = status
+        destination_tasks.insert(position, task)
+
+        changed_source_tasks = []
+
+        for index, item in enumerate(remaining_source):
+            if item.position != index:
+                item.position = index
+                changed_source_tasks.append(item)
+
+        changed_destination_tasks = []
+
+        for index, item in enumerate(destination_tasks):
+            if (
+                item.position != index
+                or item.pk == task.pk
+            ):
+                item.position = index
+                changed_destination_tasks.append(item)
+
+        if changed_source_tasks:
+            Task.objects.bulk_update(
+                changed_source_tasks,
+                ["position"],
+            )
+
+        if changed_destination_tasks:
+            Task.objects.bulk_update(
+                changed_destination_tasks,
+                ["status", "position"],
+            )
+
+    Task.objects.filter(
+        pk=task.pk,
+        project=project,
+    ).update(
+        updated_at=timezone.now(),
+    )
+
+    task.refresh_from_db()
+
+    return task

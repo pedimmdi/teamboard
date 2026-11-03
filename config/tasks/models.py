@@ -70,6 +70,11 @@ class Task(models.Model):
         blank=True,
     )
 
+    position = models.PositiveIntegerField(
+        default=0,
+        editable=False,
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )
