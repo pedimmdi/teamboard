@@ -1126,8 +1126,18 @@ paths:
       - in: query
         name: assignee
         schema:
-          type: integer
-        description: Filter by assigned user ID.
+          type: string
+        description: Filter tasks by assignee. Accepts a valid user ID or the special
+          value 'me' to filter tasks assigned to the authenticated user. The value
+          'me' is case-sensitive. Cannot be combined with unassigned=true.
+      - in: query
+        name: due_before
+        schema:
+          type: string
+          format: date
+        description: 'Filter tasks with a due date strictly before the specified date
+          (exclusive). Format: YYYY-MM-DD. Tasks without a due date are excluded.
+          Example: due_before=2027-03-20.'
       - in: query
         name: ordering
         schema:
@@ -1137,6 +1147,14 @@ paths:
           Priority ordering follows low, medium, high, urgent. Status ordering follows
           todo, in_progress, in_review, done. Tasks without a due_date always appear
           last when ordering by due_date.'
+      - in: query
+        name: overdue
+        schema:
+          type: boolean
+        description: 'Filter overdue tasks. When true, return only tasks with a due
+          date strictly before today''s date that are not done. When false, do not
+          apply the overdue filter. Accepted values: true, false (case-insensitive).
+          Example: overdue=true.'
       - name: page
         required: false
         in: query
@@ -1180,12 +1198,8 @@ paths:
         name: status
         schema:
           type: string
-          enum:
-          - done
-          - in_progress
-          - in_review
-          - todo
-        description: Filter tasks by status.
+        description: 'Filter tasks by one or more comma-separated statuses. Allowed
+          values: todo, in_progress, in_review, done. Example: status=todo,done.'
       - in: query
         name: unassigned
         schema:

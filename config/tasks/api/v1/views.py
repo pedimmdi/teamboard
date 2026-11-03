@@ -1,8 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Case, When, Value, IntegerField, F
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework.throttling import ScopedRateThrottle
@@ -42,8 +43,37 @@ from .pagination import TaskPageNumberPagination
                 name="status",
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="Filter tasks by status.",
-                enum=Task.Status.values,
+                description=(
+                    "Filter tasks by one or more comma-separated "
+                    "statuses. Allowed values: todo, in_progress, "
+                    "in_review, done. "
+                    "Example: status=todo,done."
+                ),
+            ),
+            OpenApiParameter(
+                name="due_before",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Filter tasks with a due date strictly before "
+                    "the specified date (exclusive). "
+                    "Format: YYYY-MM-DD. "
+                    "Tasks without a due date are excluded. "
+                    "Example: due_before=2027-03-20."
+                ),
+            ),
+            OpenApiParameter(
+                name="overdue",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Filter overdue tasks. "
+                    "When true, return only tasks with a due date "
+                    "strictly before today's date that are not done. "
+                    "When false, do not apply the overdue filter. "
+                    "Accepted values: true, false (case-insensitive). "
+                    "Example: overdue=true."
+                ),
             ),
             OpenApiParameter(
                 name="priority",
@@ -54,9 +84,16 @@ from .pagination import TaskPageNumberPagination
             ),
             OpenApiParameter(
                 name="assignee",
-                type=OpenApiTypes.INT,
+                type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="Filter by assigned user ID.",
+                description=(
+                    "Filter tasks by assignee. "
+                    "Accepts a valid user ID or the special value "
+                    "'me' to filter tasks assigned to the "
+                    "authenticated user. "
+                    "The value 'me' is case-sensitive. "
+                    "Cannot be combined with unassigned=true."
+                ),
             ),
             OpenApiParameter(
                 name="unassigned",
@@ -138,15 +175,25 @@ class TaskListCreateView(generics.GenericAPIView):
         priority = request.query_params.get("priority")
         assignee = request.query_params.get("assignee")
         unassigned = request.query_params.get("unassigned")
+        due_before = request.query_params.get("due_before")
+        overdue = request.query_params.get("overdue")
 
         if task_status is not None:
-            if task_status not in Task.Status.values:
+            statuses = [
+                value.strip()
+                for value in task_status.split(",")
+            ]
+
+            if any(
+                value not in Task.Status.values
+                for value in statuses
+            ):
                 raise ValidationError({
                     "status": "Invalid task status."
                 })
 
             queryset = queryset.filter(
-                status=task_status,
+                status__in=statuses,
             )
 
         if priority is not None:
@@ -160,19 +207,22 @@ class TaskListCreateView(generics.GenericAPIView):
             )
 
         if assignee is not None:
-            User = get_user_model()
-            pk_field = User._meta.pk
+            if assignee == "me":
+                assignee_id = request.user.pk
+            else:
+                User = get_user_model()
+                pk_field = User._meta.pk
 
-            try:
-                assignee_id = pk_field.to_python(assignee)
-            except (
-                DjangoValidationError,
-                ValueError,
-                TypeError,
-            ):
-                raise ValidationError({
-                    "assignee": "Invalid user ID."
-                })
+                try:
+                    assignee_id = pk_field.to_python(assignee)
+                except (
+                    DjangoValidationError,
+                    ValueError,
+                    TypeError,
+                ):
+                    raise ValidationError({
+                        "assignee": "Invalid user ID."
+                    })
 
             queryset = queryset.filter(
                 assignee_id=assignee_id,
@@ -196,6 +246,37 @@ class TaskListCreateView(generics.GenericAPIView):
                     "unassigned=true."
                 )
             })
+
+        if due_before is not None:
+            date_field = serializers.DateField()
+
+            try:
+                parsed_date = date_field.run_validation(due_before)
+            except serializers.ValidationError:
+                raise ValidationError({
+                    "due_before": (
+                        "Enter a valid date in YYYY-MM-DD format."
+                    )
+                })
+
+            queryset = queryset.filter(
+                due_date__lt=parsed_date,
+            )
+
+        if overdue is not None:
+            overdue_value = overdue.lower()
+
+            if overdue_value not in ("true", "false"):
+                raise ValidationError({
+                    "overdue": "Must be 'true' or 'false'."
+                })
+
+            if overdue_value == "true":
+                queryset = queryset.filter(
+                    due_date__lt=timezone.localdate(),
+                ).exclude(
+                    status=Task.Status.DONE,
+                )
 
         # Searching
         search = request.query_params.get("search")

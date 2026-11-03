@@ -754,3 +754,562 @@ class TaskAPITests(APITestCase):
                 "No due date",
             ],
         )
+
+    def test_task_list_filters_multiple_statuses(self):
+        self.create_task(
+            title="Todo task",
+            status=Task.Status.TODO,
+        )
+        self.create_task(
+            title="Progress task",
+            status=Task.Status.IN_PROGRESS,
+        )
+        self.create_task(
+            title="Done task",
+            status=Task.Status.DONE,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.list_url,
+            {"status": "todo,done"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        actual_statuses = {
+            task["status"]
+            for task in response.data["results"]
+        }
+
+        self.assertEqual(
+            actual_statuses,
+            {
+                Task.Status.TODO,
+                Task.Status.DONE,
+            },
+        )
+        self.assertEqual(response.data["count"], 2)
+
+    def test_task_list_multi_status_edge_cases(self):
+        self.create_task(
+            title="Todo task",
+            status=Task.Status.TODO,
+        )
+        self.create_task(
+            title="Done task",
+            status=Task.Status.DONE,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        valid_cases = [
+            ("todo", 1),
+            ("todo,done", 2),
+            ("todo, done", 2),
+            ("todo,todo", 1),
+        ]
+
+        for value, expected_count in valid_cases:
+            with self.subTest(status=value):
+                response = self.client.get(
+                    self.list_url,
+                    {"status": value},
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response.data["count"],
+                    expected_count,
+                )
+
+        invalid_cases = [
+            "",
+            "invalid",
+            "todo,invalid",
+            "todo,",
+            ",done",
+            "todo,,done",
+        ]
+
+        for value in invalid_cases:
+            with self.subTest(status=value):
+                response = self.client.get(
+                    self.list_url,
+                    {"status": value},
+                )
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("status", response.data)
+
+    def test_task_list_filters_due_before(self):
+        self.create_task(
+            title="Earlier task",
+            due_date=date(2027, 1, 10),
+        )
+        self.create_task(
+            title="Boundary task",
+            due_date=date(2027, 3, 20),
+        )
+        self.create_task(
+            title="Later task",
+            due_date=date(2027, 5, 10),
+        )
+        self.create_task(
+            title="No due date",
+            due_date=None,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.list_url,
+            {"due_before": "2027-03-20"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+
+        actual_titles = {
+            task["title"]
+            for task in response.data["results"]
+        }
+
+        self.assertEqual(
+            actual_titles,
+            {"Earlier task"},
+        )
+
+    def test_task_list_rejects_invalid_due_before(self):
+        self.create_task(
+            title="Example task",
+            due_date=date(2027, 1, 10),
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        invalid_dates = [
+            "",
+            "invalid",
+            "2027-13-01",
+            "2027-02-30",
+            "20-03-2027",
+            "2027-03-20T12:00:00",
+        ]
+
+        for value in invalid_dates:
+            with self.subTest(due_before=value):
+                response = self.client.get(
+                    self.list_url,
+                    {"due_before": value},
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    400,
+                )
+                self.assertIn(
+                    "due_before",
+                    response.data,
+                )
+
+    def test_task_list_combines_status_and_due_before(self):
+        self.create_task(
+            title="Matching todo",
+            status=Task.Status.TODO,
+            due_date=date(2027, 1, 10),
+        )
+        self.create_task(
+            title="Matching done",
+            status=Task.Status.DONE,
+            due_date=date(2027, 2, 15),
+        )
+        self.create_task(
+            title="Wrong status",
+            status=Task.Status.IN_PROGRESS,
+            due_date=date(2027, 1, 10),
+        )
+        self.create_task(
+            title="Wrong date",
+            status=Task.Status.TODO,
+            due_date=date(2027, 5, 10),
+        )
+        self.create_task(
+            title="No due date",
+            status=Task.Status.DONE,
+            due_date=None,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.list_url,
+            {
+                "status": "todo,done",
+                "due_before": "2027-03-20",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 2)
+
+        actual_titles = {
+            task["title"]
+            for task in response.data["results"]
+        }
+
+        self.assertEqual(
+            actual_titles,
+            {
+                "Matching todo",
+                "Matching done",
+            },
+        )
+
+    def test_task_list_filters_overdue_tasks(self):
+        from unittest.mock import patch
+
+        self.create_task(
+            title="Overdue todo",
+            status=Task.Status.TODO,
+            due_date=date(2026, 11, 1),
+        )
+        self.create_task(
+            title="Overdue progress",
+            status=Task.Status.IN_PROGRESS,
+            due_date=date(2026, 11, 2),
+        )
+        self.create_task(
+            title="Due today",
+            status=Task.Status.TODO,
+            due_date=date(2026, 11, 3),
+        )
+        self.create_task(
+            title="Completed task",
+            status=Task.Status.DONE,
+            due_date=date(2026, 11, 1),
+        )
+        self.create_task(
+            title="No due date",
+            status=Task.Status.TODO,
+            due_date=None,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        with patch(
+            "tasks.api.v1.views.timezone.localdate",
+            return_value=date(2026, 11, 3),
+        ):
+            response = self.client.get(
+                self.list_url,
+                {"overdue": "true"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 2)
+
+        actual_titles = {
+            task["title"]
+            for task in response.data["results"]
+        }
+
+        self.assertEqual(
+            actual_titles,
+            {
+                "Overdue todo",
+                "Overdue progress",
+            },
+        )
+
+    def test_task_list_overdue_parameter_edge_cases(self):
+        from unittest.mock import patch
+
+        self.create_task(
+            title="Overdue task",
+            status=Task.Status.TODO,
+            due_date=date(2026, 11, 1),
+        )
+        self.create_task(
+            title="Future task",
+            status=Task.Status.TODO,
+            due_date=date(2026, 11, 10),
+        )
+
+        self.create_task(
+            title="Completed task",
+            status=Task.Status.DONE,
+            due_date=date(2026, 11, 1),
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        valid_cases = [
+            ("true", 1),
+            ("TRUE", 1),
+            ("false", 3),
+            ("FALSE", 3),
+        ]
+
+        invalid_cases = [
+            "",
+            "invalid",
+            "yes",
+            "1",
+            "null",
+        ]
+
+        with patch(
+            "tasks.api.v1.views.timezone.localdate",
+            return_value=date(2026, 11, 3),
+        ):
+            for value, expected_count in valid_cases:
+                with self.subTest(overdue=value):
+                    response = self.client.get(
+                        self.list_url,
+                        {"overdue": value},
+                    )
+
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(
+                        response.data["count"],
+                        expected_count,
+                    )
+
+            for value in invalid_cases:
+                with self.subTest(overdue=value):
+                    response = self.client.get(
+                        self.list_url,
+                        {"overdue": value},
+                    )
+
+                    self.assertEqual(response.status_code, 400)
+                    self.assertIn("overdue", response.data)
+
+    def test_task_list_combines_overdue_and_status(self):
+        from unittest.mock import patch
+
+        self.create_task(
+            title="Overdue todo",
+            status=Task.Status.TODO,
+            due_date=date(2026, 11, 1),
+        )
+        self.create_task(
+            title="Overdue progress",
+            status=Task.Status.IN_PROGRESS,
+            due_date=date(2026, 11, 2),
+        )
+        self.create_task(
+            title="Overdue review",
+            status=Task.Status.IN_REVIEW,
+            due_date=date(2026, 11, 1),
+        )
+        self.create_task(
+            title="Completed overdue",
+            status=Task.Status.DONE,
+            due_date=date(2026, 11, 1),
+        )
+        self.create_task(
+            title="Future todo",
+            status=Task.Status.TODO,
+            due_date=date(2026, 11, 10),
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        with patch(
+            "tasks.api.v1.views.timezone.localdate",
+            return_value=date(2026, 11, 3),
+        ):
+            response = self.client.get(
+                self.list_url,
+                {
+                    "overdue": "true",
+                    "status": "todo,in_progress",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 2)
+
+        actual_titles = {
+            task["title"]
+            for task in response.data["results"]
+        }
+
+        self.assertEqual(
+            actual_titles,
+            {
+                "Overdue todo",
+                "Overdue progress",
+            },
+        )
+
+    def test_task_list_filters_assignee_me(self):
+        self.create_task(
+            title="Assigned to me",
+            assignee=self.owner,
+        )
+        self.create_task(
+            title="Assigned to another user",
+            assignee=self.member,
+        )
+        self.create_task(
+            title="Unassigned task",
+            assignee=None,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.list_url,
+            {"assignee": "me"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+
+        actual_titles = {
+            task["title"]
+            for task in response.data["results"]
+        }
+
+        self.assertEqual(
+            actual_titles,
+            {"Assigned to me"},
+        )
+
+    def test_task_list_assignee_filter_backward_compatibility(self):
+        self.create_task(
+            title="Owner task",
+            assignee=self.owner,
+        )
+        self.create_task(
+            title="Member task",
+            assignee=self.member,
+        )
+        self.create_task(
+            title="Unassigned task",
+            assignee=None,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        valid_cases = [
+            (str(self.owner.pk), {"Owner task"}),
+            (str(self.member.pk), {"Member task"}),
+            ("me", {"Owner task"}),
+        ]
+
+        for value, expected_titles in valid_cases:
+            with self.subTest(assignee=value):
+                response = self.client.get(
+                    self.list_url,
+                    {"assignee": value},
+                )
+
+                self.assertEqual(response.status_code, 200)
+
+                actual_titles = {
+                    task["title"]
+                    for task in response.data["results"]
+                }
+
+                self.assertEqual(
+                    actual_titles,
+                    expected_titles,
+                )
+                self.assertEqual(
+                    response.data["count"],
+                    len(expected_titles),
+                )
+
+    def test_task_list_rejects_assignee_me_with_unassigned(self):
+        self.create_task(
+            title="Assigned task",
+            assignee=self.owner,
+        )
+        self.create_task(
+            title="Unassigned task",
+            assignee=None,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            self.list_url,
+            {
+                "assignee": "me",
+                "unassigned": "true",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(
+            "assignee" in response.data
+            or "unassigned" in response.data
+        )
+
+    def test_task_list_rejects_invalid_assignee_values(self):
+        self.create_task(
+            title="Owner task",
+            assignee=self.owner,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        invalid_values = [
+            "",
+            "invalid",
+            "ME",
+            "me,123",
+            "1.5",
+        ]
+
+        for value in invalid_values:
+            with self.subTest(assignee=value):
+                response = self.client.get(
+                    self.list_url,
+                    {"assignee": value},
+                )
+
+                self.assertEqual(
+                    response.status_code,
+                    400,
+                )
+                self.assertIn(
+                    "assignee",
+                    response.data,
+                )
+
+    def test_task_list_assignee_me_uses_authenticated_user(self):
+        self.create_task(
+            title="Owner task",
+            assignee=self.owner,
+        )
+        self.create_task(
+            title="Member task",
+            assignee=self.member,
+        )
+
+        cases = [
+            (self.owner, "Owner task"),
+            (self.member, "Member task"),
+        ]
+
+        for user, expected_title in cases:
+            with self.subTest(user=user.pk):
+                self.client.force_authenticate(user=user)
+
+                response = self.client.get(
+                    self.list_url,
+                    {"assignee": "me"},
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data["count"], 1)
+                self.assertEqual(
+                    response.data["results"][0]["title"],
+                    expected_title,
+                )
