@@ -2,7 +2,7 @@
 
 TeamBoard is a project management platform in development, built with Django REST Framework and Next.js. It is designed to support team collaboration, task management, and secure account access through a versioned REST API.
 
-The current implementation includes account management, authentication, session security, workspaces, role-based membership, email invitations, and project management on both the API and responsive web dashboard. Task management is the next development area.
+The current implementation includes account management, authentication, session security, workspaces, role-based membership, email invitations, and project management on both the API and responsive web dashboard. The backend now includes project task management, advanced task filtering, and Kanban ordering. The task management frontend is planned for a later development phase.
 
 ## Current Features
 
@@ -16,6 +16,13 @@ The current implementation includes account management, authentication, session 
 - Email invitations with acceptance, resend, revocation, and expiration
 - Workspace-scoped project APIs with manager and member roles
 - Global project management for workspace owners and admins
+- Project-scoped task creation, retrieval, updates, and deletion
+- Task statuses, priorities, assignees, and due dates
+- Task filtering, searching, pagination, and ordering
+- Kanban task positions and atomic drag-and-drop move operations
+- Workspace owner/admin task management without direct project membership
+- Project membership validation for task assignees
+- PostgreSQL concurrency tests for task reordering
 - Database constraints and triggers protecting project membership and manager integrity
 - JWT authentication with short-lived access tokens
 - Refresh token rotation using an HttpOnly cookie
@@ -375,6 +382,39 @@ transfers are rejected by database constraints. Known constraint conflicts and
 retryable database concurrency failures return 409; unexpected database errors
 remain server errors rather than being disguised as validation failures.
 
+### Tasks and Kanban
+
+Task endpoints are nested under:
+
+`/api/v1/workspaces/<slug>/projects/<project_id>/tasks/`
+
+| Functionality | Method and relative path |
+|---|---|
+| List tasks / create task | `GET/POST /` |
+| Retrieve / update / delete task | `GET/PATCH/DELETE /<task_id>/` |
+| Move or reorder task | `POST /<task_id>/move/` |
+
+Tasks support four statuses: `todo`, `in_progress`, `in_review`, and `done`.
+
+Each task has a zero-based `position` within its project and status column. The move endpoint accepts a target `status` and `position`:
+
+```json
+{
+  "status": "in_progress",
+  "position": 0
+}
+```
+
+Moving a task updates the ordering of affected columns inside a database transaction. Creating, deleting, or changing the status of a task also maintains Kanban positions.
+
+Task listing supports filtering by status, priority, assignee, due date, and overdue state, as well as text search and ordering. Use `ordering=position` together with a status filter to retrieve a Kanban column in position order.
+
+Workspace owners and admins can manage tasks without joining each project. Regular workspace members require project membership. Task assignees must be actual members of both the project and its workspace; inherited management access alone does not make a user eligible for assignment.
+
+Task responses include assignee and creator email addresses and avatar URLs when available.
+
+The task management backend is implemented. A dedicated Kanban interface in the Next.js frontend has not yet been implemented.
+
 ## Authentication
 
 Protected API endpoints use JWT bearer authentication.
@@ -497,11 +537,11 @@ docker compose down -v
 Account security, profile images, workspaces, projects, memberships, and invitations are
 implemented. Planned development includes:
 
-- Task management and project boards
-- Collaboration features
+- Next.js task management interface and interactive Kanban board
+- Additional collaboration features
 - Integration and end-to-end testing
 
-These are planned capabilities, not claims that those modules are already implemented.
+The task management API is implemented and tested. The task management frontend and additional collaboration features remain planned.
 
 ## Development and Deployment Notes
 

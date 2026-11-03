@@ -398,6 +398,7 @@ class TaskListCreateView(generics.GenericAPIView):
 
         serializer = TaskCreateSerializer(
             data=request.data,
+            context={"project_id": project.pk},
         )
         serializer.is_valid(raise_exception=True)
 
@@ -474,6 +475,7 @@ class TaskDetailView(generics.GenericAPIView):
         serializer = TaskUpdateSerializer(
             data=request.data,
             partial=True,
+            context={"project_id": task.project_id},
         )
         serializer.is_valid(raise_exception=True)
 

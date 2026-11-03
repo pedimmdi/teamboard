@@ -103,6 +103,378 @@ class TaskAPITests(APITestCase):
             **kwargs,
         )
 
+    def test_workspace_privileged_users_manage_tasks_without_project_membership(self):
+        for actor in (self.owner, self.admin):
+            with self.subTest(actor=actor.email):
+                project = Project.objects.create(
+                    workspace=self.workspace,
+                    name=f"Privileged Tasks {actor.pk}",
+                    created_by=self.owner,
+                )
+
+                ProjectMembership.objects.create(
+                    project=project,
+                    user=self.member,
+                    role=ProjectMembership.Role.MANAGER,
+                )
+
+                self.assertFalse(
+                    ProjectMembership.objects.filter(
+                        project=project,
+                        user=actor,
+                    ).exists()
+                )
+
+                self.client.force_authenticate(user=actor)
+
+                list_url = self.get_list_url(project)
+
+                create_response = self.client.post(
+                    list_url,
+                    {"title": "Privileged Task"},
+                    format="json",
+                )
+                self.assertEqual(
+                    create_response.status_code,
+                    status.HTTP_201_CREATED,
+                    create_response.data,
+                )
+
+                task = Task.objects.get(
+                    pk=create_response.data["id"]
+                )
+
+                update_response = self.client.patch(
+                    self.get_detail_url(task),
+                    {"title": "Updated Privileged Task"},
+                    format="json",
+                )
+                self.assertEqual(
+                    update_response.status_code,
+                    status.HTTP_200_OK,
+                    update_response.data,
+                )
+
+                move_url = reverse(
+                    "workspaces_api_v1:tasks_api_v1:task-move",
+                    kwargs={
+                        "slug": self.workspace.slug,
+                        "project_id": project.pk,
+                        "task_id": task.pk,
+                    },
+                )
+
+                move_response = self.client.post(
+                    move_url,
+                    {
+                        "status": Task.Status.IN_PROGRESS,
+                        "position": 0,
+                    },
+                    format="json",
+                )
+                self.assertEqual(
+                    move_response.status_code,
+                    status.HTTP_200_OK,
+                    move_response.data,
+                )
+
+                task.refresh_from_db()
+                self.assertEqual(
+                    task.title,
+                    "Updated Privileged Task",
+                )
+                self.assertEqual(
+                    task.status,
+                    Task.Status.IN_PROGRESS,
+                )
+                self.assertEqual(task.position, 0)
+
+                delete_response = self.client.delete(
+                    self.get_detail_url(task)
+                )
+                self.assertEqual(
+                    delete_response.status_code,
+                    status.HTTP_204_NO_CONTENT,
+                )
+                self.assertFalse(
+                    Task.objects.filter(pk=task.pk).exists()
+                )
+
+    def test_workspace_privileged_users_cannot_assign_themselves_without_project_membership(self):
+        for actor in (self.owner, self.admin):
+            with self.subTest(actor=actor.email):
+                project = Project.objects.create(
+                    workspace=self.workspace,
+                    name=f"Assignee Policy {actor.pk}",
+                    created_by=self.owner,
+                )
+
+                ProjectMembership.objects.create(
+                    project=project,
+                    user=self.member,
+                    role=ProjectMembership.Role.MANAGER,
+                )
+
+                self.client.force_authenticate(user=actor)
+
+                create_response = self.client.post(
+                    self.get_list_url(project),
+                    {
+                        "title": "Invalid Assignment",
+                        "assignee": str(actor.pk),
+                    },
+                    format="json",
+                )
+                self.assertEqual(
+                    create_response.status_code,
+                    status.HTTP_400_BAD_REQUEST,
+                    create_response.data,
+                )
+                self.assertIn(
+                    "assignee",
+                    create_response.data,
+                )
+
+                task = Task.objects.create(
+                    project=project,
+                    title="Unassigned Task",
+                    created_by=self.member,
+                    position=0,
+                )
+
+                update_response = self.client.patch(
+                    self.get_detail_url(task),
+                    {"assignee": str(actor.pk)},
+                    format="json",
+                )
+                self.assertEqual(
+                    update_response.status_code,
+                    status.HTTP_400_BAD_REQUEST,
+                    update_response.data,
+                )
+                self.assertIn(
+                    "assignee",
+                    update_response.data,
+                )
+
+                task.refresh_from_db()
+                self.assertIsNone(task.assignee_id)
+
+    def test_workspace_member_without_project_membership_cannot_manage_tasks(self):
+        project = Project.objects.create(
+            workspace=self.workspace,
+            name="Restricted Tasks Project",
+            created_by=self.owner,
+        )
+
+        ProjectMembership.objects.create(
+            project=project,
+            user=self.member,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        task = Task.objects.create(
+            project=project,
+            title="Protected Task",
+            created_by=self.member,
+            position=0,
+        )
+
+        self.client.force_authenticate(
+            user=self.workspace_member
+        )
+
+        create_response = self.client.post(
+            self.get_list_url(project),
+            {"title": "Forbidden Task"},
+            format="json",
+        )
+
+        update_response = self.client.patch(
+            self.get_detail_url(task),
+            {"title": "Forbidden Update"},
+            format="json",
+        )
+
+        move_url = reverse(
+            "workspaces_api_v1:tasks_api_v1:task-move",
+            kwargs={
+                "slug": self.workspace.slug,
+                "project_id": project.pk,
+                "task_id": task.pk,
+            },
+        )
+
+        move_response = self.client.post(
+            move_url,
+            {
+                "status": Task.Status.DONE,
+                "position": 0,
+            },
+            format="json",
+        )
+
+        delete_response = self.client.delete(
+            self.get_detail_url(task)
+        )
+
+        for response in (
+            create_response,
+            update_response,
+            move_response,
+            delete_response,
+        ):
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_404_NOT_FOUND,
+                response.data,
+            )
+
+        task.refresh_from_db()
+        self.assertEqual(task.title, "Protected Task")
+        self.assertEqual(task.status, Task.Status.TODO)
+        self.assertEqual(task.position, 0)
+
+    def test_create_assignee_errors_do_not_reveal_user_existence(self):
+        self.client.force_authenticate(user=self.owner)
+
+        responses = []
+
+        for assignee_id in (
+            str(self.outsider.pk),
+            str(self.workspace_member.pk),
+            str(10**15),
+        ):
+            with self.subTest(assignee_id=assignee_id):
+                response = self.client.post(
+                    self.list_url,
+                    {
+                        "title": "Private Assignment",
+                        "assignee": assignee_id,
+                    },
+                    format="json",
+                )
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("assignee", response.data)
+                responses.append(response.data)
+
+        self.assertEqual(responses[0], responses[1])
+        self.assertEqual(responses[1], responses[2])
+
+        self.assertFalse(
+            Task.objects.filter(
+                title="Private Assignment",
+            ).exists()
+        )
+
+    def test_update_assignee_errors_do_not_reveal_user_existence(self):
+        task = self.create_task(
+            title="Protected Assignment",
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        responses = []
+
+        for assignee_id in (
+            str(self.outsider.pk),
+            str(self.workspace_member.pk),
+            str(10**15),
+        ):
+            with self.subTest(assignee_id=assignee_id):
+                response = self.client.patch(
+                    self.get_detail_url(task),
+                    {"assignee": assignee_id},
+                    format="json",
+                )
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("assignee", response.data)
+                responses.append(response.data)
+
+        self.assertEqual(responses[0], responses[1])
+        self.assertEqual(responses[1], responses[2])
+
+        task.refresh_from_db()
+        self.assertIsNone(task.assignee_id)
+
+    def test_create_and_update_accept_eligible_project_assignee(self):
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.post(
+            self.list_url,
+            {
+                "title": "Valid Assignment",
+                "assignee": str(self.member.pk),
+            },
+            format="json",
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_201_CREATED,
+            response.data,
+        )
+
+        task = Task.objects.get(pk=response.data["id"])
+        self.assertEqual(task.assignee_id, self.member.pk)
+
+        unassign_response = self.client.patch(
+            self.get_detail_url(task),
+            {"assignee": None},
+            format="json",
+        )
+
+        self.assertEqual(
+            unassign_response.status_code,
+            status.HTTP_200_OK,
+            unassign_response.data,
+        )
+
+        task.refresh_from_db()
+        self.assertIsNone(task.assignee_id)
+
+        reassign_response = self.client.patch(
+            self.get_detail_url(task),
+            {"assignee": str(self.member.pk)},
+            format="json",
+        )
+
+        self.assertEqual(
+            reassign_response.status_code,
+            status.HTTP_200_OK,
+            reassign_response.data,
+        )
+
+        task.refresh_from_db()
+        self.assertEqual(task.assignee_id, self.member.pk)
+
+    def test_invalid_assignee_does_not_modify_other_task_fields(self):
+        task = self.create_task(
+            title="Original Title",
+            priority=Task.Priority.MEDIUM,
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.patch(
+            self.get_detail_url(task),
+            {
+                "title": "Should Not Be Saved",
+                "priority": Task.Priority.URGENT,
+                "assignee": str(self.outsider.pk),
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+        task.refresh_from_db()
+        self.assertEqual(task.title, "Original Title")
+        self.assertEqual(task.priority, Task.Priority.MEDIUM)
+        self.assertIsNone(task.assignee_id)
+
     def test_created_task_has_initial_position(self):
         self.client.force_authenticate(user=self.member)
 
