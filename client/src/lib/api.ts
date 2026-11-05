@@ -936,3 +936,137 @@ export function removeProjectMember(
     { token, method: "DELETE" },
   );
 }
+
+export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
+export type TaskPriority = "low" | "medium" | "high" | "urgent";
+export type Task = {
+  id: string;
+  project: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assignee: number | null;
+  assignee_email: string | null;
+  assignee_avatar: string | null;
+  created_by: number | null;
+  created_by_email: string | null;
+  created_by_avatar: string | null;
+  due_date: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+export type TaskInput = Pick<
+  Task,
+  "title" | "description" | "status" | "priority" | "assignee" | "due_date"
+>;
+export type TaskOrdering =
+  | "created_at"
+  | "updated_at"
+  | "due_date"
+  | "title"
+  | "priority"
+  | "status"
+  | "position";
+export type TaskQuery = {
+  page?: number;
+  page_size?: number;
+  status?: TaskStatus[];
+  priority?: TaskPriority;
+  assignee?: number | "me";
+  unassigned?: boolean;
+  search?: string;
+  ordering?: TaskOrdering | `-${TaskOrdering}`;
+  due_before?: string;
+  overdue?: boolean;
+};
+export type PaginatedTasks = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Task[];
+};
+
+function tasksPath(slug: string, projectId: string, taskId?: string) {
+  const base = `${projectsPath(slug, projectId)}tasks/`;
+  return taskId ? `${base}${encodeURIComponent(taskId)}/` : base;
+}
+export function getTasks(
+  token: string,
+  slug: string,
+  projectId: string,
+  query: TaskQuery = {},
+) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (
+      value !== undefined &&
+      value !== "" &&
+      (!Array.isArray(value) || value.length)
+    ) {
+      params.set(key, Array.isArray(value) ? value.join(",") : String(value));
+    }
+  }
+  return apiFetch<PaginatedTasks>(`${tasksPath(slug, projectId)}?${params}`, {
+    token,
+  });
+}
+export function getTask(
+  token: string,
+  slug: string,
+  projectId: string,
+  taskId: string,
+) {
+  return apiFetch<Task>(tasksPath(slug, projectId, taskId), { token });
+}
+export function createTask(
+  token: string,
+  slug: string,
+  projectId: string,
+  data: TaskInput,
+) {
+  return apiFetch<Task>(tasksPath(slug, projectId), {
+    token,
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+export function updateTask(
+  token: string,
+  slug: string,
+  projectId: string,
+  taskId: string,
+  data: Partial<TaskInput>,
+) {
+  return apiFetch<Task>(tasksPath(slug, projectId, taskId), {
+    token,
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+export function deleteTask(
+  token: string,
+  slug: string,
+  projectId: string,
+  taskId: string,
+) {
+  return apiFetch<null>(tasksPath(slug, projectId, taskId), {
+    token,
+    method: "DELETE",
+  });
+}
+export function moveTask(
+  token: string,
+  slug: string,
+  projectId: string,
+  taskId: string,
+  status: TaskStatus,
+  position: number,
+) {
+  return apiFetch<Task>(`${tasksPath(slug, projectId, taskId)}move/`, {
+    token,
+    method: "POST",
+    body: JSON.stringify({ status, position }),
+  });
+}
