@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from uuid import UUID
 
 from django.db import transaction
 from django.db.models import Max
@@ -329,7 +330,7 @@ def delete_task(*, task, actor):
 
 
 @transaction.atomic
-def move_task(*, task, actor, status, position):
+def move_task(*, task, actor, status, position=None, before_task=None, placement=None):
     project = _lock_project(project_id=task.project_id)
 
     get_project_membership_or_404(
@@ -350,15 +351,29 @@ def move_task(*, task, actor, status, position):
             "status": "Invalid task status."
         })
 
-    if isinstance(position, bool) or not isinstance(position, int):
-        raise ValidationError({
-            "position": "Position must be an integer."
-        })
+    if sum(value is not None for value in (position, before_task, placement)) != 1:
+        raise ValidationError("Provide exactly one of position, before_task, or placement.")
+    if position is not None:
+        if isinstance(position, bool) or not isinstance(position, int):
+            raise ValidationError({"position": "Position must be an integer."})
+        if position < 0:
+            raise ValidationError({"position": "Position must be non-negative."})
+    if placement is not None and placement not in ("first", "last"):
+        raise ValidationError({"placement": "Invalid placement."})
 
-    if position < 0:
-        raise ValidationError({
-            "position": "Position must be non-negative."
-        })
+    # All task writes acquire this project's lock. Resolve the anchor here,
+    # rather than trusting a position read by the browser before the move.
+    anchor = None
+    if before_task is not None:
+        try:
+            anchor_id = UUID(str(before_task))
+        except (TypeError, ValueError, AttributeError):
+            raise ValidationError({"before_task": "Invalid destination task."})
+        if anchor_id == task.pk:
+            raise ValidationError({"before_task": "A task cannot be placed before itself."})
+        anchor = get_object_or_404(Task, pk=anchor_id, project=project)
+        if anchor.status != status:
+            raise ValidationError({"before_task": "The destination task moved to another column. Refresh and try again."})
 
     source_tasks = list(
         Task.objects.filter(
@@ -372,6 +387,11 @@ def move_task(*, task, actor, status, position):
             item for item in source_tasks
             if item.pk != task.pk
         ]
+
+        if anchor is not None:
+            position = next(index for index, item in enumerate(ordered_tasks) if item.pk == anchor.pk)
+        elif placement is not None:
+            position = 0 if placement == "first" else len(ordered_tasks)
 
         if position > len(ordered_tasks):
             raise ValidationError({
@@ -400,6 +420,11 @@ def move_task(*, task, actor, status, position):
                 status=status,
             ).order_by("position", "pk")
         )
+
+        if anchor is not None:
+            position = next(index for index, item in enumerate(destination_tasks) if item.pk == anchor.pk)
+        elif placement is not None:
+            position = 0 if placement == "first" else len(destination_tasks)
 
         if position > len(destination_tasks):
             raise ValidationError({

@@ -1373,7 +1373,7 @@ class TaskAPITests(APITestCase):
         )
         self.assertIn("status", response.data)
 
-    def test_move_task_requires_position(self):
+    def test_move_task_requires_a_target_selector(self):
         self.client.force_authenticate(user=self.member)
 
         task = self.create_task(
@@ -1400,7 +1400,7 @@ class TaskAPITests(APITestCase):
             response.status_code,
             status.HTTP_400_BAD_REQUEST,
         )
-        self.assertIn("position", response.data)
+        self.assertIn("non_field_errors", response.data)
 
     def test_move_task_rejects_invalid_status(self):
         self.client.force_authenticate(user=self.member)

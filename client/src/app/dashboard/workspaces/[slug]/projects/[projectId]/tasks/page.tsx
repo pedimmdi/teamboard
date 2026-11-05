@@ -97,6 +97,9 @@ export default function TasksPage() {
   const [dragged, setDragged] = useState<Task | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [loadingColumn, setLoadingColumn] = useState<TaskStatus | null>(null);
+  const [columnErrors, setColumnErrors] = useState<
+    Partial<Record<TaskStatus, string>>
+  >({});
   const [activeStatus, setActiveStatus] = useState<TaskStatus>("todo");
   const [missingId, setMissingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -147,6 +150,7 @@ export default function TasksPage() {
     async function load() {
       setLoading(true);
       setError("");
+      setColumnErrors({});
       const query = JSON.parse(queryKey) as TaskQuery;
       try {
         if (view === "list") {
@@ -269,7 +273,7 @@ export default function TasksPage() {
     if (!accessToken || !current?.next || loadingColumn) return;
     const requestCollection = collectionKey;
     setLoadingColumn(status);
-    setError("");
+    setColumnErrors((previous) => ({ ...previous, [status]: "" }));
     try {
       const data = await getTasks(accessToken, workspace.slug, project.id, {
         ...taskFilterQuery(filters),
@@ -296,9 +300,10 @@ export default function TasksPage() {
       }));
     } catch (err) {
       if (currentCollection.current === requestCollection) {
-        setError(
-          err instanceof Error ? err.message : "Unable to load more tasks.",
-        );
+        setColumnErrors((previous) => ({
+          ...previous,
+          [status]: err instanceof Error ? err.message : "Unable to load more tasks.",
+        }));
       }
     } finally {
       setLoadingColumn(null);
@@ -774,15 +779,27 @@ export default function TasksPage() {
                 {!columns[status]?.count && (
                   <p className={styles.columnEmpty}>No tasks in this column.</p>
                 )}
+                {columnErrors[status] && (
+                  <p className={styles.alert} role="alert">
+                    {columnErrors[status]}
+                  </p>
+                )}
                 {columns[status]?.next && (
                   <button
                     className={styles.showMore}
+                    aria-label={
+                      columnErrors[status]
+                        ? `Retry loading more ${taskStatuses.find((item) => item.value === status)?.label} tasks`
+                        : undefined
+                    }
                     disabled={Boolean(loadingColumn) || mutationBusy}
                     onClick={() => void showMore(status)}
                   >
                     {loadingColumn === status
                       ? "Loading…"
-                      : `Show ${(columns[status]?.count || 0) - (columns[status]?.results.length || 0)} more`}
+                      : columnErrors[status]
+                        ? "Retry"
+                        : `Show ${(columns[status]?.count || 0) - (columns[status]?.results.length || 0)} more`}
                   </button>
                 )}
               </section>

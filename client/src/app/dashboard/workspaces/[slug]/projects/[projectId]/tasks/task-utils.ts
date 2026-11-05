@@ -159,9 +159,9 @@ export function overdueDays(
 ) {
   if (!dueDate || status === "done") return 0;
   const start = Date.UTC(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate(),
   );
   return Math.max(
     0,
@@ -204,20 +204,4 @@ export function taskChanges(
       ([key, value]) => value !== initial[key as keyof TaskInput],
     ),
   );
-}
-// Positions belong to the complete server column, even when some cards are filtered out.
-export function taskMovePosition(
-  task: Pick<Task, "id" | "status" | "position">,
-  status: TaskStatus,
-  before: Pick<Task, "id" | "position"> | null,
-  destinationCount: number,
-) {
-  if (before?.id === task.id) return task.position;
-  if (before)
-    return Math.max(
-      0,
-      before.position -
-        (task.status === status && task.position < before.position ? 1 : 0),
-    );
-  return Math.max(0, destinationCount - (task.status === status ? 1 : 0));
 }

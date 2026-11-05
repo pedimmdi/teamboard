@@ -24,78 +24,31 @@ runInNewContext(
   { exports: utils, URLSearchParams, Date, Intl },
 );
 
-function moveClient(task, before = null) {
+function moveClient() {
   const calls = [];
   const exports = {};
   const api = {
-    getTask: async (_token, _slug, _project, id) =>
-      id === task.id ? task : before,
-    getTasks: async (_token, _slug, _project, query) => {
-      calls.push({ query: JSON.parse(JSON.stringify(query)) });
-      return { count: 19 };
-    },
-    moveTask: async (...args) => {
-      calls.push({ move: args });
-      return task;
-    },
+    getTask: () => { throw new Error("Client must not read positions before moving"); },
+    getTasks: () => { throw new Error("Client must not read column counts before moving"); },
+    moveTask: async (...args) => { calls.push(args); return { id: "task" }; },
   };
-  runInNewContext(
-    compile(
-      "../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/task-moves.ts",
-    ),
-    {
-      exports,
-      require: (name) => (name === "@/lib/api" ? api : utils),
-    },
-  );
+  runInNewContext(compile("../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/task-moves.ts"), { exports, require: () => api });
   return { move: exports.moveTaskToPosition, calls };
 }
 
-test("moving refreshes the source status before appending to a complete, unfiltered column", async () => {
-  const { move, calls } = moveClient({
-    id: "task",
-    status: "done",
-    position: 5,
-  });
-  await move("token", "team", "project", "task", "done");
-  assert.deepEqual(calls[0].query, { status: ["done"], page_size: 1 });
-  assert.deepEqual(calls[1].move, [
-    "token",
-    "team",
-    "project",
-    "task",
-    "done",
-    18,
-  ]);
-});
-
-test("dropping before a card uses both cards' freshly fetched positions", async () => {
-  const { move, calls } = moveClient(
-    { id: "task", status: "todo", position: 5 },
-    { id: "target", status: "todo", position: 12 },
-  );
+test("drop targets are sent by ID without a client-side position snapshot", async () => {
+  const { move, calls } = moveClient();
   await move("token", "team", "project", "task", "todo", "target");
-  assert.deepEqual(calls[0].move, [
-    "token",
-    "team",
-    "project",
-    "task",
-    "todo",
-    11,
-  ]);
+  assert.deepEqual(calls[0].slice(0,5), ["token", "team", "project", "task", "todo"]);
+  assert.equal(JSON.stringify(calls[0][5]), JSON.stringify({ before_task: "target" }));
 });
 
-test("a destination moved by another user is rejected without sending an incorrect move", async () => {
-  const { move, calls } = moveClient(
-    { id: "task", status: "todo", position: 0 },
-    { id: "target", status: "done", position: 1 },
-  );
-  await assert.rejects(
-    move("token", "team", "project", "task", "in_review", "target"),
-    (error) =>
-      error.message === "The destination task moved. Please try again.",
-  );
-  assert.equal(calls.length, 0);
+test("column endpoints are resolved by the server for first and last placement", async () => {
+  const { move, calls } = moveClient();
+  await move("token", "team", "project", "task", "done");
+  await move("token", "team", "project", "task", "done", null, true);
+  assert.equal(JSON.stringify(calls[0][5]), JSON.stringify({ placement: "last" }));
+  assert.equal(JSON.stringify(calls[1][5]), JSON.stringify({ placement: "first" }));
 });
 function client(
   response = () =>
@@ -279,7 +232,7 @@ test("changing filters resets the page while retaining the open task and view", 
   );
 });
 test("overdue calculations use calendar days and ignore completed tasks and today's date", () => {
-  const today = new Date(2026, 10, 5, 23, 59);
+  const today = new Date("2026-11-05T23:59:00Z");
   assert.equal(utils.overdueDays("2026-11-03", "todo", today), 2);
   assert.equal(utils.overdueDays("2026-11-05", "todo", today), 0);
   assert.equal(utils.overdueDays("2026-11-03", "done", today), 0);
@@ -300,25 +253,20 @@ test("task edits send changed fields only and distinguish unchanged values from 
     JSON.stringify({ assignee: null, due_date: null }),
   );
 });
-test("moving filtered or partially loaded cards uses server positions rather than visible indices", () => {
-  const task = { id: "moving", status: "todo", position: 2 };
-  assert.equal(
-    utils.taskMovePosition(task, "todo", { id: "target", position: 8 }, 12),
-    7,
-  );
-  assert.equal(
-    utils.taskMovePosition(
-      task,
-      "in_review",
-      { id: "target", position: 8 },
-      12,
-    ),
-    8,
-  );
-  assert.equal(utils.taskMovePosition(task, "todo", null, 12), 11);
-  assert.equal(utils.taskMovePosition(task, "in_review", null, 12), 12);
-  assert.equal(
-    utils.taskMovePosition(task, "todo", { id: "moving", position: 2 }, 12),
-    2,
-  );
+
+test("overdue uses the UTC day when local calendars disagree around midnight", () => {
+  const east = new Date("2026-11-05T21:30:00Z");
+  east.getFullYear = () => 2026; east.getMonth = () => 10; east.getDate = () => 6;
+  assert.equal(utils.overdueDays("2026-11-05", "todo", east), 0);
+  const west = new Date("2026-11-05T01:00:00Z");
+  west.getFullYear = () => 2026; west.getMonth = () => 10; west.getDate = () => 4;
+  assert.equal(utils.overdueDays("2026-11-04", "todo", west), 1);
+  assert.equal(utils.overdueDays("2026-11-04", "done", west), 0);
+});
+test("move API serializes anchor and boundary targets without numeric positions", async () => {
+  const { api, calls } = client();
+  await api.moveTask("access", "team", "project", "task", "todo", { before_task: "target" });
+  await api.moveTask("access", "team", "project", "task", "done", { placement: "last" });
+  assert.deepEqual(JSON.parse(calls[0].body), { status: "todo", before_task: "target" });
+  assert.deepEqual(JSON.parse(calls[1].body), { status: "done", placement: "last" });
 });

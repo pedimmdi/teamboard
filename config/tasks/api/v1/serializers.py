@@ -173,5 +173,23 @@ class TaskMoveSerializer(serializers.Serializer):
 
     position = serializers.IntegerField(
         min_value=0,
-        required=True,
+        required=False,
+        help_text="Zero-based destination index. Send exactly one of position, before_task, or placement.",
     )
+
+    before_task = serializers.UUIDField(
+        required=False,
+        help_text="Destination task in the requested status column; resolved under the project lock.",
+    )
+    placement = serializers.ChoiceField(
+        choices=("first", "last"),
+        required=False,
+        help_text="Place at the current start or end of the destination column.",
+    )
+
+    def validate(self, attrs):
+        if sum(key in attrs for key in ("position", "before_task", "placement")) != 1:
+            raise serializers.ValidationError(
+                "Provide exactly one of position, before_task, or placement."
+            )
+        return attrs

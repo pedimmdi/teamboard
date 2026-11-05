@@ -1817,6 +1817,14 @@ components:
           type: string
           minLength: 1
           maxLength: 150
+    PlacementEnum:
+      enum:
+      - first
+      - last
+      type: string
+      description: |-
+        * `first` - first
+        * `last` - last
     Project:
       type: object
       properties:
@@ -2123,8 +2131,22 @@ components:
         position:
           type: integer
           minimum: 0
+          description: Zero-based destination index. Send exactly one of position,
+            before_task, or placement.
+        before_task:
+          type: string
+          format: uuid
+          description: Destination task in the requested status column; resolved under
+            the project lock.
+        placement:
+          allOf:
+          - $ref: '#/components/schemas/PlacementEnum'
+          description: |-
+            Place at the current start or end of the destination column.
+
+            * `first` - first
+            * `last` - last
       required:
-      - position
       - status
     TaskPriorityEnum:
       enum:

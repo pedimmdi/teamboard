@@ -410,7 +410,17 @@ Each task has a zero-based `position` within its project and status column. The 
 
 Moving a task updates the ordering of affected columns inside a database transaction. Creating, deleting, or changing the status of a task also maintains Kanban positions.
 
+For concurrent editing, send `before_task` (a destination task UUID) instead of
+`position`, or `placement: "first"` / `placement: "last"` for a column boundary.
+Send exactly one target selector together with `status`. The server resolves the
+target under the same project lock as the move, so intervening reorders or
+inserts do not invalidate the intended placement. A missing destination returns
+404; a destination that changed columns returns 400 without moving the task.
+Numeric `position` remains supported for existing clients.
+
 Task listing supports filtering by status, priority, assignee, due date, and overdue state, as well as text search and ordering. Use `ordering=position` together with a status filter to retrieve a Kanban column in position order.
+Overdue means a due date before the current UTC calendar day, excluding completed
+tasks. The dashboard uses the same UTC day as the API.
 
 Workspace owners and admins can manage tasks without joining each project. Regular workspace members require project membership. Task assignees must be actual members of both the project and its workspace; inherited management access alone does not make a user eligible for assignment.
 
@@ -423,8 +433,10 @@ column loads independently and offers Show more for remaining tasks. Dragging a
 card changes its status or position through the atomic move endpoint; the Move
 task menu offers the same operation with keyboard and touch controls, including
 moving to the beginning or end of a complete column.
-Moves refresh the source and destination state before submission; failures keep
-the server explanation visible while the board refreshes.
+Moves send a destination task or column boundary for the server to resolve
+atomically; failures keep the server explanation visible while the board refreshes.
+Show more failures leave loaded cards visible and offer Retry in the affected
+column without hiding the board or changing the successful page.
 
 Search, status, priority, assignee, overdue, due-before, list ordering, and the
 selected view are stored in the URL. Assignee filters support Anyone, Me,

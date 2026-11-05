@@ -1062,11 +1062,14 @@ export function moveTask(
   projectId: string,
   taskId: string,
   status: TaskStatus,
-  position: number,
+  target: number | { before_task: string } | { placement: "first" | "last" },
 ) {
   return apiFetch<Task>(`${tasksPath(slug, projectId, taskId)}move/`, {
     token,
     method: "POST",
-    body: JSON.stringify({ status, position }),
+    body: JSON.stringify({
+      status,
+      ...(typeof target === "number" ? { position: target } : target),
+    }),
   });
 }
