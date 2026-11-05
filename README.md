@@ -2,7 +2,7 @@
 
 TeamBoard is a project management platform in development, built with Django REST Framework and Next.js. It is designed to support team collaboration, task management, and secure account access through a versioned REST API.
 
-The current implementation includes account management, authentication, session security, workspaces, role-based membership, email invitations, and project management on both the API and responsive web dashboard. The backend now includes project task management, advanced task filtering, and Kanban ordering. The task management frontend is planned for a later development phase.
+The current implementation includes account management, authentication, session security, workspaces, role-based membership, email invitations, projects, and task management on both the API and responsive web dashboard. Tasks include a Kanban board, a paginated list, advanced filters, and atomic ordering.
 
 ## Current Features
 
@@ -48,6 +48,9 @@ The current implementation includes account management, authentication, session 
 - Workspace switcher with role labels, desktop dropdown, and mobile sheet
 - Project listing, creation, overview, member management, and settings
 - Role-aware project actions, inline validation, and protected-action dialogs
+- Task board and list, URL-based filters, sorting, and column pagination
+- Responsive task creation, detail editing, assignment, and deletion dialogs
+- Desktop drag-and-drop and keyboard/touch task moves with atomic Kanban ordering
 - Compact profile image controls with upload and removal in one row
 - Password and security settings
 - Active session management and session revocation
@@ -362,7 +365,7 @@ tables become cards on smaller screens, with mobile sheets for forms and actions
 Project creation and editing validate names and the 5000-character description;
 deletion requires entering the exact project name. Protected actions display the
 API explanation and offer a route to manage members where appropriate. The
-overview's task area is a placeholder until task management is implemented.
+overview links directly to the project's task board.
 
 Project names are unique within their workspace, ignoring case. Names allow
 150 characters and descriptions allow 5000 characters. Permission checks precede
@@ -413,7 +416,29 @@ Workspace owners and admins can manage tasks without joining each project. Regul
 
 Task responses include assignee and creator email addresses and avatar URLs when available.
 
-The task management backend is implemented. A dedicated Kanban interface in the Next.js frontend has not yet been implemented.
+The task dashboard lives at `/dashboard/workspaces/<slug>/projects/<project_id>/tasks`.
+It includes a four-column desktop Kanban board, a status-column view on smaller
+screens, and a paginated list with sortable columns and mobile cards. Each board
+column loads independently and offers Show more for remaining tasks. Dragging a
+card changes its status or position through the atomic move endpoint; the Move
+task menu offers the same operation with keyboard and touch controls, including
+moving to the beginning or end of a complete column.
+Moves refresh the source and destination state before submission; failures keep
+the server explanation visible while the board refreshes.
+
+Search, status, priority, assignee, overdue, due-before, list ordering, and the
+selected view are stored in the URL. Assignee filters support Anyone, Me,
+Unassigned, and individual project members. Board order is manual; list order is
+independent. The task detail drawer is linkable with `?task=<task_id>` and becomes
+a full-screen form on mobile. Creation uses a desktop dialog or mobile sheet.
+Descriptions allow 10000 characters and titles allow 200. Clearing an assignee or
+due date sends an explicit null, while edits submit only changed fields.
+
+Every user with project access can create, edit, and move tasks. Only project
+managers and workspace owners/admins can delete them. Assignee selection loads all
+pages of actual project members, so inherited management access does not offer an
+Assign to me option unless the user is also a project member. Validation and API
+errors remain visible in the relevant form; missing tasks offer Back to tasks.
 
 ## Authentication
 
@@ -478,7 +503,7 @@ The current workflow contains two independent jobs:
 - **Backend:** installs Python dependencies, starts PostgreSQL, checks Django configuration and migration consistency, validates the OpenAPI schema, and runs the full pytest suite.
 - **Frontend:** installs Node.js dependencies using `npm ci`, runs ESLint and the frontend tests, and builds the Next.js application.
 
-Integration and end-to-end browser tests are not currently part of the workflow.
+Browser end-to-end tests are not currently part of the workflow.
 
 ## Useful Docker Commands
 
@@ -534,14 +559,13 @@ docker compose down -v
 
 ## Development Roadmap
 
-Account security, profile images, workspaces, projects, memberships, and invitations are
+Account security, profile images, workspaces, projects, tasks, memberships, and invitations are
 implemented. Planned development includes:
 
-- Next.js task management interface and interactive Kanban board
 - Additional collaboration features
-- Integration and end-to-end testing
+- Automated browser end-to-end testing
 
-The task management API is implemented and tested. The task management frontend and additional collaboration features remain planned.
+The task management API and frontend are implemented and tested. Additional collaboration features remain planned.
 
 ## Development and Deployment Notes
 

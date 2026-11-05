@@ -10,6 +10,12 @@
   flex-direction: column;
   gap: 24px;
 }
+.taskContent {
+  width: 960px;
+}
+.tasksPlaceholder .primaryButton {
+  margin-top: 16px;
+}
 .header,
 .sectionHeader {
   display: flex;
@@ -615,6 +621,15 @@
   }
 }
 @media (max-width: 767px) {
+  .tabs {
+    gap: 0;
+  }
+  .tabs a {
+    flex: 1;
+    padding: 14px 6px;
+    font-size: 13px;
+    text-align: center;
+  }
   .page {
     padding: 24px 20px 110px;
     min-height: 0;

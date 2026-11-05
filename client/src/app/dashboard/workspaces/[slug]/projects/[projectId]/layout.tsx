@@ -52,10 +52,11 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
   }, [accessToken, workspace.slug, projectId, reload]);
   const projectsPath = `/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/projects`;
   const base = `${projectsPath}/${encodeURIComponent(projectId)}`;
+  const isTasks = pathname === `${base}/tasks`;
   const permissions = projectPermissions(workspace.role, project?.role ?? null);
   return (
     <div className={styles.page}>
-      <div className={styles.content}>
+      <div className={`${styles.content} ${isTasks ? styles.taskContent : ""}`}>
         <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
           <Link href={projectsPath}>← Projects</Link>
           {project && (
@@ -98,12 +99,13 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
                 </Link>
               )}
             </header>
-            {project.description && (
+            {project.description && !isTasks && (
               <p className={styles.projectDescription}>{project.description}</p>
             )}
             <nav className={styles.tabs} aria-label="Project navigation">
               {[
                 { title: "Overview", href: base },
+                { title: "Tasks", href: `${base}/tasks` },
                 { title: "Members", href: `${base}/members` },
                 ...(permissions.canManage || permissions.canLeave
                   ? [{ title: "Settings", href: `${base}/settings` }]

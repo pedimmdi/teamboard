@@ -23,6 +23,80 @@ runInNewContext(
   ),
   { exports: utils, URLSearchParams, Date, Intl },
 );
+
+function moveClient(task, before = null) {
+  const calls = [];
+  const exports = {};
+  const api = {
+    getTask: async (_token, _slug, _project, id) =>
+      id === task.id ? task : before,
+    getTasks: async (_token, _slug, _project, query) => {
+      calls.push({ query: JSON.parse(JSON.stringify(query)) });
+      return { count: 19 };
+    },
+    moveTask: async (...args) => {
+      calls.push({ move: args });
+      return task;
+    },
+  };
+  runInNewContext(
+    compile(
+      "../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/task-moves.ts",
+    ),
+    {
+      exports,
+      require: (name) => (name === "@/lib/api" ? api : utils),
+    },
+  );
+  return { move: exports.moveTaskToPosition, calls };
+}
+
+test("moving refreshes the source status before appending to a complete, unfiltered column", async () => {
+  const { move, calls } = moveClient({
+    id: "task",
+    status: "done",
+    position: 5,
+  });
+  await move("token", "team", "project", "task", "done");
+  assert.deepEqual(calls[0].query, { status: ["done"], page_size: 1 });
+  assert.deepEqual(calls[1].move, [
+    "token",
+    "team",
+    "project",
+    "task",
+    "done",
+    18,
+  ]);
+});
+
+test("dropping before a card uses both cards' freshly fetched positions", async () => {
+  const { move, calls } = moveClient(
+    { id: "task", status: "todo", position: 5 },
+    { id: "target", status: "todo", position: 12 },
+  );
+  await move("token", "team", "project", "task", "todo", "target");
+  assert.deepEqual(calls[0].move, [
+    "token",
+    "team",
+    "project",
+    "task",
+    "todo",
+    11,
+  ]);
+});
+
+test("a destination moved by another user is rejected without sending an incorrect move", async () => {
+  const { move, calls } = moveClient(
+    { id: "task", status: "todo", position: 0 },
+    { id: "target", status: "done", position: 1 },
+  );
+  await assert.rejects(
+    move("token", "team", "project", "task", "in_review", "target"),
+    (error) =>
+      error.message === "The destination task moved. Please try again.",
+  );
+  assert.equal(calls.length, 0);
+});
 function client(
   response = () =>
     new Response(JSON.stringify({ id: "task" }), {

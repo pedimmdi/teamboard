@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { getProjectMembers, type ProjectMember } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Avatar from "@/components/ui/Avatar";
@@ -105,10 +106,16 @@ export default function ProjectOverviewPage() {
         <span className={styles.emptyIcon} aria-hidden="true">
           ☷
         </span>
-        <h2>Tasks are coming next</h2>
+        <h2>Tasks</h2>
         <p className={styles.hint}>
-          This is where the project’s tasks and board will live.
+          Plan, assign, and track work on this project’s task board.
         </p>
+        <Link
+          className={styles.primaryButton}
+          href={`/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/projects/${project.id}/tasks`}
+        >
+          View tasks
+        </Link>
       </section>
     </div>
   );
