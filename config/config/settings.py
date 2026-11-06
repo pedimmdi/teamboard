@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "workspaces.apps.WorkspacesConfig",
     "projects.apps.ProjectsConfig",
     "tasks.apps.TasksConfig",
+    "comments.apps.CommentsConfig",
 ]
 
 MIDDLEWARE = [
@@ -174,6 +175,7 @@ REST_FRAMEWORK = {
         "project_member_add": "60/hour",
         "avatar_upload": "10/hour",
         "task_create": "60/hour",
+        "comment_create": "30/min",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

@@ -1359,6 +1359,217 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/workspaces/{slug}/projects/{project_id}/tasks/{task_id}/comments/:
+    get:
+      operationId: comments_list
+      summary: List task comments
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Comments
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCommentList'
+          description: ''
+    post:
+      operationId: comments_create
+      summary: Create task comment
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+  /api/v1/workspaces/{slug}/projects/{project_id}/tasks/{task_id}/comments/{comment_id}/:
+    get:
+      operationId: comments_retrieve
+      summary: Retrieve task comment
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Comments
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+    patch:
+      operationId: comments_update
+      summary: Update own comment
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCommentUpdateRequest'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+    delete:
+      operationId: comments_delete
+      summary: Delete task comment
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Comments
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/workspaces/{slug}/projects/{project_id}/tasks/{task_id}/move/:
     post:
       operationId: tasks_move
@@ -1503,6 +1714,52 @@ components:
           type: string
       required:
       - detail
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        task:
+          type: string
+          format: uuid
+          readOnly: true
+        author_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        author_name:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author_id
+      - author_name
+      - body
+      - created_at
+      - id
+      - task
+      - updated_at
+    CommentCreateRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
+      required:
+      - body
     CurrentUser:
       type: object
       properties:
@@ -1578,6 +1835,29 @@ components:
     NullEnum:
       enum:
       - null
+    PaginatedCommentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
     PaginatedProject:
       type: object
       properties:
@@ -1756,6 +2036,13 @@ components:
           type: string
       required:
       - detail
+    PatchedCommentUpdateRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 5000
     PatchedCurrentUserRequest:
       type: object
       properties:
