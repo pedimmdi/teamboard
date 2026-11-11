@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import Image from "next/image";
 import styles from "./tasks.module.css";
 
 export default function TaskDialog({
@@ -35,6 +36,7 @@ export default function TaskDialog({
     ref.current?.focus();
     function keydown(event: KeyboardEvent) {
       if (event.defaultPrevented) return;
+      if (document.activeElement?.closest("dialog[open]")) return;
       if (event.key === "Escape" && !pending.current) {
         event.preventDefault();
         close.current();
@@ -108,8 +110,12 @@ export default function TaskDialog({
             >
               {drawer ? (
                 <>
-                  <span className={styles.desktopClose}>×</span>
-                  <span className={styles.mobileBack}>←</span>
+                  <span className={styles.desktopClose}>
+                    <Image src="/icons/comments/close.svg" alt="" width={20} height={20} />
+                  </span>
+                  <span className={styles.mobileBack}>
+                    <Image src="/icons/comments/back.svg" alt="" width={20} height={20} />
+                  </span>
                 </>
               ) : (
                 "×"

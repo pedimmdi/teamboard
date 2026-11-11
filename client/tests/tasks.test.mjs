@@ -270,3 +270,46 @@ test("move API serializes anchor and boundary targets without numeric positions"
   assert.deepEqual(JSON.parse(calls[0].body), { status: "todo", before_task: "target" });
   assert.deepEqual(JSON.parse(calls[1].body), { status: "done", placement: "last" });
 });
+
+test("comment requests are scoped to the task and preserve the requested page and text", async () => {
+  const { api, calls } = client();
+  const scope = ["access", "team space", "project/1", "task/2"];
+  await api.getTaskComments(...scope, 2);
+  await api.createTaskComment(...scope, "First line\nSecond line");
+  await api.updateTaskComment(...scope, "comment/3", "Edited");
+  const collection = "/api/v1/workspaces/team%20space/projects/project%2F1/tasks/task%2F2/comments/";
+  assert.equal(new URL(calls[0].url).pathname, collection);
+  assert.equal(new URL(calls[0].url).search, "?page=2");
+  assert.equal(calls[0].headers.Authorization, "Bearer access");
+  assert.equal(new URL(calls[1].url).pathname, collection);
+  assert.equal(calls[1].method, "POST");
+  assert.deepEqual(JSON.parse(calls[1].body), { body: "First line\nSecond line" });
+  assert.equal(new URL(calls[2].url).pathname, `${collection}comment%2F3/`);
+  assert.equal(calls[2].method, "PATCH");
+  assert.deepEqual(JSON.parse(calls[2].body), { body: "Edited" });
+});
+
+test("comment deletion accepts a 204 without attempting to parse a response body", async () => {
+  const { api, calls } = client(() => new Response(null, { status: 204 }));
+  const result = await api.deleteTaskComment("access", "team", "project", "task", "comment");
+  assert.equal(result, null);
+  assert.equal(calls[0].method, "DELETE");
+  assert.match(calls[0].url, /\/tasks\/task\/comments\/comment\/$/);
+});
+
+test("comment write errors retain rate limits and body validation for the composer", async () => {
+  for (const [status, payload] of [
+    [400, { body: ["Comment cannot exceed 5000 characters."] }],
+    [429, { detail: "Request was throttled." }],
+  ]) {
+    const { api } = client(() => new Response(JSON.stringify(payload), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }));
+    await assert.rejects(
+      api.createTaskComment("access", "team", "project", "task", "Text"),
+      (error) => error.status === status &&
+        (status === 400 ? error.errors.body[0] === payload.body[0] : error.message === payload.detail),
+    );
+  }
+});

@@ -1073,3 +1073,78 @@ export function moveTask(
     }),
   });
 }
+
+export type TaskComment = {
+  id: string;
+  task: string;
+  author_id: number | null;
+  author_name: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PaginatedTaskComments = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: TaskComment[];
+};
+
+function taskCommentsPath(slug: string, projectId: string, taskId: string) {
+  return `${tasksPath(slug, projectId, taskId)}comments/`;
+}
+
+export function getTaskComments(
+  token: string,
+  slug: string,
+  projectId: string,
+  taskId: string,
+  page = 1,
+) {
+  return apiFetch<PaginatedTaskComments>(
+    `${taskCommentsPath(slug, projectId, taskId)}?page=${page}`,
+    { token },
+  );
+}
+
+export function createTaskComment(
+  token: string,
+  slug: string,
+  projectId: string,
+  taskId: string,
+  body: string,
+) {
+  return apiFetch<TaskComment>(taskCommentsPath(slug, projectId, taskId), {
+    token,
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}
+
+export function updateTaskComment(
+  token: string,
+  slug: string,
+  projectId: string,
+  taskId: string,
+  commentId: string,
+  body: string,
+) {
+  return apiFetch<TaskComment>(
+    `${taskCommentsPath(slug, projectId, taskId)}${encodeURIComponent(commentId)}/`,
+    { token, method: "PATCH", body: JSON.stringify({ body }) },
+  );
+}
+
+export function deleteTaskComment(
+  token: string,
+  slug: string,
+  projectId: string,
+  taskId: string,
+  commentId: string,
+) {
+  return apiFetch<null>(
+    `${taskCommentsPath(slug, projectId, taskId)}${encodeURIComponent(commentId)}/`,
+    { token, method: "DELETE" },
+  );
+}

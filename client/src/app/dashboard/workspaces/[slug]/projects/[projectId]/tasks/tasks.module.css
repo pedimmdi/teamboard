@@ -699,6 +699,14 @@
   color: #64748b;
   text-transform: uppercase;
 }
+.drawer:has(> [data-comment-thread]:not([hidden])) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.drawer:has(> [data-comment-thread]:not([hidden])) .dialogHeader {
+  flex-shrink: 0;
+}
 .drawer .form {
   margin-top: 24px;
 }
@@ -1005,6 +1013,9 @@
   }
 }
 @media (max-width: 767px) {
+  .drawer:has(> [data-comment-thread]:not([hidden])) {
+    padding-bottom: 0;
+  }
   .drawer .dialogHeader .headerActions {
     display: contents;
   }
