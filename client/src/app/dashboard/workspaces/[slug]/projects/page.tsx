@@ -108,7 +108,7 @@ export default function ProjectsPage() {
                       <td>
                         <Link
                           className={styles.projectLink}
-                          href={`${base}/${project.id}`}
+                          href={`${base}/${project.id}/tasks`}
                         >
                           {project.name}
                         </Link>
@@ -120,7 +120,7 @@ export default function ProjectsPage() {
                       <td>{formatProjectDate(project.created_at)}</td>
                       <td>
                         <Link
-                          href={`${base}/${project.id}`}
+                          href={`${base}/${project.id}/tasks`}
                           aria-label={`Open ${project.name}`}
                         >
                           <DesignIcon name="chevron-right" />
@@ -137,7 +137,7 @@ export default function ProjectsPage() {
                   <div className={styles.mobileTitle}>
                     <Link
                       className={styles.projectLink}
-                      href={`${base}/${project.id}`}
+                      href={`${base}/${project.id}/tasks`}
                     >
                       {project.name}
                     </Link>
@@ -147,7 +147,7 @@ export default function ProjectsPage() {
                   <div className={styles.mobileFooter}>
                     <span>Created {formatProjectDate(project.created_at)}</span>
                     <Link
-                      href={`${base}/${project.id}`}
+                      href={`${base}/${project.id}/tasks`}
                       aria-label={`Open ${project.name}`}
                     >
                       <DesignIcon name="chevron-right" />

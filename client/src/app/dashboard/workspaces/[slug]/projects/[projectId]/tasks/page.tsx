@@ -26,6 +26,7 @@ import TaskDrawer from "./task-drawer";
 import TaskForm from "./task-form";
 import TaskFiltersDialog, { orderingLabels } from "./task-filters";
 import TaskIcon from "./task-icons";
+import ProjectSummary from "../project-summary";
 import {
   emptyTaskFilters,
   hasTaskFilters,
@@ -539,6 +540,11 @@ export default function TasksPage() {
   if (taskId && missingId === taskId) return empty(true);
   return (
     <div className={styles.root}>
+      <ProjectSummary
+        description={project.description}
+        membersHref={`/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/projects/${encodeURIComponent(project.id)}/members`}
+        {...memberProps}
+      />
       {notice && (
         <p className={styles.notice} role="status" aria-live="polite">
           {notice}

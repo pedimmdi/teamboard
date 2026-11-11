@@ -90,21 +90,12 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
                   {projectRoleLabel(project.role)}
                 </span>
               </div>
-              {permissions.canManage && pathname === base && (
-                <Link
-                  className={styles.secondaryButton}
-                  href={`${base}/settings`}
-                >
-                  Edit project
-                </Link>
-              )}
             </header>
             {project.description && !isTasks && (
               <p className={styles.projectDescription}>{project.description}</p>
             )}
             <nav className={styles.tabs} aria-label="Project navigation">
               {[
-                { title: "Overview", href: base },
                 { title: "Tasks", href: `${base}/tasks` },
                 { title: "Members", href: `${base}/members` },
                 ...(permissions.canManage || permissions.canLeave

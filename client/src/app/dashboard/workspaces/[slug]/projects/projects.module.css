@@ -13,9 +13,6 @@
 .taskContent {
   width: 960px;
 }
-.tasksPlaceholder .primaryButton {
-  margin-top: 16px;
-}
 .header,
 .sectionHeader {
   display: flex;
@@ -439,17 +436,27 @@
   color: #4f46e5;
   font-size: 12px;
 }
-.tasksPlaceholder {
-  border: 1px dashed #cbd5e1;
-  border-radius: 16px;
-  background: white;
-  text-align: center;
-  padding: 32px 24px;
+.summaryCard {
+  padding: 16px;
 }
-.tasksPlaceholder h2 {
-  font-size: 14px;
-  font-weight: 500;
-  margin: 16px 0 8px;
+.summaryCard h2 {
+  margin: 0;
+}
+.summaryCard .aboutText,
+.summaryCard .avatars {
+  margin-top: 8px;
+}
+.summaryLink {
+  border: 0;
+  padding: 4px 0;
+  color: #4f46e5;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.summaryLink:hover {
+  text-decoration: underline;
 }
 .roles {
   border: 0;
