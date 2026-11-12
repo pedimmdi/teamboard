@@ -1153,3 +1153,16 @@
     padding: 40px 20px;
   }
 }
+
+.taskCard { cursor: pointer; }
+.taskCard:hover { border-color: #a5b4fc; }
+.taskCard.dragging { cursor: grabbing; }
+.commentCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #475569;
+  font-size: 12px;
+}
+.commentCount svg { width: 16px; height: 16px; }
+.selectButton svg { flex-shrink: 0; width: 16px; height: 16px; }

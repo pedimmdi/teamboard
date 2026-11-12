@@ -70,7 +70,7 @@ export default function TaskActions({
     };
   }, [open]);
   return (
-    <div className={styles.taskActions} ref={ref}>
+    <div className={styles.taskActions} ref={ref} data-task-actions>
       <button
         type="button"
         ref={trigger}

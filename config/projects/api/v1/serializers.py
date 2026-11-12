@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 
+from accounts.validators import validate_avatar
 from projects.models import Project, ProjectMembership
 
 
@@ -13,6 +14,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
+            "avatar",
             "role",
             "created_at",
             "updated_at",
@@ -71,6 +73,7 @@ class PaginatedProjectSerializer(serializers.Serializer):
 
 
 class ProjectUpdateSerializer(serializers.Serializer):
+    avatar = serializers.ImageField(required=False, allow_null=True, validators=[validate_avatar])
     name = serializers.CharField(
         max_length=150,
         trim_whitespace=True,

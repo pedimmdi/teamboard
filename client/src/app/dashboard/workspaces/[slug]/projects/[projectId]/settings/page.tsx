@@ -8,7 +8,9 @@ import {
   deleteProject,
   leaveProject,
   updateProject,
+  updateResourceAvatar,
 } from "@/lib/api";
+import ResourceAvatarEditor from "@/components/ui/ResourceAvatarEditor";
 import { useAuth } from "@/lib/auth";
 import { useWorkspace } from "../../../workspace-context";
 import { useProjectContext } from "../project-context";
@@ -101,6 +103,16 @@ export default function ProjectSettingsPage() {
             Only project managers and workspace admins can edit project details.
           </p>
         </section>
+      )}
+      {permissions.canManage && accessToken && (
+        <ResourceAvatarEditor
+          name={project.name}
+          avatar={project.avatar}
+          label="Project image"
+          onSave={async (image) => {
+            updateContext(await updateResourceAvatar(accessToken, workspace.slug, image, project.id));
+          }}
+        />
       )}
       {permissions.canLeave && (
         <section className={`${styles.card} ${styles.dangerRow}`}>

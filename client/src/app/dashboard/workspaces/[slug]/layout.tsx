@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Avatar from "@/components/ui/Avatar";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { WorkspaceProvider } from "./workspace-context";
@@ -94,9 +95,7 @@ export default function WorkspaceLayout({ children }: Props) {
           <>
             {!isProjects && (
               <header className={styles.header}>
-                <div className={styles.orgIcon}>
-                  {workspace.name.trim().charAt(0).toUpperCase()}
-                </div>
+                <Avatar className={styles.orgIcon} src={workspace.avatar} fallback={workspace.name.charAt(0).toUpperCase()} />
 
                 <div>
                   <h1>{workspace.name}</h1>

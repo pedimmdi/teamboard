@@ -38,8 +38,8 @@ def get_accessible_task_comments(
         task=task,
     ).select_related(
         "author",
-        "author__profile",
-    )
+        "author__profile", "attachment",
+    ).defer("attachment__content").prefetch_related("mentions")
 
 
 def get_comment_or_404(
@@ -60,8 +60,8 @@ def get_comment_or_404(
     return get_object_or_404(
         Comment.objects.select_related(
             "author",
-            "author__profile",
-        ),
+            "author__profile", "attachment",
+        ).defer("attachment__content").prefetch_related("mentions"),
         pk=comment_id,
         task=task,
     )

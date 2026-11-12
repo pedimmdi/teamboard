@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 
 from projects.models import ProjectMembership
 from tasks.models import Task
@@ -40,6 +41,14 @@ class ProjectAssigneeField(serializers.PrimaryKeyRelatedField):
 
 
 class TaskSerializer(serializers.ModelSerializer):
+    comment_count = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.IntegerField(min_value=0))
+    def get_comment_count(self, obj):
+        if hasattr(obj, "comment_count"):
+            return obj.comment_count
+        return obj.comments.count()
+
     assignee_email = serializers.EmailField(
         source="assignee.email",
         read_only=True,
@@ -78,6 +87,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "created_by_avatar",
             "due_date",
             "position",
+            "comment_count",
             "created_at",
             "updated_at",
         )

@@ -1438,7 +1438,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/CommentCreateRequest'
-        required: true
       security:
       - BearerAuth: []
       responses:
@@ -1570,6 +1569,45 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/workspaces/{slug}/projects/{project_id}/tasks/{task_id}/comments/{comment_id}/attachment/:
+    get:
+      operationId: comments_attachment_download
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Comments
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
   /api/v1/workspaces/{slug}/projects/{project_id}/tasks/{task_id}/move/:
     post:
       operationId: tasks_move
@@ -1688,6 +1726,16 @@ paths:
           description: Authentication is required.
 components:
   schemas:
+    AttachmentMetadata:
+      type: object
+      properties:
+        filename:
+          type: string
+        size:
+          type: integer
+      required:
+      - filename
+      - size
     ChangePasswordRequest:
       type: object
       properties:
@@ -1735,6 +1783,27 @@ components:
         body:
           type: string
           readOnly: true
+        reply_to:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        mentions:
+          type: array
+          items:
+            type: string
+            format: email
+          readOnly: true
+        attachment:
+          allOf:
+          - $ref: '#/components/schemas/AttachmentMetadata'
+          nullable: true
+          readOnly: true
+        edited_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -1744,11 +1813,15 @@ components:
           format: date-time
           readOnly: true
       required:
+      - attachment
       - author_id
       - author_name
       - body
       - created_at
+      - edited_at
       - id
+      - mentions
+      - reply_to
       - task
       - updated_at
     CommentCreateRequest:
@@ -1756,10 +1829,15 @@ components:
       properties:
         body:
           type: string
-          minLength: 1
+          default: ''
           maxLength: 5000
-      required:
-      - body
+        reply_to:
+          type: string
+          format: uuid
+          nullable: true
+        attachment:
+          type: string
+          format: binary
     CurrentUser:
       type: object
       properties:
@@ -2041,7 +2119,6 @@ components:
       properties:
         body:
           type: string
-          minLength: 1
           maxLength: 5000
     PatchedCurrentUserRequest:
       type: object
@@ -2064,6 +2141,10 @@ components:
     PatchedProjectUpdateRequest:
       type: object
       properties:
+        avatar:
+          type: string
+          format: binary
+          nullable: true
         name:
           type: string
           minLength: 1
@@ -2104,6 +2185,10 @@ components:
           type: string
           minLength: 1
           maxLength: 150
+        avatar:
+          type: string
+          format: binary
+          nullable: true
     PlacementEnum:
       enum:
       - first
@@ -2125,6 +2210,11 @@ components:
         description:
           type: string
           readOnly: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
         role:
           nullable: true
           readOnly: true
@@ -2140,6 +2230,7 @@ components:
           format: date-time
           readOnly: true
       required:
+      - avatar
       - created_at
       - description
       - id
@@ -2358,6 +2449,10 @@ components:
         position:
           type: integer
           readOnly: true
+        comment_count:
+          type: integer
+          minimum: 0
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -2370,6 +2465,7 @@ components:
       - assignee
       - assignee_avatar
       - assignee_email
+      - comment_count
       - created_at
       - created_by
       - created_by_avatar
@@ -2510,6 +2606,10 @@ components:
         name:
           type: string
           maxLength: 150
+        avatar:
+          type: string
+          format: uri
+          nullable: true
         slug:
           type: string
           readOnly: true
@@ -2674,6 +2774,10 @@ components:
           type: string
           minLength: 1
           maxLength: 150
+        avatar:
+          type: string
+          format: binary
+          nullable: true
       required:
       - name
     WorkspaceRoleEnum:

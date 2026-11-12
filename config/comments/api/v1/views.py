@@ -1,10 +1,14 @@
 
+from io import BytesIO
+
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
@@ -20,7 +24,7 @@ from comments.services import (
     update_comment,
     delete_comment,
 )
-from comments.models import Comment
+from comments.models import Comment, CommentAttachment
 
 from .pagination import CommentPageNumberPagination
 from .serializers import (
@@ -106,8 +110,8 @@ class CommentListCreateView(generics.GenericAPIView):
         comment = get_object_or_404(
             Comment.objects.select_related(
                 "author",
-                "author__profile",
-            ),
+                "author__profile", "attachment",
+            ).defer("attachment__content").prefetch_related("mentions"),
             pk=comment.pk,
             task_id=task.pk,
         )
@@ -199,3 +203,19 @@ class CommentDetailView(generics.GenericAPIView):
         return Response(
             status=status.HTTP_204_NO_CONTENT
         )
+
+
+class CommentAttachmentView(CommentDetailView):
+    http_method_names = ["get", "head", "options"]
+
+    @extend_schema(tags=["Comments"], operation_id="comments_attachment_download", responses=OpenApiTypes.BINARY)
+    def get(self, request, *args, **kwargs):
+        comment = self.get_comment()
+        attachment = get_object_or_404(CommentAttachment, comment=comment)
+        response = FileResponse(
+            BytesIO(attachment.content), as_attachment=True,
+            filename=attachment.filename, content_type="application/octet-stream",
+        )
+        response["Cache-Control"] = "private, no-store"
+        response["X-Content-Type-Options"] = "nosniff"
+        return response

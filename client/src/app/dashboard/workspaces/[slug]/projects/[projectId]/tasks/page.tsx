@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ApiError,
@@ -95,6 +95,7 @@ export default function TasksPage() {
   const [actionError, setActionError] = useState("");
   const [mutationBusy, setMutationBusy] = useState(false);
   const [moving, setMoving] = useState<Move | null>(null);
+  const draggedSincePointerDown = useRef(false);
   const [dragged, setDragged] = useState<Task | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [loadingColumn, setLoadingColumn] = useState<TaskStatus | null>(null);
@@ -104,6 +105,27 @@ export default function TasksPage() {
   const [activeStatus, setActiveStatus] = useState<TaskStatus>("todo");
   const [missingId, setMissingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const updateCommentCount = useCallback((id: string, count: number) => {
+    const update = (task: Task) => task.id === id ? { ...task, comment_count: count } : task;
+    setList((current) => current && { ...current, results: current.results.map(update) });
+    setColumns((current) => {
+      const updated = { ...current };
+      for (const status of Object.keys(current) as TaskStatus[]) {
+        const column = current[status];
+        if (column) updated[status] = { ...column, results: column.results.map(update) };
+      }
+      return updated;
+    });
+  }, []);
+
+  function commentCount(task: Task) {
+    return (
+      <span className={styles.commentCount} aria-label={task.comment_count + " comments"}>
+        <TaskIcon name="comment" />
+        {task.comment_count}
+      </span>
+    );
+  }
   const statuses = filters.statuses.length
     ? filters.statuses
     : taskStatuses.map((status) => status.value);
@@ -748,7 +770,15 @@ export default function TasksPage() {
                     data-task-id={task.id}
                     className={`${styles.taskCard} ${dragged?.id === task.id ? styles.dragging : ""} ${dropTarget === task.id ? styles.dropBefore : ""}`}
                     draggable={!mutationBusy}
+                    onPointerDown={() => { draggedSincePointerDown.current = false; }}
+                    onClick={(event) => {
+                      if (!draggedSincePointerDown.current &&
+                          !(event.target as Element).closest("button, a, input, select, textarea, [data-task-actions]")) {
+                        openTask(task.id);
+                      }
+                    }}
                     onDragStart={(event) => {
+                      draggedSincePointerDown.current = true;
                       setDragged(task);
                       event.dataTransfer.effectAllowed = "move";
                       event.dataTransfer.setData("text/plain", task.id);
@@ -778,6 +808,7 @@ export default function TasksPage() {
                     {priority(task)}
                     <div className={styles.cardFooter}>
                       {due(task)}
+                      {commentCount(task)}
                       {assignee(task)}
                     </div>
                   </article>
@@ -888,7 +919,10 @@ export default function TasksPage() {
             </div>
             <div className={styles.mobileList}>
               {list.results.map((task) => (
-                <article className={styles.taskCard} key={task.id}>
+                <article className={styles.taskCard} key={task.id} onClick={(event) => {
+                  if (!(event.target as Element).closest("button, a, input, select, textarea, [data-task-actions]"))
+                    openTask(task.id);
+                }}>
                   <div className={styles.cardTitle}>
                     <button
                       className={styles.titleButton}
@@ -904,6 +938,7 @@ export default function TasksPage() {
                   </div>
                   <div className={styles.mobileTaskFooter}>
                     {due(task)}
+                    {commentCount(task)}
                     {assignee(task, true)}
                   </div>
                 </article>
@@ -995,6 +1030,7 @@ export default function TasksPage() {
           }}
           onDelete={requestDelete}
           onMissing={() => setMissingId(taskId)}
+          onCommentCountChange={updateCommentCount}
         />
       )}
       {deleting && (

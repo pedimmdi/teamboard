@@ -1,15 +1,22 @@
 import secrets
 import string
 import uuid
+from pathlib import Path
 
 from django.conf import settings
 from django.db import models
+
+from accounts.validators import validate_avatar
 from django.db.models import Q
 
 
 def generate_workspace_slug():
     alphabet = string.ascii_lowercase + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(10))
+
+
+def workspaces_avatar_path(instance, filename):
+    return f"workspaces/{instance.pk}/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
 
 
 class Workspace(models.Model):
@@ -19,6 +26,9 @@ class Workspace(models.Model):
         editable=False,
     )
     name = models.CharField(max_length=150)
+    avatar = models.ImageField(
+        upload_to=workspaces_avatar_path, blank=True, null=True, validators=[validate_avatar],
+    )
     slug = models.CharField(
         max_length=10,
         unique=True,

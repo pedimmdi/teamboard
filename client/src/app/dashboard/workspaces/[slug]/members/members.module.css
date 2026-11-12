@@ -216,3 +216,7 @@
     padding: 14px 16px;
   }
 }
+
+.role.admin { background: #dbeafe; color: #1e40af; }
+.role.member { background: #f1f5f9; color: #475569; }
+.role.owner { background: #f3e8ff; color: #6b21a8; }

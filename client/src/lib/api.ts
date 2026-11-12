@@ -3,6 +3,7 @@ const API_URL =
 
 type ApiOptions = RequestInit & {
   token?: string;
+  responseType?: "blob";
 };
 
 export type LoginResponse = {
@@ -214,6 +215,7 @@ export async function apiFetch<T>(
   const {
     token,
     headers,
+    responseType,
     ...requestOptions
   } = options;
 
@@ -279,6 +281,8 @@ export async function apiFetch<T>(
       notifyAuthLogout();
     }
   }
+
+  if (response.ok && responseType === "blob") return (await response.blob()) as T;
 
   const data = await parseResponse(response);
 
@@ -514,6 +518,7 @@ export type WorkspaceRole =
   | "member";
 
 export type Workspace = {
+  avatar: string | null;
   id: string;
   name: string;
   slug: string;
@@ -814,6 +819,7 @@ export function acceptWorkspaceInvitation(
 
 export type ProjectRole = "manager" | "member";
 export type Project = {
+  avatar: string | null;
   id: string;
   name: string;
   description: string;
@@ -940,6 +946,7 @@ export function removeProjectMember(
 export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 export type Task = {
+  comment_count: number;
   id: string;
   project: string;
   title: string;
@@ -1079,6 +1086,10 @@ export type TaskComment = {
   task: string;
   author_id: number | null;
   author_name: string;
+  reply_to: string | null;
+  mentions: string[];
+  attachment: { filename: string; size: number } | null;
+  edited_at: string | null;
   body: string;
   created_at: string;
   updated_at: string;
@@ -1114,11 +1125,19 @@ export function createTaskComment(
   projectId: string,
   taskId: string,
   body: string,
+  replyTo?: string,
+  attachment?: File,
 ) {
+  const payload = attachment ? new FormData() : null;
+  if (payload && attachment) {
+    payload.set("body", body);
+    payload.set("attachment", attachment);
+    if (replyTo) payload.set("reply_to", replyTo);
+  }
   return apiFetch<TaskComment>(taskCommentsPath(slug, projectId, taskId), {
     token,
     method: "POST",
-    body: JSON.stringify({ body }),
+    body: payload ?? JSON.stringify({ body, ...(replyTo ? { reply_to: replyTo } : {}) }),
   });
 }
 
@@ -1147,4 +1166,38 @@ export function deleteTaskComment(
     `${taskCommentsPath(slug, projectId, taskId)}${encodeURIComponent(commentId)}/`,
     { token, method: "DELETE" },
   );
+}
+
+
+export function downloadCommentAttachment(
+  token: string,
+  slug: string,
+  projectId: string,
+  taskId: string,
+  commentId: string,
+) {
+  return apiFetch<Blob>(
+    `${taskCommentsPath(slug, projectId, taskId)}${encodeURIComponent(commentId)}/attachment/`,
+    { token, responseType: "blob" },
+  );
+}
+
+export function updateResourceAvatar(token: string, slug: string, avatar: File | null): Promise<Workspace>;
+export function updateResourceAvatar(token: string, slug: string, avatar: File | null, projectId: string): Promise<Project>;
+export function updateResourceAvatar(
+  token: string,
+  slug: string,
+  avatar: File | null,
+  projectId?: string,
+) {
+  const path = projectId
+    ? projectsPath(slug, projectId)
+    : `/api/v1/workspaces/${encodeURIComponent(slug)}/`;
+  const form = avatar ? new FormData() : null;
+  if (form && avatar) form.set("avatar", avatar);
+  return apiFetch<Workspace | Project>(path, {
+    token,
+    method: "PATCH",
+    body: form ?? JSON.stringify({ avatar: null }),
+  });
 }

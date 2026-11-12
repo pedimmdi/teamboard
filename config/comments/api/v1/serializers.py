@@ -1,7 +1,14 @@
 
 from rest_framework import serializers
 
+from drf_spectacular.utils import extend_schema_field
+
 from comments.models import Comment
+
+
+class AttachmentMetadataSerializer(serializers.Serializer):
+    filename = serializers.CharField()
+    size = serializers.IntegerField()
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -10,6 +17,13 @@ class CommentSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     author_name = serializers.SerializerMethodField()
+    attachment = serializers.SerializerMethodField()
+    mentions = serializers.SlugRelatedField(many=True, read_only=True, slug_field="email")
+
+    @extend_schema_field(AttachmentMetadataSerializer(allow_null=True))
+    def get_attachment(self, obj):
+        attachment = getattr(obj, "attachment", None)
+        return AttachmentMetadataSerializer(attachment).data if attachment else None
 
     class Meta:
         model = Comment
@@ -19,6 +33,10 @@ class CommentSerializer(serializers.ModelSerializer):
             "author_id",
             "author_name",
             "body",
+            "reply_to",
+            "mentions",
+            "attachment",
+            "edited_at",
             "created_at",
             "updated_at",
         ]
@@ -38,13 +56,20 @@ class CommentSerializer(serializers.ModelSerializer):
         return obj.author.email
 
 
-class CommentCreateSerializer(serializers.Serializer):
+class CommentUpdateSerializer(serializers.Serializer):
     body = serializers.CharField(
         max_length=5000,
-        allow_blank=False,
+        allow_blank=True,
         trim_whitespace=True,
     )
 
 
-class CommentUpdateSerializer(CommentCreateSerializer):
-    pass
+class CommentCreateSerializer(serializers.Serializer):
+    body = serializers.CharField(max_length=5000, allow_blank=True, default="")
+    reply_to = serializers.UUIDField(required=False, allow_null=True)
+    attachment = serializers.FileField(required=False, max_length=255)
+
+    def validate(self, attrs):
+        if not attrs["body"] and "attachment" not in attrs:
+            raise serializers.ValidationError({"body": "Comment cannot be empty."})
+        return attrs

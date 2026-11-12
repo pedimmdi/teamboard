@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiError,
   getTask,
@@ -31,6 +31,7 @@ export default function TaskDrawer({
   onSaved,
   onDelete,
   onMissing,
+  onCommentCountChange,
 }: {
   token: string;
   slug: string;
@@ -45,11 +46,16 @@ export default function TaskDrawer({
   onSaved: () => void;
   onDelete: (task: Task) => void;
   onMissing: () => void;
+  onCommentCountChange: (id: string, count: number) => void;
 }) {
   const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [commentCount, setCommentCount] = useState<number | null>(null);
+  const updateCommentCount = useCallback((count: number) => {
+    setCommentCount(count);
+    onCommentCountChange(taskId, count);
+  }, [onCommentCountChange, taskId]);
   const [commentBusy, setCommentBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -216,7 +222,7 @@ export default function TaskDrawer({
                 members={members}
                 canModerate={canDelete}
                 active={showComments}
-                onCountChange={setCommentCount}
+                onCountChange={updateCommentCount}
                 onBusyChange={setCommentBusy}
               />
             )}

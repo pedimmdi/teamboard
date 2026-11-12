@@ -1,8 +1,15 @@
 import uuid
+from pathlib import Path
 
 from django.conf import settings
 from django.db import models
+
+from accounts.validators import validate_avatar
 from django.db.models.functions import Lower
+
+
+def projects_avatar_path(instance, filename):
+    return f"projects/{instance.pk}/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
 
 
 class Project(models.Model):
@@ -17,6 +24,9 @@ class Project(models.Model):
         related_name="projects",
     )
     name = models.CharField(max_length=150)
+    avatar = models.ImageField(
+        upload_to=projects_avatar_path, blank=True, null=True, validators=[validate_avatar],
+    )
     description = models.TextField(blank=True, max_length=5000)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

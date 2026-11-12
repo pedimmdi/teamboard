@@ -239,6 +239,9 @@ class ProjectDetailView(generics.GenericAPIView):
                 if "description" in changes:
                     project.description = changes["description"]
 
+                if "avatar" in changes:
+                    project.avatar = changes["avatar"]
+
                 project.save()
 
         except IntegrityError as exc:

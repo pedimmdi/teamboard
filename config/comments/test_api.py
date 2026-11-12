@@ -1,5 +1,6 @@
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from rest_framework import status
@@ -416,3 +417,66 @@ class CommentAPITests(CommentAPIFixture):
             10,
         )
         self.assertIsNotNone(response.data["next"])
+
+
+class CommentConversationTests(CommentAPIFixture):
+    def test_reply_and_mentions_are_scoped_and_edit_updates_mentions(self):
+        self.authenticate(self.member)
+        parent = self.make_comment()
+        response = self.client.post(self.list_url(), {
+            "body": f"Thanks @{self.other_member.email}. cc @{self.outsider.email}",
+            "reply_to": str(parent.pk),
+        }, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(str(response.data["reply_to"]), str(parent.pk))
+        self.assertEqual(response.data["mentions"], [self.other_member.email])
+        reply = Comment.objects.get(pk=response.data["id"])
+
+        changed = self.client.patch(self.detail_url(reply), {"body": "Thanks!"}, format="json")
+        self.assertEqual(changed.status_code, 200, changed.data)
+        self.assertEqual(changed.data["mentions"], [])
+        self.assertIsNotNone(changed.data["edited_at"])
+        parent.delete()
+        reply.refresh_from_db()
+        self.assertIsNone(reply.reply_to_id)
+
+        rejected = self.client.post(self.list_url(self.other_task), {
+            "body": "Reply", "reply_to": str(reply.pk),
+        }, format="json")
+        self.assertEqual(rejected.status_code, 400, rejected.data)
+
+    def test_file_only_comment_download_requires_task_access(self):
+        self.authenticate(self.member)
+        upload = SimpleUploadedFile("notes.txt", b"project notes", content_type="text/plain")
+        response = self.client.post(self.list_url(), {"attachment": upload}, format="multipart")
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data["attachment"], {"filename": "notes.txt", "size": 13})
+        comment = Comment.objects.get(pk=response.data["id"])
+        url = self.detail_url(comment) + "attachment/"
+        downloaded = self.client.get(url)
+        self.assertEqual(downloaded.status_code, 200)
+        self.assertEqual(b"".join(downloaded.streaming_content), b"project notes")
+        self.assertIn("attachment;", downloaded["Content-Disposition"])
+        self.assertEqual(downloaded["Content-Type"], "application/octet-stream")
+
+        self.authenticate(self.workspace_only)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_attachment_limit_rejects_file_and_comment(self):
+        self.authenticate(self.member)
+        upload = SimpleUploadedFile("large.txt", b"x" * (5 * 1024 * 1024 + 1))
+        response = self.client.post(self.list_url(), {"attachment": upload}, format="multipart")
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertIn("attachment", response.data)
+        self.assertFalse(Comment.objects.filter(task=self.task).exists())
+
+    def test_task_list_returns_per_task_comment_count(self):
+        self.make_comment()
+        self.make_comment()
+        self.authenticate(self.member)
+        response = self.client.get(self.list_url().split(f"{self.task.pk}/comments/")[0])
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(
+            {str(task["id"]): task["comment_count"] for task in response.data["results"]},
+            {str(self.task.pk): 2, str(self.other_task.pk): 0},
+        )

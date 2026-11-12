@@ -1,0 +1,32 @@
+.card {
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+.card h2 { margin: 0 0 12px; font-size: 16px; }
+.card p { margin: 8px 0 0; color: #475569; font-size: 13px; }
+.card .error { color: #b91c1c; }
+.controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+.controls button {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.controls button:hover:enabled { background: #f1f5f9; }
+.controls button:disabled { opacity: 0.6; }

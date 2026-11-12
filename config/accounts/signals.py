@@ -3,6 +3,9 @@ from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
+from projects.models import Project
+from workspaces.models import Workspace
+
 from .models import Profile
 from .images import normalize_avatar
 
@@ -13,6 +16,8 @@ def create_user_profile(sender, instance, created, **kwargs):
         Profile.objects.create(user=instance)
 
 
+@receiver(pre_save, sender=Project)
+@receiver(pre_save, sender=Workspace)
 @receiver(pre_save, sender=Profile)
 def remember_previous_avatar(sender, instance, using, **kwargs):
     if kwargs.get("raw"):
@@ -27,6 +32,8 @@ def remember_previous_avatar(sender, instance, using, **kwargs):
         instance.avatar = normalize_avatar(instance.avatar)
 
 
+@receiver(post_save, sender=Project)
+@receiver(post_save, sender=Workspace)
 @receiver(post_save, sender=Profile)
 def delete_replaced_avatar(sender, instance, using, **kwargs):
     previous = getattr(instance, '_previous_avatar', None)
@@ -34,6 +41,8 @@ def delete_replaced_avatar(sender, instance, using, **kwargs):
         transaction.on_commit(lambda: previous.delete(save=False), using=using, robust=True)
 
 
+@receiver(post_delete, sender=Project)
+@receiver(post_delete, sender=Workspace)
 @receiver(post_delete, sender=Profile)
 def delete_profile_avatar(sender, instance, using, **kwargs):
     if instance.avatar:

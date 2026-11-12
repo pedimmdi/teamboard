@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 
 from projects.access import (
@@ -86,4 +87,4 @@ def get_accessible_project_tasks(
         "assignee__profile",
         "created_by",
         "created_by__profile",
-    )
+    ).annotate(comment_count=Count("comments"))

@@ -313,3 +313,18 @@ test("comment write errors retain rate limits and body validation for the compos
     );
   }
 });
+
+test("replies and attachments use multipart and preserve the existing authenticated download flow", async () => {
+  const { api, calls } = client(() => new Response("file body"));
+  const scope = ["access", "team", "project", "task"];
+  const file = new File(["file body"], "notes.txt");
+  await api.createTaskComment(...scope, "Reply", "parent", file);
+  assert.equal(calls[0].body.get("reply_to"), "parent");
+  assert.equal(calls[0].body.get("body"), "Reply");
+  assert.equal(calls[0].body.get("attachment").name, "notes.txt");
+  assert.equal(calls[0].headers["Content-Type"], undefined);
+  const downloaded = await api.downloadCommentAttachment(...scope, "comment/1");
+  assert.equal(await downloaded.text(), "file body");
+  assert.equal(calls[1].headers.Authorization, "Bearer access");
+  assert.ok(calls[1].url.endsWith("/comments/comment%2F1/attachment/"));
+});

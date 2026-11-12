@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getWorkspace, getWorkspaces, type Workspace } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import Avatar from "@/components/ui/Avatar";
 import DesignIcon from "@/components/ui/DesignIcon";
 import CreateWorkspaceModal from "./workspaces/create-workspace-modal";
 import styles from "./workspace-switcher.module.css";
@@ -111,6 +112,16 @@ export default function WorkspaceSwitcher({
       triggerButton?.focus();
     };
   }, [open]);
+  useEffect(() => {
+    function update(event: Event) {
+      const workspace = (event as CustomEvent<Workspace>).detail;
+      if (workspace.slug === slug) setSelected(workspace);
+      setItems((current) => current.map((item) => item.id === workspace.id ? workspace : item));
+    }
+    window.addEventListener("teamboard:workspace-updated", update);
+    return () => window.removeEventListener("teamboard:workspace-updated", update);
+  }, [slug]);
+
   const active = selected?.slug === slug ? selected : null;
   return (
     <div className={`${styles.switcher} ${mobile ? styles.mobile : ""}`}>
@@ -122,9 +133,7 @@ export default function WorkspaceSwitcher({
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
       >
-        <span className={styles.tile}>
-          {active?.name.trim().charAt(0).toUpperCase() || "W"}
-        </span>
+        <Avatar className={styles.tile} src={active?.avatar} fallback={active?.name.charAt(0).toUpperCase() || "W"} />
         <span className={styles.identity}>
           <span>
             {active?.name ?? (slug ? "Loading workspace…" : "All workspaces")}
@@ -181,9 +190,7 @@ export default function WorkspaceSwitcher({
                     aria-current={workspace.slug === slug ? "true" : undefined}
                     onClick={() => setOpen(false)}
                   >
-                    <span className={styles.tile}>
-                      {workspace.name.trim().charAt(0).toUpperCase()}
-                    </span>
+                    <Avatar className={styles.tile} src={workspace.avatar} fallback={workspace.name.charAt(0).toUpperCase()} />
                     <span className={styles.identity}>
                       <span>{workspace.name}</span>
                       <small>

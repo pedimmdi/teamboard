@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createProject, getProjects, type PaginatedProjects } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import Avatar from "@/components/ui/Avatar";
+import TaskIcon from "./[projectId]/tasks/task-icons";
 import DesignIcon from "@/components/ui/DesignIcon";
 import { useWorkspace } from "../workspace-context";
 import ProjectDialog from "./project-dialog";
@@ -19,6 +21,7 @@ export default function ProjectsPage() {
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [view, setView] = useState<"board" | "list">("board");
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const canCreate = workspace.role === "owner" || workspace.role === "admin";
@@ -28,6 +31,7 @@ export default function ProjectsPage() {
     async function load() {
       setLoading(true);
       setError("");
+      setView(localStorage.getItem("teamboard:project-view") === "list" ? "list" : "board");
       try {
         const data = await getProjects(accessToken!, workspace.slug, page);
         if (!cancelled) setResult(data);
@@ -74,6 +78,23 @@ export default function ProjectsPage() {
             </button>
           )}
         </header>
+        <div className={styles.projectView} role="group" aria-label="Project view">
+          {(["board", "list"] as const).map((option) => (
+            <button
+              type="button"
+              key={option}
+              aria-pressed={view === option}
+              className={styles.secondaryButton}
+              onClick={() => {
+                setView(option);
+                localStorage.setItem("teamboard:project-view", option);
+              }}
+            >
+              <TaskIcon name={option} />
+              {option === "board" ? "Board" : "List"}
+            </button>
+          ))}
+        </div>
         {loading ? (
           <div className={styles.status} role="status">
             Loading projects…
@@ -92,6 +113,23 @@ export default function ProjectsPage() {
           </div>
         ) : result?.results.length ? (
           <div className={styles.tableCard}>
+            {view === "board" ? (
+              <div className={styles.projectBoard}>
+                {result.results.map((project) => (
+                  <Link className={styles.projectBoardCard} key={project.id} href={`${base}/${project.id}/tasks`}>
+                    <div className={styles.projectIdentity}>
+                      <Avatar className={styles.avatar} src={project.avatar} fallback={project.name.charAt(0).toUpperCase()} size={32} />
+                      <strong>{project.name}</strong>
+                    </div>
+                    <p className={styles.rowDescription}>{project.description}</p>
+                    <div className={styles.mobileFooter}>
+                      {badge(project.role)}
+                      <span>{formatProjectDate(project.created_at)}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : <>
             <div className={styles.desktopTable}>
               <table className={styles.table}>
                 <thead>
@@ -110,6 +148,7 @@ export default function ProjectsPage() {
                           className={styles.projectLink}
                           href={`${base}/${project.id}/tasks`}
                         >
+                          <Avatar className={styles.avatar} src={project.avatar} fallback={project.name.charAt(0).toUpperCase()} size={32} />
                           {project.name}
                         </Link>
                         <p className={styles.rowDescription}>
@@ -139,6 +178,7 @@ export default function ProjectsPage() {
                       className={styles.projectLink}
                       href={`${base}/${project.id}/tasks`}
                     >
+                      <Avatar className={styles.avatar} src={project.avatar} fallback={project.name.charAt(0).toUpperCase()} size={32} />
                       {project.name}
                     </Link>
                     {badge(project.role)}
@@ -156,6 +196,7 @@ export default function ProjectsPage() {
                 </article>
               ))}
             </div>
+            </>}
             <div className={styles.pagination}>
               <span>
                 Showing {start}–{start ? start + result.results.length - 1 : 0}{" "}

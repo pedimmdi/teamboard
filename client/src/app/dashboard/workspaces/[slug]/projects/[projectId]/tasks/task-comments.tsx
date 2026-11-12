@@ -5,12 +5,14 @@ import {
   ApiError,
   createTaskComment,
   deleteTaskComment,
+  downloadCommentAttachment,
   getTaskComments,
   updateTaskComment,
   type CurrentUser,
   type ProjectMember,
   type TaskComment,
 } from "@/lib/api";
+import CommentInput from "./comment-input";
 import CommentActions from "./comment-actions";
 import styles from "./task-comments.module.css";
 import taskStyles from "./tasks.module.css";
@@ -30,7 +32,7 @@ function initials(name: string) {
 function errorMessage(error: unknown) {
   if (error instanceof ApiError) {
     if (error.status === 429) return "You’re commenting too fast. Please wait a moment and try again.";
-    const body = error.errors?.body;
+    const body = error.errors?.body ?? error.errors?.attachment ?? error.errors?.reply_to;
     if (body) return Array.isArray(body) ? body.join(" ") : body;
   }
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
@@ -60,10 +62,13 @@ export default function TaskComments({
   const [pageError, setPageError] = useState("");
   const [reload, setReload] = useState(0);
   const [draft, setDraft] = useState("");
+  const [replyTo, setReplyTo] = useState<TaskComment | null>(null);
+  const [attachment, setAttachment] = useState<File>();
+  const [downloadError, setDownloadError] = useState("");
+  const composerId = useId();
   const [postError, setPostError] = useState("");
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   const [editError, setEditError] = useState("");
-  const [editedIds, setEditedIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState<TaskComment | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [pending, setPending] = useState<"post" | "edit" | "delete" | null>(null);
@@ -75,6 +80,8 @@ export default function TaskComments({
   const draftLength = Array.from(draft).length;
   const editLength = editing ? Array.from(editing.body).length : 0;
   const busy = Boolean(pending) || loading || loadingMore;
+  const canPost = !busy && !loadError && Boolean(draft.trim() || attachment) && draftLength <= commentLimit;
+  const commentsById = new Map(comments.map((comment) => [comment.id, comment]));
   const scope = [token, slug, projectId, taskId] as const;
 
   useEffect(() => {
@@ -144,17 +151,19 @@ export default function TaskComments({
 
   async function post(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy || loadError || !draft.trim() || draftLength > commentLimit) return;
+    if (!canPost) return;
     setPending("post");
     onBusyChange(true);
     setPostError("");
     try {
-      const comment = await createTaskComment(...scope, draft.trim());
+      const comment = await createTaskComment(...scope, draft.trim(), replyTo?.id, attachment);
       postedId.current = comment.id;
       setComments((previous) => [...previous, comment]);
       setCount(count + 1);
       onCountChange(count + 1);
       setDraft("");
+      setReplyTo(null);
+      setAttachment(undefined);
     } catch (error) {
       setPostError(errorMessage(error));
     } finally {
@@ -165,20 +174,35 @@ export default function TaskComments({
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy || !editing?.body.trim() || editLength > commentLimit) return;
+    if (busy || !editing || editLength > commentLimit) return;
     setPending("edit");
     onBusyChange(true);
     setEditError("");
     try {
       const updated = await updateTaskComment(...scope, editing.id, editing.body.trim());
       setComments((previous) => previous.map((comment) => comment.id === updated.id ? updated : comment));
-      setEditedIds((previous) => previous.includes(updated.id) ? previous : [...previous, updated.id]);
       setEditing(null);
     } catch (error) {
       setEditError(errorMessage(error));
     } finally {
       setPending(null);
       onBusyChange(false);
+    }
+  }
+
+  async function download(comment: TaskComment) {
+    if (!comment.attachment) return;
+    setDownloadError("");
+    try {
+      const file = await downloadCommentAttachment(...scope, comment.id);
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = comment.attachment.filename;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setDownloadError(errorMessage(error));
     }
   }
 
@@ -206,6 +230,7 @@ export default function TaskComments({
   return (
     <div className={styles.thread} data-comment-thread hidden={!active}>
       <div className={styles.entries} ref={entries} aria-busy={loading || loadingMore}>
+        {downloadError && <p role="alert" className={taskStyles.alert}>{downloadError}</p>}
         {loading && <p role="status" className={taskStyles.muted}>Loading comments…</p>}
         {loadError && (
           <>
@@ -226,7 +251,7 @@ export default function TaskComments({
           const own = comment.author_id === user.id;
           const avatar = own ? user.avatar : members.find((member) => member.user_id === comment.author_id)?.avatar;
           // Django assigns both timestamps separately on insert.
-          const edited = editedIds.includes(comment.id) ||
+          const edited = Boolean(comment.edited_at) ||
             Date.parse(comment.updated_at) - Date.parse(comment.created_at) >= 1000;
           return (
             <article className={styles.comment} id={`comment-${comment.id}`} key={comment.id}>
@@ -247,14 +272,15 @@ export default function TaskComments({
                 </div>
                 {editing?.id === comment.id ? (
                   <form className={styles.editor} onSubmit={save}>
-                    <textarea
+                    <CommentInput
+                      members={members}
                       aria-label="Edit comment"
                       aria-invalid={editLength > commentLimit || Boolean(editError)}
                       autoFocus
                       disabled={pending === "edit"}
                       value={editing.body}
-                      onChange={(event) => {
-                        setEditing({ id: comment.id, body: event.target.value });
+                      onValueChange={(body) => {
+                        setEditing({ id: comment.id, body });
                         setEditError("");
                       }}
                     />
@@ -266,13 +292,43 @@ export default function TaskComments({
                     <div className={styles.editorFooter}>
                       <span className={taskStyles.counter}>{editLength} / {commentLimit}</span>
                       <button type="button" className={taskStyles.secondaryButton} disabled={Boolean(pending)} onClick={() => setEditing(null)}>Cancel</button>
-                      <button className={taskStyles.primaryButton} disabled={busy || !editing.body.trim() || editLength > commentLimit || editing.body.trim() === comment.body}>
+                      <button className={taskStyles.primaryButton} disabled={busy || (!editing.body.trim() && !comment.attachment) || editLength > commentLimit || editing.body.trim() === comment.body}>
                         {pending === "edit" ? "Saving…" : "Save"}
                       </button>
                     </div>
                   </form>
                 ) : (
-                  <p className={styles.body}>{comment.body}</p>
+                  <>
+                    {comment.reply_to && (
+                      <p className={styles.replyContext}>
+                        Reply to {commentsById.get(comment.reply_to)?.author_name ?? "an earlier comment"}
+                      </p>
+                    )}
+                    {comment.body && (
+                      <p className={styles.body}>{comment.body.split(/(@[\w.+-]+@[\w-]+(?:\.[\w-]+)+)/).map((part, index) =>
+                        comment.mentions.some((email) => "@" + email.toLowerCase() === part.toLowerCase())
+                          ? <span className={styles.mention} key={index}>{part}</span>
+                          : part,
+                      )}</p>
+                    )}
+                    {comment.attachment && (
+                      <button className={styles.attachment} type="button" onClick={() => void download(comment)}>
+                        Download {comment.attachment.filename}
+                      </button>
+                    )}
+                    <button
+                      className={styles.replyButton}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setReplyTo(comment);
+                        setPostError("");
+                        document.getElementById(composerId)?.focus();
+                      }}
+                    >
+                      Reply
+                    </button>
+                  </>
                 )}
               </div>
               {(own || canModerate) && editing?.id !== comment.id && (
@@ -304,22 +360,51 @@ export default function TaskComments({
       </div>
       <div className={styles.composerArea}>
         {postError && <p className={taskStyles.alert} role="alert">{postError}</p>}
+        {replyTo && (
+          <div className={styles.replyDraft}>
+            <span>Replying to {replyTo.author_name}</span>
+            <button type="button" onClick={() => setReplyTo(null)} disabled={pending === "post"} aria-label="Cancel reply">×</button>
+          </div>
+        )}
         <form className={styles.composer} onSubmit={post}>
           <Avatar className={`${styles.avatar} ${styles.composerAvatar}`} src={user.avatar} fallback={initials(`${user.first_name} ${user.last_name}`.trim() || user.email)} size={32} />
-          <textarea
+          <CommentInput
+            id={composerId}
+            members={members}
             aria-label="Write a comment"
             placeholder="Write a comment…"
             aria-invalid={draftLength > commentLimit}
             rows={2}
             value={draft}
             disabled={pending === "post"}
-            onChange={(event) => { setDraft(event.target.value); setPostError(""); }}
+            onValueChange={(body) => { setDraft(body); setPostError(""); }}
           />
           <span className={`${taskStyles.counter} ${styles.composerCounter}`}>{draftLength} / {commentLimit}</span>
-          <button className={`${taskStyles.primaryButton} ${styles.send}`} aria-label="Post comment" disabled={busy || Boolean(loadError) || !draft.trim() || draftLength > commentLimit}>
+          <button className={`${taskStyles.primaryButton} ${styles.send}`} aria-label="Post comment" disabled={!canPost}>
             <span>Comment</span>
             <Image src="/icons/comments/send.svg" alt="" width={20} height={20} />
           </button>
+          <div className={styles.attachmentControls}>
+            <label className={styles.attachment}>
+              Attach file
+              <input type="file" disabled={pending === "post"} onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (!file) return;
+                if (!file.size || file.size > 5 * 1024 * 1024) {
+                  setPostError("Choose a nonempty file up to 5 MB.");
+                  return;
+                }
+                setAttachment(file);
+                setPostError("");
+              }} />
+            </label>
+            {attachment && (
+              <button type="button" className={styles.attachment} onClick={() => setAttachment(undefined)} disabled={pending === "post"}>
+                Remove {attachment.name}
+              </button>
+            )}
+          </div>
         </form>
         {draftLength > commentLimit && <p className={styles.fieldError} role="alert">Comment cannot exceed 5000 characters.</p>}
       </div>

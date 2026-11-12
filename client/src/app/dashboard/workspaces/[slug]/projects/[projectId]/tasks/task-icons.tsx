@@ -2,6 +2,8 @@ export default function TaskIcon({
   name,
 }: {
   name:
+    | "chevron-down"
+    | "comment"
     | "search"
     | "filter"
     | "calendar"
@@ -23,6 +25,8 @@ export default function TaskIcon({
       strokeLinejoin="round"
       aria-hidden="true"
     >
+      {name === "chevron-down" && <path d="m6 8 4 4 4-4" />}
+      {name === "comment" && <path d="M3 3.5h14v10H8l-5 3z" />}
       {name === "search" && (
         <>
           <circle cx="8.5" cy="8.5" r="5.5" />

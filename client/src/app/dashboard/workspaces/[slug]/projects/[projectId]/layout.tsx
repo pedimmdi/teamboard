@@ -1,5 +1,6 @@
 "use client";
 
+import Avatar from "@/components/ui/Avatar";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -83,6 +84,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
           <>
             <header className={styles.header}>
               <div className={styles.titleRow}>
+                <Avatar className={styles.avatar} src={project.avatar} fallback={project.name.charAt(0).toUpperCase()} size={32} />
                 <h1>{project.name}</h1>
                 <span
                   className={`${styles.badge} ${project.role === "manager" ? styles.manager : project.role === null ? styles.admin : ""}`}

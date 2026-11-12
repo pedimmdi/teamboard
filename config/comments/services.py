@@ -1,5 +1,9 @@
 
+import re
+
 from django.db import transaction
+from django.db.models.functions import Lower
+from django.utils import timezone
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -8,7 +12,7 @@ from projects.access import get_project_membership_or_404
 from projects.models import ProjectMembership
 from tasks.models import Task
 
-from .models import Comment
+from .models import Comment, CommentAttachment
 
 
 MAX_COMMENT_LENGTH = 5000
@@ -61,8 +65,19 @@ def can_delete_comment(*, comment, actor):
     return True
 
 
+MENTION = re.compile(r"(?<![\w@])@([\w.+-]+@[\w-]+(?:\.[\w-]+)+)")
+
+
+def sync_mentions(comment):
+    emails = {email.lower() for email in MENTION.findall(comment.body)}
+    users = ProjectMembership.objects.filter(
+        project_id=comment.task.project_id, user__is_active=True,
+    ).annotate(email=Lower("user__email")).filter(email__in=emails).values_list("user_id", flat=True)
+    comment.mentions.set(users)
+
+
 @transaction.atomic
-def create_comment(*, task, actor, body):
+def create_comment(*, task, actor, body, reply_to=None, attachment=None):
     task = get_object_or_404(
         Task,
         pk=task.pk,
@@ -74,19 +89,28 @@ def create_comment(*, task, actor, body):
         actor=actor,
     )
 
-    body = validate_comment_body(body)
+    parent = None
+    if reply_to is not None:
+        parent = Comment.objects.select_for_update().filter(pk=reply_to, task=task).first()
+        if parent is None:
+            raise ValidationError({"reply_to": "Choose a comment on this task."})
 
-    return Comment.objects.create(
-        task=task,
-        author=actor,
-        body=body,
-    )
+    if attachment is not None and not 0 < attachment.size <= 5 * 1024 * 1024:
+        raise ValidationError({"attachment": "Choose a nonempty file up to 5 MB."})
+    body = validate_comment_body(body) if body or attachment is None else ""
+    comment = Comment.objects.create(task=task, author=actor, body=body, reply_to=parent)
+    sync_mentions(comment)
+    if attachment is not None:
+        CommentAttachment.objects.create(
+            comment=comment, filename=attachment.name, size=attachment.size, content=attachment.read(),
+        )
+    return comment
 
 
 @transaction.atomic
 def update_comment(*, comment, actor, body):
     comment = get_object_or_404(
-        Comment.objects.select_for_update().select_related("task"),
+        Comment.objects.select_for_update(of=("self",)).select_related("task"),
         pk=comment.pk,
         task_id=comment.task_id,
     )
@@ -101,8 +125,10 @@ def update_comment(*, comment, actor, body):
             "Only the author can edit this comment."
         )
 
-    comment.body = validate_comment_body(body)
-    comment.save(update_fields=["body", "updated_at"])
+    comment.body = "" if isinstance(body, str) and not body.strip() and hasattr(comment, "attachment") else validate_comment_body(body)
+    comment.edited_at = timezone.now()
+    comment.save(update_fields=["body", "updated_at", "edited_at"])
+    sync_mentions(comment)
 
     return comment
 
@@ -110,7 +136,7 @@ def update_comment(*, comment, actor, body):
 @transaction.atomic
 def delete_comment(*, comment, actor):
     comment = get_object_or_404(
-        Comment.objects.select_for_update().select_related("task"),
+        Comment.objects.select_for_update(of=("self",)).select_related("task"),
         pk=comment.pk,
         task_id=comment.task_id,
     )

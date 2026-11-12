@@ -20,6 +20,7 @@ class WorkspaceSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "name",
+            "avatar",
             "slug",
             "role",
             "created_at",

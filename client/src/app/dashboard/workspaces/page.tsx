@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import CreateWorkspaceModal from "./create-workspace-modal";
+import Avatar from "@/components/ui/Avatar";
 import Link from "next/link";
 import WorkspaceIcon from "@/components/ui/WorkspaceIcon";
 
@@ -224,11 +225,7 @@ export default function WorkspacesPage() {
                   )}/projects`}
                   className={styles.workspaceCard}
                 >
-                  <div className={styles.workspaceIcon}>
-                    {getWorkspaceInitial(
-                      workspace.name,
-                    )}
-                  </div>
+                  <Avatar className={styles.workspaceIcon} src={workspace.avatar} fallback={getWorkspaceInitial(workspace.name)} />
 
                   <div className={styles.workspaceInfo}>
                     <div className={styles.workspaceName}>

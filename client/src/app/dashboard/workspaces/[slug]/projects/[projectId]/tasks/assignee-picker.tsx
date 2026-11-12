@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { ProjectMember } from "@/lib/api";
+import TaskIcon from "./task-icons";
 import Avatar from "@/components/ui/Avatar";
 import styles from "./tasks.module.css";
 
@@ -130,7 +131,7 @@ export default function AssigneePicker({
         <span>
           {filter ? (value ? `Assignee · ${label}` : "Assignee") : label}
         </span>
-        <span aria-hidden="true">⌄</span>
+        <TaskIcon name="chevron-down" />
       </button>
       {open && (
         <>

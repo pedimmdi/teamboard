@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import {
   ApiError,
   updateWorkspace,
+  updateResourceAvatar,
   deleteWorkspace,
   leaveWorkspace,
 } from "@/lib/api";
 
+import ResourceAvatarEditor from "@/components/ui/ResourceAvatarEditor";
 import { useAuth } from "@/lib/auth";
 import { useWorkspaceContext } from "../workspace-context";
 
@@ -237,6 +239,18 @@ export default function SettingsPage() {
         </form>
       </div>
 
+      {canEdit && accessToken && (
+        <ResourceAvatarEditor
+          name={workspace.name}
+          avatar={workspace.avatar}
+          label="Workspace image"
+          onSave={async (image) => {
+            const updated = await updateResourceAvatar(accessToken, workspace.slug, image);
+            updateContext(updated);
+            window.dispatchEvent(new CustomEvent("teamboard:workspace-updated", { detail: updated }));
+          }}
+        />
+      )}
       <div className={styles.dangerZone}>
         <h3>Danger zone</h3>
 
