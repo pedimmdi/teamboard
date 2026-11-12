@@ -64,4 +64,4 @@ class CommentAttachment(models.Model):
     comment = models.OneToOneField(Comment, on_delete=models.CASCADE, related_name="attachment")
     filename = models.CharField(max_length=255)
     size = models.PositiveIntegerField()
-    content = models.BinaryField()
+    storage_key = models.CharField(max_length=255, unique=True)

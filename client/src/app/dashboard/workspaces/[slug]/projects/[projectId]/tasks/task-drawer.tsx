@@ -50,7 +50,7 @@ export default function TaskDrawer({
 }) {
   const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(true);
   const [commentCount, setCommentCount] = useState<number | null>(null);
   const updateCommentCount = useCallback((count: number) => {
     setCommentCount(count);
@@ -158,11 +158,11 @@ export default function TaskDrawer({
               </div>
             </div>
             <div className={commentStyles.tabs} role="group" aria-label="Task sections">
-              <button type="button" aria-pressed={!showComments} disabled={busy || commentBusy} onClick={() => setShowComments(false)}>
-                Details
-              </button>
               <button type="button" aria-pressed={showComments} disabled={busy || commentBusy} onClick={() => setShowComments(true)}>
                 Comments{commentCount !== null && ` (${commentCount})`}
+              </button>
+              <button type="button" aria-pressed={!showComments} disabled={busy || commentBusy} onClick={() => setShowComments(false)}>
+                Details
               </button>
             </div>
             <div hidden={showComments}>

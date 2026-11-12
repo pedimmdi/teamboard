@@ -254,7 +254,7 @@ export default function TaskComments({
           const edited = Boolean(comment.edited_at) ||
             Date.parse(comment.updated_at) - Date.parse(comment.created_at) >= 1000;
           return (
-            <article className={styles.comment} id={`comment-${comment.id}`} key={comment.id}>
+            <article tabIndex={-1} className={comment.reply_to ? styles.reply : styles.comment} id={`comment-${comment.id}`} key={comment.id}>
               <Avatar
                 className={`${styles.avatar} ${comment.author_id === null ? styles.deletedAvatar : ""}`}
                 src={avatar}
@@ -300,9 +300,15 @@ export default function TaskComments({
                 ) : (
                   <>
                     {comment.reply_to && (
-                      <p className={styles.replyContext}>
-                        Reply to {commentsById.get(comment.reply_to)?.author_name ?? "an earlier comment"}
-                      </p>
+                      commentsById.has(comment.reply_to) ? (
+                        <button type="button" className={styles.replyContext} onClick={() => {
+                          const parent = document.getElementById("comment-" + comment.reply_to);
+                          parent?.focus({ preventScroll: true });
+                          parent?.scrollIntoView({ block: "center" });
+                        }}>
+                          Reply to {commentsById.get(comment.reply_to)?.author_name}
+                        </button>
+                      ) : <p className={styles.replyContext}>Reply to an earlier comment</p>
                     )}
                     {comment.body && (
                       <p className={styles.body}>{comment.body.split(/(@[\w.+-]+@[\w-]+(?:\.[\w-]+)+)/).map((part, index) =>
@@ -387,7 +393,7 @@ export default function TaskComments({
           <div className={styles.attachmentControls}>
             <label className={styles.attachment}>
               Attach file
-              <input type="file" disabled={pending === "post"} onChange={(event) => {
+              <input type="file" accept=".png,.jpg,.jpeg,.txt" disabled={pending === "post"} onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
                 if (!file) return;

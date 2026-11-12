@@ -1,5 +1,6 @@
 
 import re
+from uuid import uuid4
 
 from django.db import transaction
 from django.db.models.functions import Lower
@@ -13,6 +14,7 @@ from projects.models import ProjectMembership
 from tasks.models import Task
 
 from .models import Comment, CommentAttachment
+from .storage import attachment_storage, validate_attachment
 
 
 MAX_COMMENT_LENGTH = 5000
@@ -95,15 +97,21 @@ def create_comment(*, task, actor, body, reply_to=None, attachment=None):
         if parent is None:
             raise ValidationError({"reply_to": "Choose a comment on this task."})
 
-    if attachment is not None and not 0 < attachment.size <= 5 * 1024 * 1024:
-        raise ValidationError({"attachment": "Choose a nonempty file up to 5 MB."})
+    if attachment is not None:
+        validate_attachment(attachment)
     body = validate_comment_body(body) if body or attachment is None else ""
     comment = Comment.objects.create(task=task, author=actor, body=body, reply_to=parent)
     sync_mentions(comment)
     if attachment is not None:
-        CommentAttachment.objects.create(
-            comment=comment, filename=attachment.name, size=attachment.size, content=attachment.read(),
-        )
+        storage = attachment_storage()
+        key = storage.save(f"uploads/{uuid4().hex}", attachment)
+        try:
+            CommentAttachment.objects.create(
+                comment=comment, filename=attachment.name, size=attachment.size, storage_key=key,
+            )
+        except Exception:
+            storage.delete(key)
+            raise
     return comment
 
 

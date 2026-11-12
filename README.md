@@ -634,3 +634,18 @@ Examples: `feat(workspaces): add workspace settings`,
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+
+## Task conversations
+
+A task opens on the Comments tab. Project participants can post comments, reply to a comment, and use `@` to select a project member. Replies link back to the original comment. Authors can edit their comments, and project managers or workspace admins can also delete comments. The board shows the number of comments on each task.
+
+A comment can include one attachment, with or without text. New uploads accept PNG, JPEG, or UTF-8 text up to 5 MB. Images are checked against their actual format and must be at most 4096 pixels on either side. Downloads require access to the task.
+
+The comments collection is at `/api/v1/workspaces/<slug>/projects/<project_id>/tasks/<task_id>/comments/`. Send `body` and optionally `reply_to` as JSON, or use multipart form data with an `attachment` field. Download a file with authenticated GET on `<comment_id>/attachment/`.
+
+### Private attachment storage
+
+Set `COMMENT_ATTACHMENT_ROOT` to an absolute path on persistent storage shared by the backend replicas. It defaults to `config/private_attachments/` when running from the repository, which is persisted by the backend bind mount in Docker Compose. Keep this directory outside public media and static web roots and back it up together with PostgreSQL.
+
+Apply Django migrations before serving traffic. Migration `comments.0003` copies existing attachments to private storage, preserves their bytes and names, and removes the binary column. The new upload policy applies to new files. For an existing deployment, pause comment writes and ensure the backend can write to the private directory before running the migration.

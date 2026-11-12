@@ -562,11 +562,6 @@ export default function TasksPage() {
   if (taskId && missingId === taskId) return empty(true);
   return (
     <div className={styles.root}>
-      <ProjectSummary
-        description={project.description}
-        membersHref={`/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/projects/${encodeURIComponent(project.id)}/members`}
-        {...memberProps}
-      />
       {notice && (
         <p className={styles.notice} role="status" aria-live="polite">
           {notice}
@@ -972,6 +967,11 @@ export default function TasksPage() {
           </div>
         )
       )}
+      <ProjectSummary
+        description={project.description}
+        membersHref={`/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/projects/${encodeURIComponent(project.id)}/members`}
+        {...memberProps}
+      />
       {(total > 0 || filtered) && (
         <button
           className={styles.mobileNew}

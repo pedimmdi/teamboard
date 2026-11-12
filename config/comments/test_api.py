@@ -2,6 +2,9 @@
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from tempfile import TemporaryDirectory
+from django.test import override_settings
+from comments.storage import attachment_storage
 
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -420,6 +423,31 @@ class CommentAPITests(CommentAPIFixture):
 
 
 class CommentConversationTests(CommentAPIFixture):
+    def setUp(self):
+        super().setUp()
+        directory = self.enterContext(TemporaryDirectory())
+        self.enterContext(override_settings(COMMENT_ATTACHMENT_ROOT=directory))
+
+    def test_invalid_image_signature_rejects_upload(self):
+        self.authenticate(self.member)
+        response = self.client.post(self.list_url(), {
+            "attachment": SimpleUploadedFile("fake.png", b"not an image", content_type="image/png"),
+        }, format="multipart")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("attachment", response.data)
+        self.assertFalse(Comment.objects.filter(task=self.task).exists())
+
+    def test_deleted_author_keeps_replies_and_null_author(self):
+        parent = self.make_comment(author=self.other_member)
+        reply = Comment.objects.create(task=self.task, author=self.member, body="Reply", reply_to=parent)
+        self.other_member.delete()
+        self.authenticate(self.member)
+        response = self.client.get(self.detail_url(parent))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["author_name"], "Deleted user")
+        reply.refresh_from_db()
+        self.assertEqual(reply.reply_to_id, parent.pk)
+
     def test_reply_and_mentions_are_scoped_and_edit_updates_mentions(self):
         self.authenticate(self.member)
         parent = self.make_comment()
@@ -459,8 +487,16 @@ class CommentConversationTests(CommentAPIFixture):
         self.assertIn("attachment;", downloaded["Content-Disposition"])
         self.assertEqual(downloaded["Content-Type"], "application/octet-stream")
 
-        self.authenticate(self.workspace_only)
+        key = comment.attachment.storage_key
+        self.assertTrue(attachment_storage().exists(key))
+        ProjectMembership.objects.filter(project=self.project, user=self.member).delete()
         self.assertEqual(self.client.get(url).status_code, 404)
+        self.authenticate(self.outsider)
+        self.assertEqual(self.client.get(url).status_code, 404)
+        self.authenticate(self.manager)
+        with self.captureOnCommitCallbacks(execute=True):
+            self.assertEqual(self.client.delete(self.detail_url(comment)).status_code, 204)
+        self.assertFalse(attachment_storage().exists(key))
 
     def test_attachment_limit_rejects_file_and_comment(self):
         self.authenticate(self.member)

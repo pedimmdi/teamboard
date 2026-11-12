@@ -1,7 +1,5 @@
 
-from io import BytesIO
-
-from django.http import FileResponse
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 
 from rest_framework import generics, permissions, status
@@ -25,6 +23,7 @@ from comments.services import (
     delete_comment,
 )
 from comments.models import Comment, CommentAttachment
+from comments.storage import attachment_storage
 
 from .pagination import CommentPageNumberPagination
 from .serializers import (
@@ -111,7 +110,7 @@ class CommentListCreateView(generics.GenericAPIView):
             Comment.objects.select_related(
                 "author",
                 "author__profile", "attachment",
-            ).defer("attachment__content").prefetch_related("mentions"),
+            ).prefetch_related("mentions"),
             pk=comment.pk,
             task_id=task.pk,
         )
@@ -212,8 +211,12 @@ class CommentAttachmentView(CommentDetailView):
     def get(self, request, *args, **kwargs):
         comment = self.get_comment()
         attachment = get_object_or_404(CommentAttachment, comment=comment)
+        try:
+            file = attachment_storage().open(attachment.storage_key, 'rb')
+        except FileNotFoundError as exc:
+            raise Http404 from exc
         response = FileResponse(
-            BytesIO(attachment.content), as_attachment=True,
+            file, as_attachment=True,
             filename=attachment.filename, content_type="application/octet-stream",
         )
         response["Cache-Control"] = "private, no-store"
