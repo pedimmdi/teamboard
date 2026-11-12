@@ -43,20 +43,6 @@ function getRoleLabel(role: Workspace["role"]) {
   }
 }
 
-function getRoleClassName(
-  role: Workspace["role"],
-) {
-  switch (role?.toUpperCase()) {
-    case "OWNER":
-      return styles.roleOwner;
-
-    case "ADMIN":
-      return styles.roleAdmin;
-
-    default:
-      return styles.roleMember;
-  }
-}
 
 function ChevronRightIcon() {
   return (
@@ -241,9 +227,7 @@ export default function WorkspacesPage() {
                   </div>
 
                   <span
-                    className={`${styles.roleBadge} ${getRoleClassName(
-                      workspace.role,
-                    )}`}
+                    className={styles.roleBadge} data-role-tone={workspace.role ?? "member"}
                   >
                     {getRoleLabel(workspace.role)}
                   </span>

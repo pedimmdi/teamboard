@@ -194,7 +194,7 @@ export default function ProjectMembersPage() {
                     <td>{identity(member)}</td>
                     <td>
                       <span
-                        className={`${styles.badge} ${member.role === "manager" ? styles.manager : ""}`}
+                        className={`${styles.badge} ${member.role === "manager" ? styles.manager : ""}`} data-role-tone={member.role === "member" ? "member" : undefined}
                       >
                         {member.role === "manager" ? "Manager" : "Member"}
                       </span>
@@ -215,7 +215,7 @@ export default function ProjectMembersPage() {
                 </div>
                 <div className={styles.memberMeta}>
                   <span
-                    className={`${styles.badge} ${member.role === "manager" ? styles.manager : ""}`}
+                    className={`${styles.badge} ${member.role === "manager" ? styles.manager : ""}`} data-role-tone={member.role === "member" ? "member" : undefined}
                   >
                     {member.role === "manager" ? "Manager" : "Member"}
                   </span>

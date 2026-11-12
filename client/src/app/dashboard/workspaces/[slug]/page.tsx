@@ -30,7 +30,7 @@ export default function WorkspacePage() {
 
         <div>
           <dt>Your role</dt>
-          <dd>{role}</dd>
+          <dd><span data-role-tone={workspace.role}>{role}</span></dd>
         </div>
 
         <div>

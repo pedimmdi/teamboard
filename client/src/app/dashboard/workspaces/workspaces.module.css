@@ -164,21 +164,6 @@
   line-height: 16px;
 }
 
-.roleOwner {
-  background: #f3e8ff;
-  color: #6b21a8;
-}
-
-.roleAdmin {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.roleMember {
-  background: #dcfce7;
-  color: #166534;
-}
-
 .chevron {
   width: 20px;
   height: 20px;

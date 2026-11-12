@@ -87,7 +87,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
                 <Avatar className={styles.avatar} src={project.avatar} fallback={project.name.charAt(0).toUpperCase()} size={32} />
                 <h1>{project.name}</h1>
                 <span
-                  className={`${styles.badge} ${project.role === "manager" ? styles.manager : project.role === null ? styles.admin : ""}`}
+                  className={`${styles.badge} ${project.role === "manager" ? styles.manager : ""}`} data-role-tone={project.role === "member" ? "member" : project.role === null ? "admin" : undefined}
                 >
                   {projectRoleLabel(project.role)}
                 </span>

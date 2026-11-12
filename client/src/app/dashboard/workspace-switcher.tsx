@@ -139,11 +139,11 @@ export default function WorkspaceSwitcher({
             {active?.name ?? (slug ? "Loading workspace…" : "All workspaces")}
           </span>
           {!mobile && active && (
-            <small>
+            <small><span data-role-tone={active.role ?? "member"}>
               {active.role
                 ? active.role.charAt(0).toUpperCase() + active.role.slice(1)
                 : "Member"}
-            </small>
+            </span></small>
           )}
         </span>
         <DesignIcon name="chevrons-up-down" />
@@ -193,12 +193,12 @@ export default function WorkspaceSwitcher({
                     <Avatar className={styles.tile} src={workspace.avatar} fallback={workspace.name.charAt(0).toUpperCase()} />
                     <span className={styles.identity}>
                       <span>{workspace.name}</span>
-                      <small>
+                      <small><span data-role-tone={workspace.role ?? "member"}>
                         {workspace.role
                           ? workspace.role.charAt(0).toUpperCase() +
                             workspace.role.slice(1)
                           : "Member"}
-                      </small>
+                      </span></small>
                     </span>
                     {workspace.slug === slug && (
                       <span aria-hidden="true">✓</span>

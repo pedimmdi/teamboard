@@ -52,7 +52,7 @@ export default function ProjectsPage() {
   const base = `/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/projects`;
   const badge = (role: "manager" | "member" | null) => (
     <span
-      className={`${styles.badge} ${role === "manager" ? styles.manager : role === null ? styles.admin : ""}`}
+      className={`${styles.badge} ${role === "manager" ? styles.manager : ""}`} data-role-tone={role === "member" ? "member" : role === null ? "admin" : undefined}
     >
       {projectRoleLabel(role)}
     </span>

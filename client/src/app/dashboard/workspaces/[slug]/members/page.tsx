@@ -136,7 +136,7 @@ export default function MembersPage() {
                       </div>
                     </td>
                     <td>
-                      <span className={`${styles.role} ${styles[member.role]}`}>
+                      <span className={styles.role} data-role-tone={member.role}>
                         {member.role}
                       </span>
                     </td>
@@ -199,7 +199,7 @@ export default function MembersPage() {
                 </div>
 
                 <div className={styles.mobileMemberBottom}>
-                  <span className={`${styles.role} ${styles[member.role]}`}>{member.role}</span>
+                  <span className={styles.role} data-role-tone={member.role}>{member.role}</span>
                 </div>
               </div>
             ))}

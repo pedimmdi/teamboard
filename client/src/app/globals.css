@@ -506,3 +506,7 @@ svg {
     transition-duration: 0.01ms !important;
   }
 }
+
+:root [data-role-tone="owner"] { background-color: #dcfce7; color: #166534; }
+:root [data-role-tone="admin"] { background-color: #f3e8ff; color: #6b21a8; }
+:root [data-role-tone="member"] { background-color: #dbeafe; color: #1e40af; }

@@ -23,6 +23,8 @@ venv/
 # Django
 *.sqlite3
 staticfiles/
+config/media/
+config/private_attachments/
 
 # Node
 client/node_modules/
