@@ -88,6 +88,7 @@ A comment request accepts `body` and optional `reply_to`. Send multipart form da
 - Back up PostgreSQL, uploaded avatars, and the private attachment directory together. Docker Compose persists PostgreSQL in `postgres_data`. The backend bind mount persists local uploads in `config/media/` and `config/private_attachments/`.
 - Set `COMMENT_ATTACHMENT_ROOT` to a writable absolute path on persistent storage shared by backend replicas. Keep it outside publicly served media. New attachments accept PNG, JPEG, and UTF‑8 text up to 5 MB.
 - Before upgrading an existing deployment, pause comment writes and apply migrations with access to both PostgreSQL and the private attachment directory. Migration `comments.0003` copies existing attachments to private storage and removes their binary database column.
+- Schedule periodic inspection with `python manage.py cleanup_comment_attachments`. It reports unreferenced files older than 24 hours. During a maintenance window with comment writes and migrations paused, pass `--apply` to remove them. This also retries file deletions that failed after the database commit. Run the command against the database that owns the configured attachment directory.
 - Configure production secrets, allowed hosts, HTTPS cookies, and a real email backend. The Compose stack uses Django's development server. Use a production application server for deployment.
 - For databases carried over from the old Organizations app, preserve migration history and back up the database before applying workspace migrations.
 
@@ -111,6 +112,12 @@ npm run build
 ```
 
 When changing the API contract, regenerate the checked-in schema with `docker compose exec -T backend python manage.py spectacular --validate --fail-on-warn --file schema.yml`.
+
+### Browser tests
+
+Create an isolated PostgreSQL database named `teamboard_e2e` and set `POSTGRES_DB=teamboard_e2e` and `E2E_PASSWORD` in the test process environment. Use the matching PostgreSQL credentials and a Django environment with the project dependencies installed. Set `E2E_PYTHON` to the virtual environment's Python executable if needed. From `client/` run `npx playwright install chromium` and `npm run test:e2e`. For an installed Chrome or Edge, set `E2E_BROWSER_CHANNEL` to `chrome` or `msedge`.
+
+Playwright starts Next.js on port 3100 and Django on port 8100. The test server applies migrations and seeds a verified user in the isolated database. The tests exercise the browser, API and PostgreSQL together. GitHub Actions runs the Chromium suite and saves failure traces.
 
 ## License
 
