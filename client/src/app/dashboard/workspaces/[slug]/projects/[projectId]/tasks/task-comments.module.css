@@ -550,11 +550,6 @@
   padding-inline-start: 10px;
   border-inline-start: 2px solid #c7d2fe;
 }
-.comment:focus, .reply:focus {
-  outline: 2px solid #818cf8;
-  outline-offset: -2px;
-  background: #eef2ff;
-}
 button.replyContext {
   border: 0;
   border-inline-start: 2px solid #818cf8;

@@ -18,6 +18,9 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
   dom.window.HTMLElement.prototype.scrollIntoView = function () {
     calls.push(this.id);
   };
+  dom.window.HTMLElement.prototype.animate = function (_, options) {
+    calls.push(options.duration);
+  };
   const user = { id: 1, email: "user@example.com", first_name: "Alex", last_name: "" };
   const timestamp = "2026-11-12T10:00:00Z";
   const parent = { id: "parent", body: "Original comment", author_id: 1, author_name: "Alex", created_at: timestamp, updated_at: timestamp, mentions: [] };
@@ -63,8 +66,8 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
     assert.equal(commentsTab.getAttribute("aria-pressed"), "true");
     assert.equal(container.querySelector("#comment-reply").className, "reply");
     await act(async () => buttons().find((button) => button.textContent.includes("Reply to Alex")).click());
-    assert.equal(document.activeElement.id, "comment-parent");
-    assert.deepEqual(calls, ["comment-parent"]);
+    assert.equal(container.querySelector("#comment-parent").hasAttribute("tabindex"), false);
+    assert.deepEqual(calls, ["comment-parent", 1000]);
     await act(async () => detailsTab.click());
     assert.equal(detailsTab.getAttribute("aria-pressed"), "true");
     assert.equal(container.querySelector("[data-comment-thread]").hidden, true);

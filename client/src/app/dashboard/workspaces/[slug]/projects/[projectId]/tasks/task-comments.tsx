@@ -254,7 +254,7 @@ export default function TaskComments({
           const edited = Boolean(comment.edited_at) ||
             Date.parse(comment.updated_at) - Date.parse(comment.created_at) >= 1000;
           return (
-            <article tabIndex={-1} className={comment.reply_to ? styles.reply : styles.comment} id={`comment-${comment.id}`} key={comment.id}>
+            <article className={comment.reply_to ? styles.reply : styles.comment} id={`comment-${comment.id}`} key={comment.id}>
               <Avatar
                 className={`${styles.avatar} ${comment.author_id === null ? styles.deletedAvatar : ""}`}
                 src={avatar}
@@ -303,8 +303,12 @@ export default function TaskComments({
                       commentsById.has(comment.reply_to) ? (
                         <button type="button" className={styles.replyContext} onClick={() => {
                           const parent = document.getElementById("comment-" + comment.reply_to);
-                          parent?.focus({ preventScroll: true });
-                          parent?.scrollIntoView({ block: "center" });
+                          if (!parent) return;
+                          parent.scrollIntoView({ block: "center" });
+                          parent.animate(
+                            [{ backgroundColor: "#e0e7ff" }, { backgroundColor: "transparent" }],
+                            { duration: 1000 },
+                          );
                         }}>
                           Reply to {commentsById.get(comment.reply_to)?.author_name}
                         </button>
