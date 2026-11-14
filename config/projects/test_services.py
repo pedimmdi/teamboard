@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.test import TestCase
@@ -14,6 +15,7 @@ from projects.services import (
     remove_project_member,
 )
 from workspaces.models import Workspace, WorkspaceMembership
+from notifications.models import Notification
 
 
 User = get_user_model()
@@ -587,3 +589,229 @@ class ProjectServiceTests(TestCase):
                 user=self.member,
             ).exists()
         )
+
+    def test_adding_project_member_creates_notification(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Notification Project",
+        )
+
+        membership = add_project_member(
+            project=project,
+            actor=self.owner,
+            user=self.member,
+        )
+
+        notification = Notification.objects.get()
+
+        self.assertEqual(
+            notification.event_type,
+            Notification.EventType.PROJECT_MEMBER_ADDED,
+        )
+        self.assertEqual(notification.recipient_id, self.member.pk)
+        self.assertEqual(notification.actor_id, self.owner.pk)
+        self.assertEqual(notification.workspace_id, self.workspace.pk)
+        self.assertEqual(notification.project_id, project.pk)
+        self.assertIsNone(notification.task_id)
+        self.assertEqual(
+            notification.payload,
+            {"role": membership.role},
+        )
+
+    def test_project_creation_does_not_notify_creator(self):
+        create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Creator Project",
+        )
+
+        self.assertFalse(Notification.objects.exists())
+
+    def test_project_member_addition_skips_self_notification(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Self Notification Project",
+        )
+
+        # The creator already belongs to the project.
+        # The initial membership must not generate an event.
+        self.assertEqual(
+            ProjectMembership.objects.filter(
+                project=project,
+                user=self.owner,
+            ).count(),
+            1,
+        )
+        self.assertFalse(Notification.objects.exists())
+
+    def test_project_role_change_creates_notification(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Role Notification Project",
+        )
+
+        membership = add_project_member(
+            project=project,
+            actor=self.owner,
+            user=self.member,
+        )
+
+        change_project_member_role(
+            project=project,
+            actor=self.owner,
+            membership_id=membership.pk,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        notification = Notification.objects.get(
+            event_type=Notification.EventType.PROJECT_ROLE_CHANGED,
+        )
+
+        self.assertEqual(notification.recipient_id, self.member.pk)
+        self.assertEqual(notification.actor_id, self.owner.pk)
+        self.assertEqual(notification.workspace_id, self.workspace.pk)
+        self.assertEqual(notification.project_id, project.pk)
+        self.assertIsNone(notification.task_id)
+        self.assertEqual(
+            notification.payload,
+            {
+                "old_role": ProjectMembership.Role.MEMBER,
+                "new_role": ProjectMembership.Role.MANAGER,
+            },
+        )
+
+    def test_same_project_role_creates_no_new_notification(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Unchanged Role Project",
+        )
+
+        membership = add_project_member(
+            project=project,
+            actor=self.owner,
+            user=self.member,
+        )
+
+        change_project_member_role(
+            project=project,
+            actor=self.owner,
+            membership_id=membership.pk,
+            role=ProjectMembership.Role.MEMBER,
+        )
+
+        self.assertFalse(
+            Notification.objects.filter(
+                event_type=Notification.EventType.PROJECT_ROLE_CHANGED,
+            ).exists()
+        )
+        self.assertEqual(Notification.objects.count(), 1)
+
+    def test_multiple_project_role_changes_create_distinct_events(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Multiple Roles Project",
+        )
+
+        membership = add_project_member(
+            project=project,
+            actor=self.owner,
+            user=self.member,
+        )
+
+        for role in (
+            ProjectMembership.Role.MANAGER,
+            ProjectMembership.Role.MEMBER,
+        ):
+            change_project_member_role(
+                project=project,
+                actor=self.owner,
+                membership_id=membership.pk,
+                role=role,
+            )
+
+        notifications = list(
+            Notification.objects.filter(
+                event_type=Notification.EventType.PROJECT_ROLE_CHANGED,
+            )
+        )
+
+        self.assertEqual(len(notifications), 2)
+        self.assertNotEqual(
+            notifications[0].deduplication_key,
+            notifications[1].deduplication_key,
+        )
+
+    def test_project_member_add_notification_failure_rolls_back(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Member Rollback Project",
+        )
+
+        with patch(
+            "projects.services.notify_project_member_added",
+            side_effect=RuntimeError("Notification failure"),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Notification failure",
+            ):
+                add_project_member(
+                    project=project,
+                    actor=self.owner,
+                    user=self.member,
+                )
+
+        self.assertFalse(
+            ProjectMembership.objects.filter(
+                project=project,
+                user=self.member,
+            ).exists()
+        )
+        self.assertFalse(Notification.objects.exists())
+
+    def test_project_role_notification_failure_rolls_back(self):
+        project = create_project(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Role Rollback Project",
+        )
+
+        membership = add_project_member(
+            project=project,
+            actor=self.owner,
+            user=self.member,
+        )
+
+        with patch(
+            "projects.services.notify_project_role_changed",
+            side_effect=RuntimeError("Notification failure"),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Notification failure",
+            ):
+                change_project_member_role(
+                    project=project,
+                    actor=self.owner,
+                    membership_id=membership.pk,
+                    role=ProjectMembership.Role.MANAGER,
+                )
+
+        membership.refresh_from_db()
+
+        self.assertEqual(
+            membership.role,
+            ProjectMembership.Role.MEMBER,
+        )
+        self.assertFalse(
+            Notification.objects.filter(
+                event_type=Notification.EventType.PROJECT_ROLE_CHANGED,
+            ).exists()
+        )
+        self.assertEqual(Notification.objects.count(), 1)

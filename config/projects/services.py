@@ -5,6 +5,10 @@ from rest_framework.exceptions import ValidationError, PermissionDenied
 from projects.models import Project, ProjectMembership
 from projects.access import get_project_membership_or_404
 from workspaces.models import Workspace, WorkspaceMembership
+from notifications.events import (
+    notify_project_member_added,
+    notify_project_role_changed,
+)
 
 
 def has_other_project_manager(*, project, excluded_membership_id):
@@ -131,11 +135,18 @@ def add_project_member(
             "user": "User is already a project member."
         })
 
-    return ProjectMembership.objects.create(
+    membership = ProjectMembership.objects.create(
         project=project,
         user=user,
         role=role,
     )
+
+    notify_project_member_added(
+        membership=membership,
+        actor=actor,
+    )
+
+    return membership
 
 
 @transaction.atomic
@@ -192,8 +203,17 @@ def change_project_member_role(
             "role": "A project must have at least one manager."
         })
 
+    old_role = membership.role
+
     membership.role = role
     membership.save(update_fields=["role"])
+
+    notify_project_role_changed(
+        membership=membership,
+        actor=actor,
+        old_role=old_role,
+    )
+
     return membership
 
 

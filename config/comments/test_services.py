@@ -1,4 +1,4 @@
-
+from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.exceptions import (
@@ -16,6 +16,7 @@ from comments.services import (
 from projects.models import Project, ProjectMembership
 from tasks.models import Task
 from workspaces.models import Workspace, WorkspaceMembership
+from notifications.models import Notification
 
 
 User = get_user_model()
@@ -155,3 +156,201 @@ class CommentServiceTests(TestCase):
             validate_comment_body("  Hello  "),
             "Hello",
         )
+
+    def test_create_comment_with_mention_notifies_user(self):
+        comment = create_comment(
+            task=self.task,
+            actor=self.author,
+            body=f"Please review @{self.other.email}",
+        )
+
+        notification = Notification.objects.get()
+
+        self.assertEqual(
+            notification.event_type,
+            Notification.EventType.COMMENT_MENTIONED,
+        )
+        self.assertEqual(notification.recipient_id, self.other.pk)
+        self.assertEqual(notification.actor_id, self.author.pk)
+        self.assertEqual(notification.workspace_id, self.workspace.pk)
+        self.assertEqual(notification.project_id, self.project.pk)
+        self.assertEqual(notification.task_id, self.task.pk)
+        self.assertEqual(
+            notification.payload,
+            {"comment_id": str(comment.pk)},
+        )
+
+    def test_duplicate_mentions_create_one_notification(self):
+        create_comment(
+            task=self.task,
+            actor=self.author,
+            body=f"@{self.other.email} and @{self.other.email}",
+        )
+
+        self.assertEqual(Notification.objects.count(), 1)
+
+    def test_self_mention_creates_no_notification(self):
+        create_comment(
+            task=self.task,
+            actor=self.author,
+            body=f"Hello @{self.author.email}",
+        )
+
+        self.assertFalse(Notification.objects.exists())
+
+    def test_reply_notifies_parent_author(self):
+        parent = create_comment(
+            task=self.task,
+            actor=self.other,
+            body="Original comment",
+        )
+
+        reply = create_comment(
+            task=self.task,
+            actor=self.author,
+            body="My reply",
+            reply_to=parent.pk,
+        )
+
+        notification = Notification.objects.get()
+
+        self.assertEqual(
+            notification.event_type,
+            Notification.EventType.COMMENT_REPLIED,
+        )
+        self.assertEqual(notification.recipient_id, self.other.pk)
+        self.assertEqual(
+            notification.payload,
+            {
+                "comment_id": str(reply.pk),
+                "parent_comment_id": str(parent.pk),
+            },
+        )
+
+    def test_reply_to_own_comment_does_not_notify(self):
+        parent = create_comment(
+            task=self.task,
+            actor=self.author,
+            body="My comment",
+        )
+
+        create_comment(
+            task=self.task,
+            actor=self.author,
+            body="My reply",
+            reply_to=parent.pk,
+        )
+
+        self.assertFalse(Notification.objects.exists())
+
+    def test_reply_mentioning_parent_author_creates_one_notification(self):
+        parent = create_comment(
+            task=self.task,
+            actor=self.other,
+            body="Original",
+        )
+
+        create_comment(
+            task=self.task,
+            actor=self.author,
+            body=f"Reply @{self.other.email}",
+            reply_to=parent.pk,
+        )
+
+        self.assertEqual(Notification.objects.count(), 1)
+        self.assertEqual(
+            Notification.objects.get().event_type,
+            Notification.EventType.COMMENT_REPLIED,
+        )
+
+    def test_edit_adds_new_mention_notification(self):
+        comment = create_comment(
+            task=self.task,
+            actor=self.author,
+            body="Original text",
+        )
+
+        update_comment(
+            comment=comment,
+            actor=self.author,
+            body=f"Updated @{self.other.email}",
+        )
+
+        self.assertEqual(Notification.objects.count(), 1)
+        self.assertEqual(
+            Notification.objects.get().event_type,
+            Notification.EventType.COMMENT_MENTIONED,
+        )
+
+    def test_edit_existing_mention_does_not_notify_again(self):
+        comment = create_comment(
+            task=self.task,
+            actor=self.author,
+            body=f"Hello @{self.other.email}",
+        )
+
+        update_comment(
+            comment=comment,
+            actor=self.author,
+            body=f"Updated text @{self.other.email}",
+        )
+
+        self.assertEqual(Notification.objects.count(), 1)
+
+    def test_edit_without_new_mentions_does_not_notify(self):
+        comment = create_comment(
+            task=self.task,
+            actor=self.author,
+            body="Original",
+        )
+
+        update_comment(
+            comment=comment,
+            actor=self.author,
+            body="Updated",
+        )
+
+        self.assertFalse(Notification.objects.exists())
+
+    def test_notification_failure_rolls_back_comment_creation(self):
+        with patch(
+            "comments.services.notify_comment_mentioned",
+            side_effect=RuntimeError("Notification failure"),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Notification failure",
+            ):
+                create_comment(
+                    task=self.task,
+                    actor=self.author,
+                    body=f"Rollback @{self.other.email}",
+                )
+
+        self.assertFalse(Comment.objects.exists())
+        self.assertFalse(Notification.objects.exists())
+
+    def test_notification_failure_rolls_back_comment_edit(self):
+        comment = create_comment(
+            task=self.task,
+            actor=self.author,
+            body="Original",
+        )
+
+        with patch(
+            "comments.services.notify_comment_mentioned",
+            side_effect=RuntimeError("Notification failure"),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Notification failure",
+            ):
+                update_comment(
+                    comment=comment,
+                    actor=self.author,
+                    body=f"Updated @{self.other.email}",
+                )
+
+        comment.refresh_from_db()
+        self.assertEqual(comment.body, "Original")
+        self.assertFalse(Notification.objects.exists())

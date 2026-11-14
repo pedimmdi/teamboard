@@ -1,4 +1,3 @@
-
 import re
 from uuid import uuid4
 
@@ -15,6 +14,11 @@ from tasks.models import Task
 
 from .models import Comment, CommentAttachment
 from .storage import attachment_storage, validate_attachment
+from notifications.events import (
+    notify_comment_mentioned,
+    notify_comment_replied,
+)
+from workspaces.models import WorkspaceMembership
 
 
 MAX_COMMENT_LENGTH = 5000
@@ -77,6 +81,49 @@ def sync_mentions(comment):
     ).annotate(email=Lower("user__email")).filter(email__in=emails).values_list("user_id", flat=True)
     comment.mentions.set(users)
 
+def notify_comment_mentions(
+    *,
+    comment,
+    actor,
+    previous_mention_ids=None,
+    excluded_user_ids=None,
+):
+    """
+    Notify only newly mentioned, eligible users.
+
+    Excluded recipients do not receive a duplicate
+    mention notification when a reply already
+    notifies them.
+    """
+
+    previous_ids = set(previous_mention_ids or ())
+    excluded_ids = set(excluded_user_ids or ())
+
+    recipient_ids = set(
+        comment.mentions.exclude(
+            pk__in=previous_ids | excluded_ids,
+        ).values_list("pk", flat=True)
+    )
+
+    if not recipient_ids:
+        return
+
+    eligible_ids = set(
+        WorkspaceMembership.objects.filter(
+            workspace_id=comment.task.project.workspace_id,
+            user_id__in=recipient_ids,
+            user__is_active=True,
+        ).values_list("user_id", flat=True)
+    )
+
+    for recipient in comment.mentions.filter(
+        pk__in=eligible_ids,
+    ).order_by("pk"):
+        notify_comment_mentioned(
+            comment=comment,
+            actor=actor,
+            recipient=recipient,
+        )
 
 @transaction.atomic
 def create_comment(*, task, actor, body, reply_to=None, attachment=None):
@@ -112,6 +159,22 @@ def create_comment(*, task, actor, body, reply_to=None, attachment=None):
         except Exception:
             storage.delete(key)
             raise
+
+    excluded_user_ids = set()
+
+    if parent is not None and parent.author_id is not None:
+        notify_comment_replied(
+            comment=comment,
+            actor=actor,
+        )
+        excluded_user_ids.add(parent.author_id)
+
+    notify_comment_mentions(
+        comment=comment,
+        actor=actor,
+        excluded_user_ids=excluded_user_ids,
+    )
+
     return comment
 
 
@@ -133,10 +196,31 @@ def update_comment(*, comment, actor, body):
             "Only the author can edit this comment."
         )
 
+    previous_mention_ids = set(
+        comment.mentions.values_list("pk", flat=True)
+    )
+
     comment.body = "" if isinstance(body, str) and not body.strip() and hasattr(comment, "attachment") else validate_comment_body(body)
     comment.edited_at = timezone.now()
     comment.save(update_fields=["body", "updated_at", "edited_at"])
+
     sync_mentions(comment)
+
+    excluded_user_ids = set()
+
+    if (
+        comment.reply_to_id is not None
+        and comment.reply_to is not None
+        and comment.reply_to.author_id is not None
+    ):
+        excluded_user_ids.add(comment.reply_to.author_id)
+
+    notify_comment_mentions(
+        comment=comment,
+        actor=actor,
+        previous_mention_ids=previous_mention_ids,
+        excluded_user_ids=excluded_user_ids,
+    )
 
     return comment
 
