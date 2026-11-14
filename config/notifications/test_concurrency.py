@@ -1,14 +1,16 @@
-
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
-from django.db import close_old_connections, connections
+from django.db import close_old_connections, connections, transaction
 from django.test import TransactionTestCase
 
 from notifications.models import Notification
 from notifications.services import create_notification
+from projects.models import Project, ProjectMembership
+from tasks.models import Task
+from workspaces.models import Workspace, WorkspaceMembership
 
 
 User = get_user_model()
@@ -23,6 +25,48 @@ class NotificationConcurrencyTests(TransactionTestCase):
             email="concurrent-actor@example.com",
         )
 
+        self.workspace = Workspace.objects.create(
+            name="Concurrent Notification Workspace",
+        )
+
+        WorkspaceMembership.objects.create(
+            workspace=self.workspace,
+            user=self.actor,
+            role=WorkspaceMembership.Role.OWNER,
+        )
+
+        WorkspaceMembership.objects.create(
+            workspace=self.workspace,
+            user=self.recipient,
+            role=WorkspaceMembership.Role.MEMBER,
+        )
+
+        with transaction.atomic():
+            self.project = Project.objects.create(
+                workspace=self.workspace,
+                name="Concurrent Notification Project",
+                created_by=self.actor,
+            )
+
+            ProjectMembership.objects.create(
+                project=self.project,
+                user=self.actor,
+                role=ProjectMembership.Role.MANAGER,
+            )
+
+            ProjectMembership.objects.create(
+                project=self.project,
+                user=self.recipient,
+                role=ProjectMembership.Role.MEMBER,
+            )
+
+            self.task = Task.objects.create(
+                project=self.project,
+                title="Concurrent Notification Task",
+                created_by=self.actor,
+                assignee=self.recipient,
+            )
+
     def test_concurrent_duplicate_creates_one_notification(self):
         key = f"concurrent:{uuid4()}"
         barrier = Barrier(2)
@@ -36,6 +80,9 @@ class NotificationConcurrencyTests(TransactionTestCase):
                     recipient=self.recipient,
                     actor=self.actor,
                     event_type=Notification.EventType.TASK_ASSIGNED,
+                    workspace=self.workspace,
+                    project=self.project,
+                    task=self.task,
                     deduplication_key=key,
                     payload={"message": "Concurrent event"},
                 )

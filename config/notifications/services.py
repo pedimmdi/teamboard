@@ -1,11 +1,10 @@
-
 import json
 
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
 from .models import Notification
-
+from .scopes import validate_notification_scope
 
 MAX_PAYLOAD_BYTES = 4096
 
@@ -40,6 +39,13 @@ def validate_notification_data(
         raise ValidationError({
             "event_type": "Invalid notification event type.",
         })
+
+    validate_notification_scope(
+        event_type=event_type,
+        workspace=workspace,
+        project=project,
+        task=task,
+    )
 
     if not isinstance(deduplication_key, str):
         raise ValidationError({

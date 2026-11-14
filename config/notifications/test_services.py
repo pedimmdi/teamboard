@@ -9,6 +9,9 @@ from rest_framework.exceptions import ValidationError
 
 from notifications.models import Notification
 from notifications.services import create_notification
+from projects.models import Project, ProjectMembership
+from tasks.models import Task
+from workspaces.models import Workspace, WorkspaceMembership
 
 
 User = get_user_model()
@@ -26,11 +29,55 @@ class NotificationServiceTests(TestCase):
             password="TestPassword123!",
         )
 
+        cls.workspace = Workspace.objects.create(
+            name="Notification Service Workspace",
+        )
+
+        WorkspaceMembership.objects.create(
+            workspace=cls.workspace,
+            user=cls.actor,
+            role=WorkspaceMembership.Role.OWNER,
+        )
+
+        WorkspaceMembership.objects.create(
+            workspace=cls.workspace,
+            user=cls.recipient,
+            role=WorkspaceMembership.Role.MEMBER,
+        )
+
+        cls.project = Project.objects.create(
+            workspace=cls.workspace,
+            name="Notification Service Project",
+            created_by=cls.actor,
+        )
+
+        ProjectMembership.objects.create(
+            project=cls.project,
+            user=cls.actor,
+            role=ProjectMembership.Role.MANAGER,
+        )
+
+        ProjectMembership.objects.create(
+            project=cls.project,
+            user=cls.recipient,
+            role=ProjectMembership.Role.MEMBER,
+        )
+
+        cls.task = Task.objects.create(
+            project=cls.project,
+            title="Notification Service Task",
+            created_by=cls.actor,
+            assignee=cls.recipient,
+        )
+
     def create(self, **overrides):
         data = {
             "recipient": self.recipient,
             "actor": self.actor,
             "event_type": Notification.EventType.TASK_ASSIGNED,
+            "workspace": self.workspace,
+            "project": self.project,
+            "task": self.task,
             "deduplication_key": f"test:{uuid4()}",
             "payload": {"message": "Task assigned"},
         }
@@ -152,13 +199,8 @@ class NotificationServiceTests(TestCase):
         self.assertFalse(Notification.objects.exists())
 
     def test_project_requires_workspace(self):
-        project = SimpleNamespace(
-            pk=uuid4(),
-            workspace_id=uuid4(),
-        )
-
         with self.assertRaises(ValidationError):
-            self.create(project=project)
+            self.create(workspace=None)
 
     def test_project_must_belong_to_workspace(self):
         workspace = SimpleNamespace(pk=uuid4())
@@ -174,13 +216,8 @@ class NotificationServiceTests(TestCase):
             )
 
     def test_task_requires_project(self):
-        task = SimpleNamespace(
-            pk=uuid4(),
-            project_id=uuid4(),
-        )
-
         with self.assertRaises(ValidationError):
-            self.create(task=task)
+            self.create(project=None)
 
     def test_task_must_belong_to_project(self):
         workspace = SimpleNamespace(pk=uuid4())

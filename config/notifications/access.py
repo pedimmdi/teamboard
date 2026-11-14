@@ -1,5 +1,6 @@
 from django.db.models import Exists, F, OuterRef, Q
 from notifications.models import Notification
+from notifications.scopes import PROJECT_EVENTS, TASK_EVENTS
 from projects.models import ProjectMembership
 from workspaces.models import WorkspaceMembership
 
@@ -57,16 +58,24 @@ def get_accessible_notifications(user):
 
     project_access = (
         Q(
-            event_type__in=[
-                Notification.EventType.PROJECT_MEMBER_ADDED,
-                Notification.EventType.PROJECT_ROLE_CHANGED,
-                Notification.EventType.TASK_ASSIGNED,
-                Notification.EventType.TASK_UPDATED,
-                Notification.EventType.COMMENT_MENTIONED,
-                Notification.EventType.COMMENT_REPLIED,
-            ],
+            event_type__in=PROJECT_EVENTS,
             workspace__isnull=False,
             project__isnull=False,
+            task__isnull=True,
+        )
+        & Q(has_workspace_access=True)
+        & (
+            Q(has_workspace_management=True)
+            | Q(has_project_access=True)
+        )
+    )
+
+    task_access = (
+        Q(
+            event_type__in=TASK_EVENTS,
+            workspace__isnull=False,
+            project__isnull=False,
+            task__isnull=False,
         )
         & Q(has_workspace_access=True)
         & (
@@ -86,6 +95,7 @@ def get_accessible_notifications(user):
             invitation_access
             | workspace_access
             | project_access
+            | task_access
         )
         .filter(
             Q(project__isnull=True)

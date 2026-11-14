@@ -85,6 +85,13 @@ class NotificationAPITests(TestCase):
             )
         )
 
+        cls.task = Task.objects.create(
+            project=cls.project,
+            title="Default Notification Task",
+            created_by=cls.user,
+            assignee=cls.user,
+        )
+
     def setUp(self):
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
@@ -98,6 +105,7 @@ class NotificationAPITests(TestCase):
         recipient=None,
         workspace=sentinel.default_workspace,
         project=sentinel.default_project,
+        task=sentinel.default_task,
         read=False,
         event_type=Notification.EventType.TASK_ASSIGNED,
     ):
@@ -105,7 +113,24 @@ class NotificationAPITests(TestCase):
             workspace = self.workspace
 
         if project is sentinel.default_project:
-            project = self.project
+            if event_type in (
+                Notification.EventType.WORKSPACE_INVITED,
+                Notification.EventType.WORKSPACE_ROLE_CHANGED,
+            ):
+                project = None
+            else:
+                project = self.project
+
+        if task is sentinel.default_task:
+            if event_type in (
+                Notification.EventType.TASK_ASSIGNED,
+                Notification.EventType.TASK_UPDATED,
+                Notification.EventType.COMMENT_MENTIONED,
+                Notification.EventType.COMMENT_REPLIED,
+            ):
+                task = self.task
+            else:
+                task = None
 
         return Notification.objects.create(
             recipient=recipient or self.user,
@@ -113,6 +138,7 @@ class NotificationAPITests(TestCase):
             event_type=event_type,
             workspace=workspace,
             project=project,
+            task=task,
             payload={"message": "Test notification"},
             deduplication_key=f"api-test:{uuid4()}",
             read_at=timezone.now() if read else None,
@@ -313,6 +339,7 @@ class NotificationAPITests(TestCase):
         notification = self.make_notification(
             workspace=self.workspace,
             project=self.project,
+            event_type=Notification.EventType.PROJECT_MEMBER_ADDED,
         )
 
         response = self.client.get(self.list_url)
@@ -387,6 +414,107 @@ class NotificationAPITests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
+
+    def test_task_event_without_task_is_hidden(self):
+        notification = self.make_notification(
+            event_type=Notification.EventType.TASK_ASSIGNED,
+            task=None,
+        )
+
+        response = self.client.get(self.list_url)
+        count_response = self.client.get(self.count_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 0)
+        self.assertEqual(
+            count_response.data["unread_count"],
+            0,
+        )
+
+        self.assertTrue(
+            Notification.objects.filter(pk=notification.pk).exists()
+        )
+
+    def test_project_event_with_task_is_hidden(self):
+        self.make_notification(
+            event_type=Notification.EventType.PROJECT_MEMBER_ADDED,
+            task=self.task,
+        )
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 0)
+
+    def test_project_event_without_project_is_hidden(self):
+        self.make_notification(
+            event_type=Notification.EventType.PROJECT_ROLE_CHANGED,
+            project=None,
+        )
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 0)
+
+    def test_workspace_event_with_project_is_hidden(self):
+        self.make_notification(
+            event_type=Notification.EventType.WORKSPACE_ROLE_CHANGED,
+            project=self.project,
+        )
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 0)
+
+    def test_invalid_scope_cannot_be_marked_read(self):
+        notification = self.make_notification(
+            event_type=Notification.EventType.TASK_UPDATED,
+            task=None,
+        )
+
+        url = reverse(
+            "notification-mark-read",
+            kwargs={"pk": notification.pk},
+        )
+
+        response = self.client.post(url)
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        notification.refresh_from_db()
+        self.assertIsNone(notification.read_at)
+
+    def test_mark_all_read_skips_invalid_scope(self):
+        valid_notification = self.make_notification()
+
+        invalid_notification = self.make_notification(
+            event_type=Notification.EventType.TASK_ASSIGNED,
+            task=None,
+        )
+
+        response = self.client.post(
+            reverse("notification-mark-all-read")
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(
+            response.data,
+            {"updated_count": 1},
+        )
+
+        valid_notification.refresh_from_db()
+        invalid_notification.refresh_from_db()
+
+        self.assertIsNotNone(valid_notification.read_at)
+        self.assertIsNone(invalid_notification.read_at)
 
     def test_post_is_not_allowed_on_list(self):
         response = self.client.post(
@@ -488,10 +616,9 @@ class NotificationAPITests(TestCase):
             created_by=self.manager,
         )
 
-        notification = self.make_notification()
-
-        notification.task = other_task
-        notification.save(update_fields=["task"])
+        notification = self.make_notification(
+            task=other_task,
+        )
 
         response = self.client.get(self.list_url)
         count_response = self.client.get(self.count_url)
