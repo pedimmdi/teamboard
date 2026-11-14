@@ -1,5 +1,5 @@
-
 from datetime import date
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.http import Http404
@@ -9,6 +9,7 @@ from rest_framework.exceptions import (
     ValidationError,
 )
 
+from notifications.models import Notification
 from projects.models import Project, ProjectMembership
 from tasks.models import Task
 from tasks.services import create_task, update_task, delete_task
@@ -146,6 +147,206 @@ class TaskServiceTests(TestCase):
         )
 
         self.assertEqual(task.assignee, self.member)
+
+    def test_create_task_with_assignee_creates_notification(self):
+        task = self.make_task(
+            assignee=self.member,
+        )
+
+        self.assertEqual(Notification.objects.count(), 1)
+
+        notification = Notification.objects.get()
+
+        self.assertEqual(
+            notification.event_type,
+            Notification.EventType.TASK_ASSIGNED,
+        )
+        self.assertEqual(notification.recipient_id, self.member.pk)
+        self.assertEqual(notification.actor_id, self.owner.pk)
+        self.assertEqual(notification.workspace_id, self.workspace.pk)
+        self.assertEqual(notification.project_id, self.project.pk)
+        self.assertEqual(notification.task_id, task.pk)
+
+    def test_create_task_without_assignee_creates_no_notification(self):
+        self.make_task()
+
+        self.assertFalse(Notification.objects.exists())
+
+    def test_create_task_self_assignment_creates_no_notification(self):
+        task = self.make_task(
+            assignee=self.owner,
+        )
+
+        self.assertEqual(task.assignee_id, self.owner.pk)
+        self.assertFalse(Notification.objects.exists())
+
+    def test_create_task_rolls_back_if_notification_fails(self):
+        with patch(
+            "tasks.services.notify_task_assigned",
+            side_effect=RuntimeError("Notification failure"),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Notification failure",
+            ):
+                self.make_task(
+                    title="Rollback Assignment Task",
+                    assignee=self.member,
+                )
+
+        self.assertFalse(
+            Task.objects.filter(
+                title="Rollback Assignment Task",
+            ).exists()
+        )
+        self.assertFalse(Notification.objects.exists())
+
+    def test_update_assigns_unassigned_task_and_notifies(self):
+        task = self.make_task()
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            assignee=self.member,
+            update_assignee=True,
+        )
+
+        task.refresh_from_db()
+
+        self.assertEqual(task.assignee_id, self.member.pk)
+        self.assertEqual(Notification.objects.count(), 1)
+
+        notification = Notification.objects.get()
+        self.assertEqual(
+            notification.event_type,
+            Notification.EventType.TASK_ASSIGNED,
+        )
+        self.assertEqual(notification.recipient_id, self.member.pk)
+        self.assertEqual(notification.actor_id, self.owner.pk)
+        self.assertEqual(notification.task_id, task.pk)
+
+    def test_update_changes_assignee_and_notifies_new_user(self):
+        task = self.make_task(assignee=self.member)
+        initial_notification = Notification.objects.get()
+
+        update_task(
+            task=task,
+            actor=self.admin,
+            assignee=self.owner,
+            update_assignee=True,
+        )
+
+        task.refresh_from_db()
+
+        self.assertEqual(task.assignee_id, self.owner.pk)
+        self.assertEqual(Notification.objects.count(), 2)
+
+        new_notification = Notification.objects.exclude(
+            pk=initial_notification.pk,
+        ).get()
+
+        self.assertEqual(new_notification.recipient_id, self.owner.pk)
+        self.assertEqual(new_notification.actor_id, self.admin.pk)
+        self.assertEqual(new_notification.task_id, task.pk)
+
+        self.assertTrue(
+            Notification.objects.filter(
+                pk=initial_notification.pk,
+                recipient=self.member,
+            ).exists()
+        )
+
+    def test_update_same_assignee_does_not_notify_again(self):
+        task = self.make_task(assignee=self.member)
+        original_notification = Notification.objects.get()
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            assignee=self.member,
+            update_assignee=True,
+        )
+
+        self.assertEqual(Notification.objects.count(), 1)
+        self.assertTrue(
+            Notification.objects.filter(
+                pk=original_notification.pk,
+            ).exists()
+        )
+
+    def test_update_clear_assignee_does_not_notify(self):
+        task = self.make_task(assignee=self.member)
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            assignee=None,
+            update_assignee=True,
+        )
+
+        task.refresh_from_db()
+
+        self.assertIsNone(task.assignee_id)
+        self.assertEqual(Notification.objects.count(), 1)
+
+    def test_update_other_fields_does_not_notify_again(self):
+        task = self.make_task(assignee=self.member)
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            title="Changed without reassignment",
+            status=Task.Status.IN_PROGRESS,
+        )
+
+        task.refresh_from_db()
+
+        self.assertEqual(
+            task.title,
+            "Changed without reassignment",
+        )
+        self.assertEqual(Notification.objects.count(), 1)
+
+    def test_update_self_assignment_does_not_notify(self):
+        task = self.make_task()
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            assignee=self.owner,
+            update_assignee=True,
+        )
+
+        task.refresh_from_db()
+
+        self.assertEqual(task.assignee_id, self.owner.pk)
+        self.assertFalse(Notification.objects.exists())
+
+    def test_update_rolls_back_when_notification_fails(self):
+        task = self.make_task()
+        original_title = task.title
+
+        with patch(
+            "tasks.services.notify_task_assigned",
+            side_effect=RuntimeError("Notification failure"),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Notification failure",
+            ):
+                update_task(
+                    task=task,
+                    actor=self.owner,
+                    title="Should be rolled back",
+                    assignee=self.member,
+                    update_assignee=True,
+                )
+
+        task.refresh_from_db()
+
+        self.assertEqual(task.title, original_title)
+        self.assertIsNone(task.assignee_id)
+        self.assertFalse(Notification.objects.exists())
 
     def test_update_task_changes_selected_fields(self):
         task = self.make_task(

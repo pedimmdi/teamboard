@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from notifications.events import notify_task_assigned
 from projects.access import get_project_membership_or_404
 from projects.models import Project, ProjectMembership
 from tasks.models import Task
@@ -202,7 +203,7 @@ def create_task(
         0 if max_position is None else max_position + 1
     )
 
-    return Task.objects.create(
+    task = Task.objects.create(
         project=project,
         title=title,
         description=description,
@@ -213,6 +214,14 @@ def create_task(
         due_date=due_date,
         position=next_position,
     )
+
+    if task.assignee_id is not None:
+        notify_task_assigned(
+            task=task,
+            actor=actor,
+        )
+
+    return task
 
 
 @transaction.atomic
@@ -262,12 +271,19 @@ def update_task(
         priority=new_priority,
     )
 
+    old_assignee_id = task.assignee_id
+
     if update_assignee:
         _validate_assignee(
             project=project,
             assignee=assignee,
         )
         task.assignee = assignee
+
+    assignee_changed = (
+        update_assignee
+        and task.assignee_id != old_assignee_id
+    )
 
     old_status = task.status
     status_changed = new_status != old_status
@@ -298,6 +314,12 @@ def update_task(
         _compact_task_positions(
             project=project,
             status=old_status,
+        )
+
+    if assignee_changed and task.assignee_id is not None:
+        notify_task_assigned(
+            task=task,
+            actor=actor,
         )
 
     return task
