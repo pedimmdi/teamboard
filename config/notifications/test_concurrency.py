@@ -4,7 +4,7 @@ from threading import Barrier
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
-from django.db import close_old_connections
+from django.db import close_old_connections, connections
 from django.test import TransactionTestCase
 
 from notifications.models import Notification
@@ -42,7 +42,7 @@ class NotificationConcurrencyTests(TransactionTestCase):
 
                 return notification.pk, created
             finally:
-                close_old_connections()
+                connections.close_all()
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             futures = [

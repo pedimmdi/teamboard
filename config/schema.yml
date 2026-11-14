@@ -376,6 +376,96 @@ paths:
           description: The current token is not associated with a session.
         '401':
           description: Authentication credentials are missing or invalid.
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      summary: List my notifications
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: read
+        schema:
+          type: boolean
+        description: Filter notifications by read status. true = read, false = unread.
+      tags:
+      - Notifications
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/mark-read/:
+    post:
+      operationId: notifications_mark_read
+      summary: Mark one notification as read
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Notifications
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/mark-all-read/:
+    post:
+      operationId: notifications_mark_all_read
+      summary: Mark all accessible notifications as read
+      tags:
+      - Notifications
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationMarkAllReadResponse'
+          description: ''
+  /api/v1/notifications/unread-count/:
+    get:
+      operationId: notifications_unread_count
+      summary: Count my unread notifications
+      tags:
+      - Notifications
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unread_count:
+                    type: integer
+                required:
+                - unread_count
+          description: ''
   /api/v1/workspaces/:
     get:
       operationId: v1_workspaces_list
@@ -1889,6 +1979,26 @@ components:
           type: string
       required:
       - detail
+    EventTypeEnum:
+      enum:
+      - task_assigned
+      - task_updated
+      - comment_mentioned
+      - comment_replied
+      - workspace_invited
+      - workspace_role_changed
+      - project_member_added
+      - project_role_changed
+      type: string
+      description: |-
+        * `task_assigned` - Task Assigned
+        * `task_updated` - Task Updated
+        * `comment_mentioned` - Comment Mentioned
+        * `comment_replied` - Comment Replied
+        * `workspace_invited` - Workspace Invited
+        * `workspace_role_changed` - Workspace Role Changed
+        * `project_member_added` - Project Member Added
+        * `project_role_changed` - Project Role Changed
     LoginRequest:
       type: object
       properties:
@@ -1910,6 +2020,72 @@ components:
           type: string
       required:
       - detail
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventTypeEnum'
+          readOnly: true
+        actor:
+          type: integer
+          readOnly: true
+          nullable: true
+        workspace:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        task:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        payload:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        is_read:
+          type: boolean
+          readOnly: true
+      required:
+      - actor
+      - created_at
+      - event_type
+      - id
+      - is_read
+      - payload
+      - project
+      - read_at
+      - task
+      - workspace
+    NotificationMarkAllReadResponse:
+      type: object
+      properties:
+        updated_count:
+          type: integer
+          minimum: 0
+          readOnly: true
+      required:
+      - updated_count
     NullEnum:
       enum:
       - null
@@ -1936,6 +2112,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Comment'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
     PaginatedProject:
       type: object
       properties:
