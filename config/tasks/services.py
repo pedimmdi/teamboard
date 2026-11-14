@@ -7,7 +7,10 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from notifications.events import notify_task_assigned
+from notifications.events import (
+    notify_task_assigned,
+    notify_task_updated,
+)
 from projects.access import get_project_membership_or_404
 from projects.models import Project, ProjectMembership
 from tasks.models import Task
@@ -271,6 +274,23 @@ def update_task(
         priority=new_priority,
     )
 
+    changed_fields = []
+
+    for field_name, new_value in (
+        ("title", new_title),
+        ("description", new_description),
+        ("status", new_status),
+        ("priority", new_priority),
+    ):
+        if getattr(task, field_name) != new_value:
+            changed_fields.append(field_name)
+
+    if update_due_date:
+        validated_due_date = _validate_due_date(due_date)
+
+        if task.due_date != validated_due_date:
+            changed_fields.append("due_date")
+
     old_assignee_id = task.assignee_id
 
     if update_assignee:
@@ -306,7 +326,7 @@ def update_task(
     task.priority = new_priority
 
     if update_due_date:
-        task.due_date = _validate_due_date(due_date)
+        task.due_date = validated_due_date
 
     task.save()
 
@@ -320,6 +340,13 @@ def update_task(
         notify_task_assigned(
             task=task,
             actor=actor,
+        )
+
+    if changed_fields and not assignee_changed:
+        notify_task_updated(
+            task=task,
+            actor=actor,
+            changed_fields=changed_fields,
         )
 
     return task

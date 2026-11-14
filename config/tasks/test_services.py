@@ -305,7 +305,20 @@ class TaskServiceTests(TestCase):
             task.title,
             "Changed without reassignment",
         )
-        self.assertEqual(Notification.objects.count(), 1)
+
+        self.assertEqual(
+            Notification.objects.filter(
+                event_type=Notification.EventType.TASK_ASSIGNED,
+            ).count(),
+            1,
+        )
+
+        self.assertEqual(
+            Notification.objects.filter(
+                event_type=Notification.EventType.TASK_UPDATED,
+            ).count(),
+            1,
+        )
 
     def test_update_self_assignment_does_not_notify(self):
         task = self.make_task()
@@ -347,6 +360,226 @@ class TaskServiceTests(TestCase):
         self.assertEqual(task.title, original_title)
         self.assertIsNone(task.assignee_id)
         self.assertFalse(Notification.objects.exists())
+
+    def test_update_title_notifies_assignee(self):
+        task = self.make_task(assignee=self.member)
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            title="Updated notification title",
+        )
+
+        notifications = Notification.objects.filter(
+            event_type=Notification.EventType.TASK_UPDATED,
+        )
+
+        self.assertEqual(notifications.count(), 1)
+
+        notification = notifications.get()
+        self.assertEqual(notification.recipient_id, self.member.pk)
+        self.assertEqual(notification.task_id, task.pk)
+        self.assertEqual(
+            notification.payload,
+            {"changed_fields": ["title"]},
+        )
+
+    def test_update_multiple_fields_creates_one_update_notification(self):
+        task = self.make_task(assignee=self.member)
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            title="Updated title",
+            priority=Task.Priority.HIGH,
+            status=Task.Status.IN_PROGRESS,
+        )
+
+        notifications = Notification.objects.filter(
+            event_type=Notification.EventType.TASK_UPDATED,
+        )
+
+        self.assertEqual(notifications.count(), 1)
+        self.assertEqual(
+            notifications.get().payload["changed_fields"],
+            ["priority", "status", "title"],
+        )
+
+    def test_update_same_values_creates_no_update_notification(self):
+        task = self.make_task(assignee=self.member)
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            title=task.title,
+            status=task.status,
+            priority=task.priority,
+        )
+
+        self.assertFalse(
+            Notification.objects.filter(
+                event_type=Notification.EventType.TASK_UPDATED,
+            ).exists()
+        )
+
+    def test_update_by_assignee_creates_no_self_notification(self):
+        task = self.make_task(assignee=self.member)
+
+        update_task(
+            task=task,
+            actor=self.member,
+            title="Updated by assignee",
+        )
+
+        self.assertFalse(
+            Notification.objects.filter(
+                event_type=Notification.EventType.TASK_UPDATED,
+            ).exists()
+        )
+
+    def test_update_due_date_creates_notification(self):
+        task = self.make_task(assignee=self.member)
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            due_date=date(2026, 12, 15),
+            update_due_date=True,
+        )
+
+        notification = Notification.objects.get(
+            event_type=Notification.EventType.TASK_UPDATED,
+        )
+
+        self.assertEqual(
+            notification.payload,
+            {"changed_fields": ["due_date"]},
+        )
+
+    def test_clear_due_date_creates_notification(self):
+        task = self.make_task(
+            assignee=self.member,
+            due_date=date(2026, 12, 15),
+        )
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            due_date=None,
+            update_due_date=True,
+        )
+
+        notification = Notification.objects.get(
+            event_type=Notification.EventType.TASK_UPDATED,
+        )
+
+        self.assertEqual(
+            notification.payload,
+            {"changed_fields": ["due_date"]},
+        )
+
+    def test_update_without_assignee_creates_no_notification(self):
+        task = self.make_task()
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            title="Updated without assignee",
+        )
+
+        self.assertFalse(Notification.objects.exists())
+
+    def test_assignment_only_does_not_create_task_updated_notification(self):
+        task = self.make_task()
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            assignee=self.member,
+            update_assignee=True,
+        )
+
+        self.assertEqual(
+            Notification.objects.filter(
+                event_type=Notification.EventType.TASK_ASSIGNED,
+            ).count(),
+            1,
+        )
+        self.assertFalse(
+            Notification.objects.filter(
+                event_type=Notification.EventType.TASK_UPDATED,
+            ).exists()
+        )
+
+    def test_update_notification_rolls_back_with_task(self):
+        task = self.make_task(assignee=self.member)
+        original_title = task.title
+
+        with patch(
+            "tasks.services.notify_task_updated",
+            side_effect=RuntimeError("Update notification failure"),
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "Update notification failure",
+            ):
+                update_task(
+                    task=task,
+                    actor=self.owner,
+                    title="Should not persist",
+                )
+
+        task.refresh_from_db()
+
+        self.assertEqual(task.title, original_title)
+        self.assertEqual(Notification.objects.count(), 1)
+        self.assertFalse(
+            Notification.objects.filter(
+                event_type=Notification.EventType.TASK_UPDATED,
+            ).exists()
+        )
+
+    def test_update_assignee_and_title_creates_only_assignment_notification(self):
+        task = self.make_task()
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            assignee=self.member,
+            update_assignee=True,
+            title="Assigned and updated",
+        )
+
+        self.assertEqual(
+            Notification.objects.filter(
+                event_type=Notification.EventType.TASK_ASSIGNED,
+            ).count(),
+            1,
+        )
+        self.assertFalse(
+            Notification.objects.filter(
+                event_type=Notification.EventType.TASK_UPDATED,
+            ).exists()
+        )
+
+    def test_update_notification_contains_correct_scope(self):
+        task = self.make_task(assignee=self.member)
+
+        update_task(
+            task=task,
+            actor=self.owner,
+            description="Updated description",
+        )
+
+        notification = Notification.objects.get(
+            event_type=Notification.EventType.TASK_UPDATED,
+        )
+
+        self.assertEqual(notification.recipient_id, self.member.pk)
+        self.assertEqual(notification.actor_id, self.owner.pk)
+        self.assertEqual(notification.workspace_id, self.workspace.pk)
+        self.assertEqual(notification.project_id, self.project.pk)
+        self.assertEqual(notification.task_id, task.pk)
 
     def test_update_task_changes_selected_fields(self):
         task = self.make_task(
