@@ -116,6 +116,10 @@ def serialize_public_payload(event_type, payload):
 
 
 class NotificationSerializer(serializers.ModelSerializer):
+    workspace_slug = serializers.CharField(source="workspace.slug", read_only=True, allow_null=True)
+    workspace_name = serializers.CharField(source="workspace.name", read_only=True, allow_null=True)
+    project_name = serializers.CharField(source="project.name", read_only=True, allow_null=True)
+    task_title = serializers.CharField(source="task.title", read_only=True, allow_null=True)
     is_read = serializers.BooleanField(read_only=True)
     payload = serializers.SerializerMethodField()
 
@@ -128,6 +132,10 @@ class NotificationSerializer(serializers.ModelSerializer):
             "workspace",
             "project",
             "task",
+            "workspace_slug",
+            "workspace_name",
+            "project_name",
+            "task_title",
             "payload",
             "created_at",
             "read_at",

@@ -28,6 +28,8 @@ class NotificationListView(generics.ListAPIView):
             self.request.user,
         )
 
+        queryset = queryset.select_related("workspace", "project", "task")
+
         read_filter = self.request.query_params.get("read")
 
         if read_filter is not None:

@@ -2050,6 +2050,22 @@ components:
           format: uuid
           readOnly: true
           nullable: true
+        workspace_slug:
+          type: string
+          readOnly: true
+          nullable: true
+        workspace_name:
+          type: string
+          readOnly: true
+          nullable: true
+        project_name:
+          type: string
+          readOnly: true
+          nullable: true
+        task_title:
+          type: string
+          readOnly: true
+          nullable: true
         payload:
           type: object
           additionalProperties: {}
@@ -2074,9 +2090,13 @@ components:
       - is_read
       - payload
       - project
+      - project_name
       - read_at
       - task
+      - task_title
       - workspace
+      - workspace_name
+      - workspace_slug
     NotificationMarkAllReadResponse:
       type: object
       properties:

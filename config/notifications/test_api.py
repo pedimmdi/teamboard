@@ -195,6 +195,16 @@ class NotificationAPITests(TestCase):
         self.assertIn("is_read", data)
         self.assertIn("read_at", data)
 
+    def test_list_exposes_destination_details_for_accessible_notifications(self):
+        self.make_notification()
+
+        data = self.client.get(self.list_url).data["results"][0]
+
+        self.assertEqual(data["workspace_slug"], self.workspace.slug)
+        self.assertEqual(data["workspace_name"], self.workspace.name)
+        self.assertEqual(data["project_name"], self.project.name)
+        self.assertEqual(data["task_title"], self.task.title)
+
     def test_list_orders_newest_first(self):
         older = self.make_notification()
         newer = self.make_notification()
