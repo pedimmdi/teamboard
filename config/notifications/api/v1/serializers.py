@@ -120,6 +120,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     workspace_name = serializers.CharField(source="workspace.name", read_only=True, allow_null=True)
     project_name = serializers.CharField(source="project.name", read_only=True, allow_null=True)
     task_title = serializers.CharField(source="task.title", read_only=True, allow_null=True)
+    actor_name = serializers.CharField(source="actor.full_name", read_only=True, allow_null=True)
     is_read = serializers.BooleanField(read_only=True)
     payload = serializers.SerializerMethodField()
 
@@ -129,6 +130,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             "id",
             "event_type",
             "actor",
+            "actor_name",
             "workspace",
             "project",
             "task",

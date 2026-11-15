@@ -409,6 +409,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedNotificationList'
           description: ''
+  /api/v1/notifications/{id}/accept-invitation/:
+    post:
+      operationId: v1_notifications_accept_invitation_create
+      summary: Accept a workspace invitation from the inbox
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Notifications
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/notifications/{id}/mark-read/:
     post:
       operationId: notifications_mark_read
@@ -2035,6 +2053,10 @@ components:
           type: integer
           readOnly: true
           nullable: true
+        actor_name:
+          type: string
+          readOnly: true
+          nullable: true
         workspace:
           type: string
           format: uuid
@@ -2084,6 +2106,7 @@ components:
           readOnly: true
       required:
       - actor
+      - actor_name
       - created_at
       - event_type
       - id

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ApiError,
+  acceptNotificationInvitation,
+  NOTIFICATION_PAGE_SIZE,
   getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -26,7 +28,7 @@ type InboxPage = Awaited<ReturnType<typeof getNotifications>>;
 
 export default function NotificationsPage() {
   const { accessToken } = useAuth();
-  const { count, refresh } = useNotificationCount();
+  const { count, failed, refresh } = useNotificationCount();
   const [filter, setFilter] = useState<NotificationFilter>("all");
   const [page, setPage] = useState(1);
   const [revision, setRevision] = useState(0);
@@ -62,16 +64,19 @@ export default function NotificationsPage() {
     refresh();
   }
 
-  async function markRead(id?: string) {
+  async function markRead(id?: string, acceptInvitation = false) {
     if (!accessToken || pending) return;
     setPending(true);
     setActionError("");
     try {
-      if (id) await markNotificationRead(accessToken, id);
+      if (id && acceptInvitation) await acceptNotificationInvitation(accessToken, id);
+      else if (id) await markNotificationRead(accessToken, id);
       else await markAllNotificationsRead(accessToken);
       reload();
-    } catch {
-      setActionError("Unable to mark notifications as read. Please try again.");
+    } catch (error) {
+      setActionError(acceptInvitation
+        ? (error instanceof ApiError ? error.message : "Unable to accept the invitation.")
+        : "Unable to mark notifications as read. Please try again.");
     } finally {
       setPending(false);
     }
@@ -104,8 +109,9 @@ export default function NotificationsPage() {
               ))}
             </div>
             <div className={styles.actions}>
+              {failed && <button type="button" onClick={refresh}>Retry unread count</button>}
               {count !== null && <span aria-live="polite">{count} unread</span>}
-              <button type="button" disabled={pending || loading || count === 0}
+              <button type="button" disabled={pending || loading || (!failed && count === 0)}
                 onClick={() => void markRead()}>
                 Mark all as read
               </button>
@@ -144,7 +150,13 @@ export default function NotificationsPage() {
                         <time dateTime={notification.created_at}>
                           {dateFormat.format(new Date(notification.created_at))}
                         </time>
-                        {!notification.is_read && (
+                        {notification.event_type === "workspace_invited" && (
+                        <button type="button" disabled={pending}
+                          onClick={() => void markRead(notification.id, true)}>
+                          Accept invitation
+                        </button>
+                      )}
+                      {!notification.is_read && (
                           <button type="button" disabled={pending}
                             aria-label={`Mark as read: ${title}`}
                             onClick={() => void markRead(notification.id)}>
@@ -157,7 +169,7 @@ export default function NotificationsPage() {
                 })}
               </ul>
               <footer className={styles.footer}>
-                <span>Showing {(page - 1) * 20 + 1}–{(page - 1) * 20 + data.results.length} of {data.count}</span>
+                <span>Showing {(page - 1) * NOTIFICATION_PAGE_SIZE + 1}–{(page - 1) * NOTIFICATION_PAGE_SIZE + data.results.length} of {data.count}</span>
                 <div>
                   <button type="button" disabled={!data.previous} onClick={() => setPage(page - 1)}>Previous</button>
                   <button type="button" disabled={!data.next} onClick={() => setPage(page + 1)}>Next</button>

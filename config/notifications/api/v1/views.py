@@ -11,6 +11,8 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 
+from workspaces.services import accept_workspace_invitation
+
 from notifications.models import Notification
 from notifications.access import get_accessible_notifications
 
@@ -28,7 +30,7 @@ class NotificationListView(generics.ListAPIView):
             self.request.user,
         )
 
-        queryset = queryset.select_related("workspace", "project", "task")
+        queryset = queryset.select_related("actor", "workspace", "project", "task")
 
         read_filter = self.request.query_params.get("read")
 
@@ -173,3 +175,25 @@ class NotificationMarkAllReadView(generics.GenericAPIView):
             {"updated_count": updated_count},
             status=status.HTTP_200_OK,
         )
+
+
+class NotificationAcceptInvitationView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        tags=["Notifications"],
+        summary="Accept a workspace invitation from the inbox",
+        request=None,
+        responses={204: None},
+    )
+    def post(self, request, pk):
+        notification = get_object_or_404(
+            get_accessible_notifications(request.user),
+            pk=pk,
+            event_type=Notification.EventType.WORKSPACE_INVITED,
+        )
+        accept_workspace_invitation(
+            invitation_id=notification.payload["invitation_id"],
+            user=request.user,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)

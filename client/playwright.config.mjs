@@ -1,9 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const port = process.env.E2E_FRONTEND_PORT || "3100";
+const frontendUrl = `http://localhost:${port}`;
+
 export default defineConfig({
   testDir: "./e2e",
   retries: 0,
-  use: { baseURL: "http://localhost:3100", trace: "retain-on-failure" },
+  use: { baseURL: frontendUrl, trace: "retain-on-failure" },
   projects: [{
     name: "chromium",
     use: { ...devices["Desktop Chrome"], channel: process.env.E2E_BROWSER_CHANNEL },
@@ -13,6 +16,7 @@ export default defineConfig({
       ? `"${process.env.E2E_PYTHON}" browser_test_server.py`
       : "python browser_test_server.py",
     cwd: "../config",
+    env: { FRONTEND_URL: frontendUrl },
     url: "http://127.0.0.1:8100/api/schema/",
     timeout: 120_000,
   }, {
@@ -20,9 +24,9 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_API_URL: "http://localhost:8100",
       HOSTNAME: "127.0.0.1",
-      PORT: "3100",
+      PORT: port,
     },
-    url: "http://localhost:3100/login",
+    url: `${frontendUrl}/login`,
     reuseExistingServer: false,
     timeout: 120_000,
   }],

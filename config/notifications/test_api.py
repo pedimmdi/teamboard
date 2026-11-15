@@ -583,6 +583,36 @@ class NotificationAPITests(TestCase):
             str(notification.pk),
         )
 
+    def test_accept_invitation_from_inbox_requires_recipient_and_verified_email(self):
+        self.workspace_membership.delete()
+        invitation = WorkspaceInvitation.objects.create(
+            workspace=self.workspace,
+            email=self.user.email,
+            invited_by=self.actor,
+            token_hash=uuid4().hex,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+        notification = self.make_notification(
+            event_type=Notification.EventType.WORKSPACE_INVITED,
+        )
+        notification.payload = {"invitation_id": str(invitation.pk)}
+        notification.save(update_fields=["payload"])
+        url = reverse("notification-accept-invitation", args=[notification.pk])
+
+        self.client.force_authenticate(user=self.other_user)
+        self.assertEqual(self.client.post(url).status_code, 404)
+        self.client.force_authenticate(user=self.user)
+        self.user.is_email_verified = False
+        self.assertEqual(self.client.post(url).status_code, 400)
+        self.user.is_email_verified = True
+        self.assertEqual(self.client.post(url).status_code, 204)
+        self.assertEqual(self.client.post(url).status_code, 404)
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.status, WorkspaceInvitation.Status.ACCEPTED)
+        self.assertTrue(WorkspaceMembership.objects.filter(
+            user=self.user, workspace=self.workspace, role=WorkspaceMembership.Role.MEMBER,
+        ).exists())
+
     def test_notification_hidden_after_workspace_deleted(self):
         self.make_notification(
             workspace=self.workspace,

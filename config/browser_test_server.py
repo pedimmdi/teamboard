@@ -2,7 +2,7 @@
 import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-os.environ["FRONTEND_URL"] = "http://localhost:3100"
+os.environ.setdefault("FRONTEND_URL", "http://localhost:3100")
 
 import django
 from django.core.management import call_command

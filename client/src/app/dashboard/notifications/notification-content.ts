@@ -26,6 +26,9 @@ export function notificationContent(notification: InboxNotification) {
     href = `${projectPath}/tasks?task=${encodeURIComponent(task)}`;
   }
   if (notification.event_type === "workspace_invited") href = null;
+  if (notification.event_type === "workspace_role_changed" && workspace) {
+    href = `${workspace}/members`;
+  }
 
   const role = [payload.old_role, payload.new_role]
     .filter(Boolean).join(" → ") || payload.role;
@@ -35,13 +38,11 @@ export function notificationContent(notification: InboxNotification) {
     tone,
     href,
     description: [
+      notification.actor_name,
       notification.task_title,
       notification.project_name,
       notification.workspace_name,
       role,
-      notification.event_type === "workspace_invited"
-        ? "Open the invitation link in your email."
-        : null,
     ].filter(Boolean).join(" · "),
   };
 }

@@ -33,9 +33,9 @@ test("notification API sends filters, pagination, bearer credentials and read mu
   assert.deepEqual(requests.map(([url, options]) => [
     url.pathname + url.search, options.method ?? "GET", options.headers.Authorization,
   ]), [
-    ["/api/v1/notifications/?page=1", "GET", "Bearer token"],
-    ["/api/v1/notifications/?page=2&read=false", "GET", "Bearer token"],
-    ["/api/v1/notifications/?page=1&read=true", "GET", "Bearer token"],
+    ["/api/v1/notifications/?page=1&page_size=20", "GET", "Bearer token"],
+    ["/api/v1/notifications/?page=2&page_size=20&read=false", "GET", "Bearer token"],
+    ["/api/v1/notifications/?page=1&page_size=20&read=true", "GET", "Bearer token"],
     ["/api/v1/notifications/unread-count/", "GET", "Bearer token"],
     ["/api/v1/notifications/notification%2Fid/mark-read/", "POST", "Bearer token"],
     ["/api/v1/notifications/mark-all-read/", "POST", "Bearer token"],
@@ -63,5 +63,5 @@ test("task notifications open the task drawer and invitations use the email flow
     project_name: null, task_title: null,
   });
   assert.equal(invitation.href, null);
-  assert.match(invitation.description, /invitation link in your email/);
+  assert.equal(invitation.description, "Core");
 });

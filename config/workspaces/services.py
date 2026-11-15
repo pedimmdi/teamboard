@@ -150,8 +150,12 @@ def create_workspace_invitation(
         }) from exc
 
 
-def accept_workspace_invitation(*, token, user):
-    token_hash = hash_invitation_token(token)
+def accept_workspace_invitation(*, user, token=None, invitation_id=None):
+    lookup = (
+        {"token_hash": hash_invitation_token(token)}
+        if token is not None
+        else {"pk": invitation_id, "email__iexact": user.email.strip()}
+    )
     expired = False
 
     with transaction.atomic():
@@ -159,7 +163,7 @@ def accept_workspace_invitation(*, token, user):
             WorkspaceInvitation.objects
             .select_for_update()
             .select_related("workspace")
-            .filter(token_hash=token_hash)
+            .filter(**lookup)
             .first()
         )
 

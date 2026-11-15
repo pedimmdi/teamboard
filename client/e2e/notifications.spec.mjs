@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 test("mobile inbox retries, paginates, filters and updates unread badges", async ({ page }) => {
   test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
+  const countEndpoint = "**/api/v1/notifications/unread-count/";
+  await page.route(countEndpoint, (route) => route.abort());
   await page.goto("/login");
   // Confirm the server-rendered sign-in form has hydrated before filling it.
   await expect(async () => {
@@ -14,13 +16,18 @@ test("mobile inbox retries, paginates, filters and updates unread badges", async
   await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_PASSWORD);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/dashboard/);
-  const bell = page.getByRole("banner").getByRole("link", { name: "Notifications, 21 unread" });
+  const bell = page.getByRole("banner").getByRole("link", { name: "Notifications", exact: true });
   await expect(bell).toBeVisible();
 
-  const firstPage = /\/api\/v1\/notifications\/\?page=1$/;
+  const firstPage = /\/api\/v1\/notifications\/\?page=1&page_size=20$/;
   await page.route(firstPage, (route) => route.abort());
   await bell.click();
   await expect(page.getByRole("heading", { name: "Unable to load notifications" })).toBeVisible();
+  const retryCount = page.getByRole("button", { name: "Retry unread count" });
+  await expect(retryCount).toBeVisible();
+  await page.unroute(countEndpoint);
+  await retryCount.click();
+  await expect(page.getByRole("banner").getByRole("link", { name: "Notifications, 21 unread" })).toBeVisible();
   await page.unroute(firstPage);
   await page.getByRole("button", { name: "Try again" }).click();
   await expect(page.getByText("Showing 1–20 of 21")).toBeVisible();
@@ -33,7 +40,7 @@ test("mobile inbox retries, paginates, filters and updates unread badges", async
   await page.getByRole("button", { name: "Read", exact: true }).click();
   await expect(page.getByText("Showing 1–1 of 1")).toBeVisible();
   await expect(page.getByRole("link", { name: "Your workspace role was updated" })).toHaveAttribute(
-    "href", /\/dashboard\/workspaces\/[^/]+\/projects$/,
+    "href", /\/dashboard\/workspaces\/[^/]+\/members$/,
   );
 
   await page.getByRole("button", { name: "Unread", exact: true }).click();

@@ -6,8 +6,9 @@ import { useAuth } from "@/lib/auth";
 
 const NotificationCount = createContext<{
   count: number | null;
+  failed: boolean;
   refresh: () => void;
-}>({ count: null, refresh: () => {} });
+}>({ count: null, failed: false, refresh: () => {} });
 
 export function useNotificationCount() {
   return useContext(NotificationCount);
@@ -17,6 +18,7 @@ export function NotificationCountProvider({ children }: { children: React.ReactN
   const { accessToken, user } = useAuth();
   const userId = user?.id;
   const [result, setResult] = useState<{ userId: number; count: number }>();
+  const [failedUser, setFailedUser] = useState<number | null>(null);
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision((value) => value + 1), []);
 
@@ -25,9 +27,14 @@ export function NotificationCountProvider({ children }: { children: React.ReactN
     const controller = new AbortController();
     getUnreadNotificationCount(accessToken, controller.signal)
       .then(({ unread_count }) => {
-        if (!controller.signal.aborted) setResult({ userId, count: unread_count });
+        if (!controller.signal.aborted) {
+          setResult({ userId, count: unread_count });
+          setFailedUser(null);
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!controller.signal.aborted) setFailedUser(userId);
+      });
     return () => controller.abort();
   }, [accessToken, userId, revision]);
 
@@ -45,6 +52,7 @@ export function NotificationCountProvider({ children }: { children: React.ReactN
   return (
     <NotificationCount.Provider value={{
       count: result && result.userId === userId ? result.count : null,
+      failed: failedUser === userId,
       refresh,
     }}>
       {children}

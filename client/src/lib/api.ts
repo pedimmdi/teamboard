@@ -1215,6 +1215,7 @@ export type NotificationEvent =
 export type InboxNotification = {
   id: string;
   event_type: NotificationEvent;
+  actor_name: string | null;
   workspace_slug: string | null;
   workspace_name: string | null;
   project: string | null;
@@ -1228,6 +1229,8 @@ export type InboxNotification = {
 
 export type NotificationFilter = "all" | "unread" | "read";
 
+export const NOTIFICATION_PAGE_SIZE = 20;
+
 const notificationsPath = "/api/v1/notifications/";
 
 export function getNotifications(
@@ -1236,7 +1239,10 @@ export function getNotifications(
   page = 1,
   signal?: AbortSignal,
 ) {
-  const query = new URLSearchParams({ page: String(page) });
+  const query = new URLSearchParams({
+    page: String(page),
+    page_size: String(NOTIFICATION_PAGE_SIZE),
+  });
   if (filter !== "all") query.set("read", String(filter === "read"));
   return apiFetch<{
     count: number;
@@ -1265,4 +1271,11 @@ export function markAllNotificationsRead(token: string) {
     token,
     method: "POST",
   });
+}
+
+export function acceptNotificationInvitation(token: string, id: string) {
+  return apiFetch<void>(
+    `${notificationsPath}${encodeURIComponent(id)}/accept-invitation/`,
+    { token, method: "POST" },
+  );
 }
