@@ -149,31 +149,49 @@ def create_comment(*, task, actor, body, reply_to=None, attachment=None):
     body = validate_comment_body(body) if body or attachment is None else ""
     comment = Comment.objects.create(task=task, author=actor, body=body, reply_to=parent)
     sync_mentions(comment)
-    if attachment is not None:
-        storage = attachment_storage()
-        key = storage.save(f"uploads/{uuid4().hex}", attachment)
-        try:
-            CommentAttachment.objects.create(
-                comment=comment, filename=attachment.name, size=attachment.size, storage_key=key,
+
+    storage = None
+    storage_key = None
+
+    try:
+        if attachment is not None:
+            storage = attachment_storage()
+            storage_key = storage.save(
+                f"uploads/{uuid4().hex}",
+                attachment,
             )
-        except Exception:
-            storage.delete(key)
-            raise
 
-    excluded_user_ids = set()
+            CommentAttachment.objects.create(
+                comment=comment,
+                filename=attachment.name,
+                size=attachment.size,
+                storage_key=storage_key,
+            )
 
-    if parent is not None and parent.author_id is not None:
-        notify_comment_replied(
+        excluded_user_ids = set()
+
+        if parent is not None and parent.author_id is not None:
+            notify_comment_replied(
+                comment=comment,
+                actor=actor,
+            )
+            excluded_user_ids.add(parent.author_id)
+
+        notify_comment_mentions(
             comment=comment,
             actor=actor,
+            excluded_user_ids=excluded_user_ids,
         )
-        excluded_user_ids.add(parent.author_id)
 
-    notify_comment_mentions(
-        comment=comment,
-        actor=actor,
-        excluded_user_ids=excluded_user_ids,
-    )
+    except Exception:
+        if storage is not None and storage_key is not None:
+            try:
+                storage.delete(storage_key)
+            except Exception:
+                # Preserve the original exception.
+                # Failed cleanup should be logged by production monitoring.
+                pass
+        raise
 
     return comment
 

@@ -164,3 +164,54 @@ def notify_project_role_changed(
             "new_role": membership.role,
         },
     )
+
+
+def notify_workspace_invited(*, invitation, recipient):
+    """
+    Notify an existing user about a workspace invitation.
+
+    Invitation tokens must never be stored in the payload.
+    """
+
+    return create_notification(
+        recipient=recipient,
+        actor=invitation.invited_by,
+        event_type=Notification.EventType.WORKSPACE_INVITED,
+        workspace=invitation.workspace,
+        deduplication_key=(
+            f"workspace_invited:{invitation.pk}:{recipient.pk}"
+        ),
+        payload={
+            "invitation_id": str(invitation.pk),
+        },
+    )
+
+
+def notify_workspace_role_changed(
+    *,
+    membership,
+    actor,
+    old_role,
+):
+    """
+    Notify a workspace member about a real role change.
+
+    Must be called inside the membership transaction.
+    """
+
+    if old_role == membership.role:
+        return None, False
+
+    return create_notification(
+        recipient=membership.user,
+        actor=actor,
+        event_type=Notification.EventType.WORKSPACE_ROLE_CHANGED,
+        workspace=membership.workspace,
+        deduplication_key=(
+            f"workspace_role_changed:{membership.pk}:{uuid4()}"
+        ),
+        payload={
+            "old_role": old_role,
+            "new_role": membership.role,
+        },
+    )

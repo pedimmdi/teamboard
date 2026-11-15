@@ -947,3 +947,27 @@ class NotificationAPITests(TestCase):
             response.data,
             {"updated_count": 0},
         )
+
+    def test_removed_project_member_cannot_read_old_task_notification(self):
+        notification = self.make_notification(
+            event_type=Notification.EventType.COMMENT_MENTIONED,
+        )
+
+        self.project_membership.delete()
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+        read_url = reverse(
+            "notification-mark-read",
+            kwargs={"pk": notification.pk},
+        )
+
+        read_response = self.client.post(read_url)
+
+        self.assertEqual(read_response.status_code, 404)
+
+        notification.refresh_from_db()
+        self.assertIsNone(notification.read_at)

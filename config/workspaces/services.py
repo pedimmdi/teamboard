@@ -1,7 +1,7 @@
 import hashlib
 import secrets
 from datetime import timedelta
-
+from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from .models import WorkspaceInvitation, WorkspaceMembership
+from notifications.events import notify_workspace_invited
 
 
 INVITATION_EXPIRY_DAYS = 7
@@ -90,6 +91,19 @@ def create_workspace_invitation(
         token_hash=token_hash,
         expires_at=now + timedelta(days=INVITATION_EXPIRY_DAYS),
     )
+
+    User = get_user_model()
+
+    recipient = User.objects.filter(
+        email__iexact=email,
+        is_active=True,
+    ).first()
+
+    if recipient is not None:
+        notify_workspace_invited(
+            invitation=invitation,
+            recipient=recipient,
+        )
 
     invitation_url = (
         f"{settings.FRONTEND_URL.rstrip('/')}/accept-invitation/"

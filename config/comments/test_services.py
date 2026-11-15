@@ -1,12 +1,12 @@
 from unittest.mock import patch
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from rest_framework.exceptions import (
     PermissionDenied,
     ValidationError,
 )
-
-from comments.models import Comment
+from comments.models import Comment, CommentAttachment
 from comments.services import (
     create_comment,
     update_comment,
@@ -354,3 +354,55 @@ class CommentServiceTests(TestCase):
         comment.refresh_from_db()
         self.assertEqual(comment.body, "Original")
         self.assertFalse(Notification.objects.exists())
+
+    def test_attachment_is_deleted_when_notification_fails(self):
+        attachment = SimpleUploadedFile(
+            "test.txt",
+            b"Safe attachment content",
+            content_type="text/plain",
+        )
+
+        with patch("comments.services.attachment_storage") as storage_factory:
+            storage = storage_factory.return_value
+            storage.save.return_value = "uploads/test-file-key"
+
+            with patch(
+                "comments.services.notify_comment_mentioned",
+                side_effect=RuntimeError("Notification failure"),
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "Notification failure",
+                ):
+                    create_comment(
+                        task=self.task,
+                        actor=self.author,
+                        body=f"Review @{self.other.email}",
+                        attachment=attachment,
+                    )
+
+            storage.delete.assert_called_once_with(
+                "uploads/test-file-key",
+            )
+
+        self.assertFalse(Comment.objects.exists())
+        self.assertFalse(CommentAttachment.objects.exists())
+        self.assertFalse(Notification.objects.exists())
+
+    def test_mention_without_workspace_membership_is_not_notified(self):
+        self.other.workspace_memberships.filter(
+            workspace=self.workspace,
+        ).delete()
+
+        create_comment(
+            task=self.task,
+            actor=self.author,
+            body=f"Review @{self.other.email}",
+        )
+
+        self.assertFalse(
+            Notification.objects.filter(
+                recipient=self.other,
+                event_type=Notification.EventType.COMMENT_MENTIONED,
+            ).exists()
+        )

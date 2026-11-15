@@ -40,6 +40,7 @@ from .serializers import (
 )
 from workspaces.access import get_membership_or_404
 from .pagination import WorkspacePageNumberPagination
+from notifications.events import notify_workspace_role_changed
 
 
 @extend_schema_view(
@@ -671,8 +672,18 @@ class WorkspaceMemberRoleUpdateView(APIView):
                     )
                 })
 
-            target_membership.role = serializer.validated_data["role"]
-            target_membership.save(update_fields=["role"])
+            old_role = target_membership.role
+            new_role = serializer.validated_data["role"]
+
+            if old_role != new_role:
+                target_membership.role = new_role
+                target_membership.save(update_fields=["role"])
+
+                notify_workspace_role_changed(
+                    membership=target_membership,
+                    actor=request.user,
+                    old_role=old_role,
+                )
 
         return Response(
             WorkspaceMembershipSerializer(
@@ -835,11 +846,26 @@ class WorkspaceOwnershipTransferView(APIView):
                     )
                 })
 
+            old_actor_role = actor_membership.role
+            old_target_role = target_membership.role
+
             actor_membership.role = WorkspaceMembership.Role.ADMIN
             actor_membership.save(update_fields=["role"])
 
             target_membership.role = WorkspaceMembership.Role.OWNER
             target_membership.save(update_fields=["role"])
+
+            notify_workspace_role_changed(
+                membership=actor_membership,
+                actor=request.user,
+                old_role=old_actor_role,
+            )
+
+            notify_workspace_role_changed(
+                membership=target_membership,
+                actor=request.user,
+                old_role=old_target_role,
+            )
 
         return Response(
             WorkspaceMembershipSerializer(
