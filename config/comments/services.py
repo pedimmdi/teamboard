@@ -20,6 +20,10 @@ from notifications.events import (
 )
 from workspaces.models import WorkspaceMembership
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 MAX_COMMENT_LENGTH = 5000
 
@@ -188,9 +192,10 @@ def create_comment(*, task, actor, body, reply_to=None, attachment=None):
             try:
                 storage.delete(storage_key)
             except Exception:
-                # Preserve the original exception.
-                # Failed cleanup should be logged by production monitoring.
-                pass
+                logger.exception(
+                    "Failed to delete comment attachment: %s",
+                    storage_key,
+                )
         raise
 
     return comment

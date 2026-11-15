@@ -1,20 +1,35 @@
-from django.db.models import Exists, F, OuterRef, Q
+
+from django.db.models import (
+    CharField,
+    Exists,
+    F,
+    OuterRef,
+    Q,
+)
+from django.db.models.fields.json import KeyTextTransform
+from django.db.models.functions import Cast
+from django.utils import timezone
+
 from notifications.models import Notification
 from notifications.scopes import PROJECT_EVENTS, TASK_EVENTS
 from projects.models import ProjectMembership
-from workspaces.models import WorkspaceMembership
+from workspaces.models import (
+    WorkspaceInvitation,
+    WorkspaceMembership,
+)
 
 
 def get_accessible_notifications(user):
     """
     Return notifications visible to the authenticated user.
 
-    Invitation notifications do not require membership.
+    Invitation notifications require a matching, active
+    invitation addressed to the recipient's current email.
 
     Other workspace notifications require workspace membership.
 
     Project/task notifications require workspace membership
-    and either project membership or workspace management access.
+    and project membership or workspace management access.
 
     Notifications with missing or inconsistent scopes are hidden.
     """
@@ -39,11 +54,33 @@ def get_accessible_notifications(user):
         user=user,
     )
 
-    invitation_access = Q(
-        event_type=Notification.EventType.WORKSPACE_INVITED,
-        workspace__isnull=False,
-        project__isnull=True,
-        task__isnull=True,
+    active_invitation = (
+        WorkspaceInvitation.objects
+        .annotate(
+            invitation_id_text=Cast(
+                "id",
+                output_field=CharField(),
+            ),
+        )
+        .filter(
+            invitation_id_text=OuterRef(
+                "invitation_id_text"
+            ),
+            workspace_id=OuterRef("workspace_id"),
+            email__iexact=user.email,
+            status=WorkspaceInvitation.Status.PENDING,
+            expires_at__gt=timezone.now(),
+        )
+    )
+
+    invitation_access = (
+        Q(
+            event_type=Notification.EventType.WORKSPACE_INVITED,
+            workspace__isnull=False,
+            project__isnull=True,
+            task__isnull=True,
+        )
+        & Q(has_active_invitation=True)
     )
 
     workspace_access = (
@@ -87,9 +124,14 @@ def get_accessible_notifications(user):
     return (
         Notification.objects.filter(recipient=user)
         .annotate(
+            invitation_id_text=KeyTextTransform(
+                "invitation_id",
+                "payload",
+            ),
             has_workspace_access=Exists(workspace_membership),
             has_workspace_management=Exists(workspace_management),
             has_project_access=Exists(project_membership),
+            has_active_invitation=Exists(active_invitation),
         )
         .filter(
             invitation_access

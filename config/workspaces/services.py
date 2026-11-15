@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -44,7 +44,6 @@ def send_workspace_invitation_email(
     )
 
 
-@transaction.atomic
 def create_workspace_invitation(
     *,
     workspace,
@@ -52,75 +51,103 @@ def create_workspace_invitation(
     email,
 ):
     email = email.strip().lower()
-    now = timezone.now()
 
-    # Expired pending invitations must not block a new invitation.
-    WorkspaceInvitation.objects.filter(
-        workspace=workspace,
-        email=email,
-        status=WorkspaceInvitation.Status.PENDING,
-        expires_at__lte=now,
-    ).update(status=WorkspaceInvitation.Status.EXPIRED)
+    try:
+        with transaction.atomic():
+            now = timezone.now()
 
-    # An existing member must not be invited again.
-    if workspace.memberships.filter(
-        user__email__iexact=email,
-    ).exists():
-        raise ValidationError({
-            "email": "This user is already a member of the workspace."
-        })
+            # Expired pending invitations must not block a new invitation.
+            WorkspaceInvitation.objects.filter(
+                workspace=workspace,
+                email=email,
+                status=WorkspaceInvitation.Status.PENDING,
+                expires_at__lte=now,
+            ).update(
+                status=WorkspaceInvitation.Status.EXPIRED
+            )
 
-    # Only one active invitation per workspace and email.
-    if WorkspaceInvitation.objects.filter(
-        workspace=workspace,
-        email=email,
-        status=WorkspaceInvitation.Status.PENDING,
-        expires_at__gt=now,
-    ).exists():
-        raise ValidationError({
-            "email": "An active invitation already exists for this email."
-        })
+            if workspace.memberships.filter(
+                user__email__iexact=email,
+            ).exists():
+                raise ValidationError({
+                    "email": (
+                        "This user is already a member of the workspace."
+                    )
+                })
 
-    raw_token = secrets.token_urlsafe(32)
-    token_hash = hash_invitation_token(raw_token)
+            if WorkspaceInvitation.objects.filter(
+                workspace=workspace,
+                email=email,
+                status=WorkspaceInvitation.Status.PENDING,
+                expires_at__gt=now,
+            ).exists():
+                raise ValidationError({
+                    "email": (
+                        "An active invitation already exists "
+                        "for this email."
+                    )
+                })
 
-    invitation = WorkspaceInvitation.objects.create(
-        workspace=workspace,
-        email=email,
-        invited_by=invited_by,
-        token_hash=token_hash,
-        expires_at=now + timedelta(days=INVITATION_EXPIRY_DAYS),
-    )
+            raw_token = secrets.token_urlsafe(32)
+            token_hash = hash_invitation_token(raw_token)
 
-    User = get_user_model()
+            invitation = WorkspaceInvitation.objects.create(
+                workspace=workspace,
+                email=email,
+                invited_by=invited_by,
+                token_hash=token_hash,
+                expires_at=now + timedelta(
+                    days=INVITATION_EXPIRY_DAYS
+                ),
+            )
 
-    recipient = User.objects.filter(
-        email__iexact=email,
-        is_active=True,
-    ).first()
+            User = get_user_model()
 
-    if recipient is not None:
-        notify_workspace_invited(
-            invitation=invitation,
-            recipient=recipient,
+            recipient = User.objects.filter(
+                email__iexact=email,
+                is_active=True,
+            ).first()
+
+            if recipient is not None:
+                notify_workspace_invited(
+                    invitation=invitation,
+                    recipient=recipient,
+                )
+
+            invitation_url = (
+                f"{settings.FRONTEND_URL.rstrip('/')}"
+                "/accept-invitation/"
+                f"?token={raw_token}"
+            )
+
+            transaction.on_commit(
+                lambda: send_workspace_invitation_email(
+                    email=email,
+                    workspace_name=workspace.name,
+                    invitation_url=invitation_url,
+                ),
+                robust=True,
+            )
+
+            return invitation
+
+    except IntegrityError as exc:
+        # Convert only the known duplicate-pending-invitation
+        # constraint into a client-facing validation error.
+        constraint_name = getattr(
+            getattr(exc.__cause__, "diag", None),
+            "constraint_name",
+            None,
         )
 
-    invitation_url = (
-        f"{settings.FRONTEND_URL.rstrip('/')}/accept-invitation/"
-        f"?token={raw_token}"
-    )
+        if constraint_name != "unique_pending_ws_invitation_email":
+            raise
 
-    # Email delivery happens only after the database transaction commits.
-    transaction.on_commit(
-        lambda: send_workspace_invitation_email(
-            email=email,
-            workspace_name=workspace.name,
-            invitation_url=invitation_url,
-        ),
-        robust=True,
-    )
-
-    return invitation
+        raise ValidationError({
+            "email": (
+                "An active invitation already exists for this email."
+            )
+        }) from exc
 
 
 def accept_workspace_invitation(*, token, user):

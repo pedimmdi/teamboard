@@ -12,7 +12,11 @@ from rest_framework.test import APIClient
 
 from notifications.models import Notification
 from projects.models import Project, ProjectMembership
-from workspaces.models import Workspace, WorkspaceMembership
+from workspaces.models import (
+    Workspace,
+    WorkspaceInvitation,
+    WorkspaceMembership,
+)
 from tasks.models import Task
 
 
@@ -542,21 +546,31 @@ class NotificationAPITests(TestCase):
         self.assertEqual(count_response.data["unread_count"], 0)
 
     def test_workspace_invitation_visible_to_non_member(self):
-        invitation = self.make_notification(
+        invitation = WorkspaceInvitation.objects.create(
             workspace=self.workspace,
-            project=None,
+            email=self.user.email,
+            invited_by=self.actor,
+            token_hash=uuid4().hex,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+
+        notification = self.make_notification(
             event_type=Notification.EventType.WORKSPACE_INVITED,
         )
+        notification.payload = {
+            "invitation_id": str(invitation.pk),
+        }
+        notification.save(update_fields=["payload"])
 
         self.workspace_membership.delete()
 
         response = self.client.get(self.list_url)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(
             response.data["results"][0]["id"],
-            str(invitation.pk),
+            str(notification.pk),
         )
 
     def test_notification_hidden_after_workspace_deleted(self):
@@ -968,6 +982,293 @@ class NotificationAPITests(TestCase):
         read_response = self.client.post(read_url)
 
         self.assertEqual(read_response.status_code, 404)
+
+        notification.refresh_from_db()
+        self.assertIsNone(notification.read_at)
+
+    def test_task_updated_public_payload(self):
+        notification = self.make_notification(
+            event_type=Notification.EventType.TASK_UPDATED,
+        )
+
+        notification.payload = {
+            "changed_fields": ["status", "title", "status"],
+            "secret": "private-value",
+        }
+        notification.save(update_fields=["payload"])
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["results"][0]["payload"],
+            {"changed_fields": ["status", "title"]},
+        )
+        self.assertNotIn("private-value", str(response.data))
+
+    def test_comment_mention_public_payload(self):
+        notification = self.make_notification(
+            event_type=Notification.EventType.COMMENT_MENTIONED,
+        )
+
+        comment_id = str(uuid4())
+
+        notification.payload = {
+            "comment_id": comment_id,
+            "secret": "private-value",
+        }
+        notification.save(update_fields=["payload"])
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["results"][0]["payload"],
+            {"comment_id": comment_id},
+        )
+
+    def test_comment_reply_public_payload(self):
+        notification = self.make_notification(
+            event_type=Notification.EventType.COMMENT_REPLIED,
+        )
+
+        comment_id = str(uuid4())
+        parent_id = str(uuid4())
+
+        notification.payload = {
+            "comment_id": comment_id,
+            "parent_comment_id": parent_id,
+            "secret": "private-value",
+        }
+        notification.save(update_fields=["payload"])
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["results"][0]["payload"],
+            {
+                "comment_id": comment_id,
+                "parent_comment_id": parent_id,
+            },
+        )
+
+    def test_workspace_invitation_public_payload(self):
+        invitation = WorkspaceInvitation.objects.create(
+            workspace=self.workspace,
+            email=self.user.email,
+            invited_by=self.actor,
+            token_hash=uuid4().hex,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+
+        notification = self.make_notification(
+            event_type=Notification.EventType.WORKSPACE_INVITED,
+        )
+
+        notification.payload = {
+            "invitation_id": str(invitation.pk),
+            "invitation_token": "private-token",
+            "secret": "private-value",
+        }
+        notification.save(update_fields=["payload"])
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["results"][0]["payload"],
+            {"invitation_id": str(invitation.pk)},
+        )
+        self.assertNotIn("private-token", str(response.data))
+
+    def test_workspace_role_changed_public_payload(self):
+        notification = self.make_notification(
+            event_type=Notification.EventType.WORKSPACE_ROLE_CHANGED,
+        )
+
+        notification.payload = {
+            "old_role": "member",
+            "new_role": "admin",
+            "secret": "private-value",
+        }
+        notification.save(update_fields=["payload"])
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["results"][0]["payload"],
+            {
+                "old_role": "member",
+                "new_role": "admin",
+            },
+        )
+
+    def test_invalid_public_payload_values_are_hidden(self):
+        notification = self.make_notification(
+            event_type=Notification.EventType.COMMENT_MENTIONED,
+        )
+
+        notification.payload = {
+            "comment_id": "not-a-valid-uuid",
+            "secret": "private-value",
+        }
+        notification.save(update_fields=["payload"])
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["results"][0]["payload"],
+            {},
+        )
+        self.assertNotIn("private-value", str(response.data))
+
+    def make_invitation_notification(self):
+        invitation = WorkspaceInvitation.objects.create(
+            workspace=self.workspace,
+            email=self.user.email,
+            invited_by=self.actor,
+            token_hash=uuid4().hex,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+
+        notification = self.make_notification(
+            event_type=Notification.EventType.WORKSPACE_INVITED,
+        )
+        notification.payload = {
+            "invitation_id": str(invitation.pk),
+        }
+        notification.save(update_fields=["payload"])
+
+        return invitation, notification
+
+    def test_pending_invitation_is_visible(self):
+        invitation, notification = (
+            self.make_invitation_notification()
+        )
+
+        self.workspace_membership.delete()
+
+        response = self.client.get(self.list_url)
+        count_response = self.client.get(self.count_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(
+            response.data["results"][0]["id"],
+            str(notification.pk),
+        )
+        self.assertEqual(
+            count_response.data["unread_count"],
+            1,
+        )
+
+    def test_inactive_invitation_statuses_are_hidden(self):
+        for invitation_status in (
+            WorkspaceInvitation.Status.ACCEPTED,
+            WorkspaceInvitation.Status.REVOKED,
+            WorkspaceInvitation.Status.EXPIRED,
+        ):
+            with self.subTest(status=invitation_status):
+                invitation, notification = (
+                    self.make_invitation_notification()
+                )
+
+                invitation.status = invitation_status
+                invitation.save(update_fields=["status"])
+
+                response = self.client.get(self.list_url)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data["count"], 0)
+
+                invitation.delete()
+                notification.delete()
+
+    def test_expired_pending_invitation_is_hidden(self):
+        invitation, notification = (
+            self.make_invitation_notification()
+        )
+
+        invitation.expires_at = (
+            timezone.now() - timedelta(seconds=1)
+        )
+        invitation.save(update_fields=["expires_at"])
+
+        response = self.client.get(self.list_url)
+        count_response = self.client.get(self.count_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+        self.assertEqual(
+            count_response.data["unread_count"],
+            0,
+        )
+
+    def test_deleted_invitation_notification_is_hidden(self):
+        invitation, notification = (
+            self.make_invitation_notification()
+        )
+
+        invitation.delete()
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+    def test_invitation_for_different_email_is_hidden(self):
+        invitation, notification = (
+            self.make_invitation_notification()
+        )
+
+        invitation.email = self.other_user.email
+        invitation.save(update_fields=["email"])
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+    def test_inactive_invitation_cannot_be_marked_read(self):
+        invitation, notification = (
+            self.make_invitation_notification()
+        )
+
+        invitation.status = WorkspaceInvitation.Status.REVOKED
+        invitation.save(update_fields=["status"])
+
+        url = reverse(
+            "notification-mark-read",
+            kwargs={"pk": notification.pk},
+        )
+
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, 404)
+
+        notification.refresh_from_db()
+        self.assertIsNone(notification.read_at)
+
+    def test_mark_all_read_skips_inactive_invitation(self):
+        invitation, notification = (
+            self.make_invitation_notification()
+        )
+
+        invitation.status = WorkspaceInvitation.Status.REVOKED
+        invitation.save(update_fields=["status"])
+
+        response = self.client.post(
+            reverse("notification-mark-all-read")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["updated_count"],
+            0,
+        )
 
         notification.refresh_from_db()
         self.assertIsNone(notification.read_at)
