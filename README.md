@@ -9,7 +9,7 @@ TeamBoard is a workspace for planning projects, tracking tasks on a Kanban board
 - **Projects** with membership, project images, and Board and List views. Board is the default and the browser remembers the selected view.
 - **Tasks** with four Kanban columns, drag-and-drop, assignees, priorities, due dates, and filters. Open a card to see its discussion and details.
 - **Comments** with replies, project-member mentions, editing, moderation, attachment downloads, and counts on task cards.
-- **Notifications** with an account-wide inbox, unread badge, read filters and links to the related project or task. Workspace invitations are accepted using their email link.
+- **Notifications** with an account-wide inbox, unread badge, read filters and links to the related project or task. Workspace invitations can be accepted in the inbox or using their email link.
 
 ## Stack and layout
 
@@ -83,6 +83,13 @@ API routes are under `/api/v1/`. The frontend uses bearer access tokens and a re
 Workspace Owners and Admins can manage project access across the workspace. Project Managers can manage the projects they belong to. Project Members can work on tasks and participate in discussions within projects they can access.
 
 A comment request accepts `body` and optional `reply_to`. Send multipart form data to include one `attachment`. Use `@` in the composer to select a project member. Authors can edit their own comments. Managers and workspace administrators can moderate comments. Download an attachment through the authenticated `<comment_id>/attachment/` endpoint.
+
+### Task calendar API
+
+- `GET /api/v1/workspaces/{slug}/calendar/` lists due dates across accessible projects.
+- `GET /api/v1/workspaces/{slug}/calendar/projects/{project_id}/` lists due dates for one project.
+
+Both endpoints require inclusive `start` and `end` dates in `YYYY-MM-DD` format. The optional `assignee` filter accepts a user ID, `me`, or `unassigned`. Undated tasks are excluded. Results are ordered by due date and task ID, with 20 results per page by default and a maximum `page_size` of 100. Workspace owners and admins can see all projects in their workspace. Other workspace members see their own project memberships.
 
 ## Persistent data and deployment
 

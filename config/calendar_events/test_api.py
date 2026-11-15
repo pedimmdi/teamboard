@@ -72,3 +72,56 @@ class ProjectCalendarTests(APITestCase):
         self.assertEqual(self.client.get(self.url, self.range).status_code, 200)
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(self.url, self.range).status_code, 401)
+
+    def test_workspace_calendar_respects_workspace_and_project_membership(self):
+        workspace_url = reverse("workspaces_api_v1:calendar_events_api_v1:workspace-tasks", kwargs={
+            "slug": self.workspace.slug,
+        })
+        second_project = Project.objects.create(
+            name="Internal", workspace=self.workspace, created_by=self.owner,
+        )
+        ProjectMembership.objects.create(project=second_project, user=self.owner, role="manager")
+        internal_task = Task.objects.create(
+            project=second_project, title="Internal", due_date=self.assigned.due_date,
+        )
+        other_workspace = Workspace.objects.create(name="Other Calendar")
+        WorkspaceMembership.objects.create(workspace=other_workspace, user=self.owner, role="owner")
+        unrelated_project = Project.objects.create(
+            name="Other", workspace=other_workspace, created_by=self.owner,
+        )
+        ProjectMembership.objects.create(project=unrelated_project, user=self.owner, role="manager")
+        Task.objects.create(project=unrelated_project, title="Other", due_date=self.assigned.due_date)
+
+        def visible_ids(**filters):
+            response = self.client.get(workspace_url, {**self.range, **filters})
+            self.assertEqual(response.status_code, 200)
+            return {row["id"] for row in response.data["results"]}
+
+        all_ids = {str(self.assigned.pk), str(self.unassigned.pk), str(internal_task.pk)}
+        self.assertEqual(visible_ids(), all_ids)
+        self.assertEqual(visible_ids(assignee="me"), {str(self.assigned.pk)})
+        self.client.force_authenticate(self.member)
+        self.assertEqual(visible_ids(), set())
+
+        project_membership = ProjectMembership.objects.create(
+            project=self.project, user=self.member, role="member",
+        )
+        self.assertEqual(visible_ids(), {str(self.assigned.pk), str(self.unassigned.pk)})
+        project_membership.delete()
+        self.assertEqual(visible_ids(), set())
+
+        workspace_membership = WorkspaceMembership.objects.get(
+            workspace=self.workspace, user=self.member,
+        )
+        workspace_membership.role = "admin"
+        workspace_membership.save(update_fields=["role"])
+        self.assertEqual(visible_ids(), all_ids)
+        workspace_membership.delete()
+        self.assertEqual(self.client.get(workspace_url, self.range).status_code, 404)
+
+    def test_calendar_reflects_due_date_changes(self):
+        self.assigned.due_date = date(2026, 2, 10)
+        self.assigned.save(update_fields=["due_date"])
+        response = self.client.get(self.url, self.range)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["id"] for row in response.data["results"]], [str(self.unassigned.pk)])

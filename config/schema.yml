@@ -630,6 +630,60 @@ paths:
           description: Only the workspace owner can delete the workspace.
         '404':
           description: Workspace not found.
+  /api/v1/workspaces/{slug}/calendar/:
+    get:
+      operationId: calendar_workspace_tasks
+      summary: List task due dates in a workspace
+      parameters:
+      - in: query
+        name: assignee
+        schema:
+          type: string
+          minLength: 1
+          pattern: ^(?:me|unassigned|[1-9][0-9]{0,18})$
+        description: Filter by user ID, me, or unassigned.
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date
+        description: Last due date, inclusive (YYYY-MM-DD).
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date
+        description: First due date, inclusive (YYYY-MM-DD).
+        required: true
+      tags:
+      - Calendar
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCalendarTaskList'
+          description: ''
   /api/v1/workspaces/{slug}/calendar/projects/{project_id}/:
     get:
       operationId: calendar_project_tasks
