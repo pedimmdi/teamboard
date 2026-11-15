@@ -17,6 +17,7 @@ from .views import (
 app_name = "workspaces_api_v1"
 
 urlpatterns = [
+    path("<slug:slug>/calendar/", include("calendar_events.api.v1.urls")),
     path(
         "",
         WorkspaceListCreateView.as_view(),

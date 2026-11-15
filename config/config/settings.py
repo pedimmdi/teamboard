@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "tasks.apps.TasksConfig",
     "comments.apps.CommentsConfig",
     "notifications.apps.NotificationsConfig",
+    "calendar_events.apps.CalendarEventsConfig",
 ]
 
 MIDDLEWARE = [
