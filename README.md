@@ -9,6 +9,7 @@ TeamBoard is a workspace for planning projects, tracking tasks on a Kanban board
 - **Projects** with membership, project images, and Board and List views. Board is the default and the browser remembers the selected view.
 - **Tasks** with four Kanban columns, drag-and-drop, assignees, priorities, due dates, and filters. Open a card to see its discussion and details.
 - **Comments** with replies, project-member mentions, editing, moderation, attachment downloads, and counts on task cards.
+- **Notifications** with an account-wide inbox, unread badge, read filters and links to the related project or task. Workspace invitations are accepted using their email link.
 
 ## Stack and layout
 
@@ -115,7 +116,7 @@ When changing the API contract, regenerate the checked-in schema with `docker co
 
 ### Browser tests
 
-Create an isolated PostgreSQL database named `teamboard_e2e` and set `POSTGRES_DB=teamboard_e2e` and `E2E_PASSWORD` in the test process environment. Use the matching PostgreSQL credentials and a Django environment with the project dependencies installed. Set `E2E_PYTHON` to the virtual environment's Python executable if needed. From `client/` run `npx playwright install chromium` and `npm run test:e2e`. For an installed Chrome or Edge, set `E2E_BROWSER_CHANNEL` to `chrome` or `msedge`.
+Create an isolated PostgreSQL database named `teamboard_e2e` and set `POSTGRES_DB=teamboard_e2e` and `E2E_PASSWORD` in the test process environment. Use the matching PostgreSQL credentials and a Django environment with the project dependencies installed. Set `E2E_PYTHON` to the virtual environment's Python executable if needed. From `client/` run `npx playwright install chromium` and `npm run test:e2e`. Playwright builds and serves the production frontend on port 3100. For an installed Chrome or Edge, set `E2E_BROWSER_CHANNEL` to `chrome` or `msedge`.
 
 Playwright starts Next.js on port 3100 and Django on port 8100. The test server applies migrations and seeds a verified user in the isolated database. The tests exercise the browser, API and PostgreSQL together. GitHub Actions runs the Chromium suite and saves failure traces.
 

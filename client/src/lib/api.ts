@@ -1201,3 +1201,68 @@ export function updateResourceAvatar(
     body: form ?? JSON.stringify({ avatar: null }),
   });
 }
+
+export type NotificationEvent =
+  | "task_assigned"
+  | "task_updated"
+  | "comment_mentioned"
+  | "comment_replied"
+  | "workspace_invited"
+  | "workspace_role_changed"
+  | "project_member_added"
+  | "project_role_changed";
+
+export type InboxNotification = {
+  id: string;
+  event_type: NotificationEvent;
+  workspace_slug: string | null;
+  workspace_name: string | null;
+  project: string | null;
+  project_name: string | null;
+  task: string | null;
+  task_title: string | null;
+  payload: { role?: string; old_role?: string; new_role?: string };
+  created_at: string;
+  is_read: boolean;
+};
+
+export type NotificationFilter = "all" | "unread" | "read";
+
+const notificationsPath = "/api/v1/notifications/";
+
+export function getNotifications(
+  token: string,
+  filter: NotificationFilter,
+  page = 1,
+  signal?: AbortSignal,
+) {
+  const query = new URLSearchParams({ page: String(page) });
+  if (filter !== "all") query.set("read", String(filter === "read"));
+  return apiFetch<{
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: InboxNotification[];
+  }>(`${notificationsPath}?${query}`, { token, signal });
+}
+
+export function getUnreadNotificationCount(token: string, signal?: AbortSignal) {
+  return apiFetch<{ unread_count: number }>(`${notificationsPath}unread-count/`, {
+    token,
+    signal,
+  });
+}
+
+export function markNotificationRead(token: string, id: string) {
+  return apiFetch<InboxNotification>(
+    `${notificationsPath}${encodeURIComponent(id)}/mark-read/`,
+    { token, method: "POST" },
+  );
+}
+
+export function markAllNotificationsRead(token: string) {
+  return apiFetch<{ updated_count: number }>(`${notificationsPath}mark-all-read/`, {
+    token,
+    method: "POST",
+  });
+}

@@ -1051,3 +1051,30 @@
     flex-basis: 36px;
   }
 }
+
+.notificationBadge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #4f46e5;
+  color: white;
+  text-align: center;
+  font-size: 11px;
+  line-height: 20px;
+}
+
+.mobileHeaderActions {
+  display: flex;
+  gap: 8px;
+}
+
+.mobileHeaderActions a {
+  position: relative;
+}
+
+.mobileHeaderActions .notificationBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+}

@@ -20,4 +20,24 @@ user, created = User.objects.get_or_create(
 )
 user.set_password(password)
 user.save(update_fields=["password"])
+from notifications.models import Notification
+from workspaces.models import Workspace, WorkspaceMembership
+
+workspace, _ = Workspace.objects.get_or_create(name="Browser notifications fixture")
+WorkspaceMembership.objects.get_or_create(
+    workspace=workspace, user=user,
+    defaults={"role": WorkspaceMembership.Role.OWNER},
+)
+for index in range(21):
+    Notification.objects.update_or_create(
+        deduplication_key=f"browser-test-notification:{index}",
+        defaults={
+            "recipient": user,
+            "workspace": workspace,
+            "event_type": Notification.EventType.WORKSPACE_ROLE_CHANGED,
+            "payload": {"old_role": "member", "new_role": "owner"},
+            "read_at": None,
+        },
+    )
+
 call_command("runserver", "127.0.0.1:8100", use_reloader=False)

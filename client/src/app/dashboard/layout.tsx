@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import DesignIcon from "@/components/ui/DesignIcon";
+import { BellIcon, NotificationCountProvider, useNotificationCount } from "./notifications/notification-count";
 import WorkspaceSwitcher from "./workspace-switcher";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
@@ -114,11 +115,13 @@ function NavItem({
   label,
   active,
   icon,
+  trailing,
 }: {
   href: string | null;
   label: string;
   active: boolean;
   icon: ReactNode;
+  trailing?: ReactNode;
 }) {
   if (!href) {
     return (
@@ -139,6 +142,7 @@ function NavItem({
     >
       <span className={styles.navIcon}>{icon}</span>
       <span>{label}</span>
+      {trailing}
     </Link>
   );
 }
@@ -185,6 +189,21 @@ function getInitials(firstName: string, lastName: string) {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  return (
+    <NotificationCountProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </NotificationCountProvider>
+  );
+}
+
+function DashboardShell({ children }: DashboardLayoutProps) {
+  const { count } = useNotificationCount();
+  const inbox = "/dashboard/notifications";
+  const badge = count ? (
+    <span className={styles.notificationBadge} aria-label={`${count} unread`}>
+      {count > 99 ? "99+" : count}
+    </span>
+  ) : null;
   const pathname = usePathname();
   const { slug: routeSlug } = useParams<{ slug?: string }>();
   const [activeWorkspace, setActiveWorkspace] = useState<{
@@ -263,6 +282,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               workspaceBase={workspaceBase}
               pathname={pathname}
             />
+            <NavItem
+              href={inbox}
+              label="Notifications"
+              active={pathname === inbox}
+              icon={<BellIcon />}
+              trailing={badge}
+            />
             <div className={styles.sectionLabel}>ACCOUNT</div>
 
             <NavItem
@@ -319,13 +345,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <header className={styles.mobileHeader}>
         <WorkspaceSwitcher slug={slug} mobile />
-        <Link
-          className={styles.mobileLogoutButton}
-          href="/dashboard"
-          aria-label="Account"
-        >
-          <UserIcon />
-        </Link>
+        <div className={styles.mobileHeaderActions}>
+          <Link
+            href={inbox}
+            className={styles.mobileLogoutButton}
+            aria-label={count ? `Notifications, ${count} unread` : "Notifications"}
+            aria-current={pathname === inbox ? "page" : undefined}
+          >
+            <BellIcon />
+            {badge}
+          </Link>
+          <Link
+            className={styles.mobileLogoutButton}
+            href="/dashboard"
+            aria-label="Account"
+          >
+            <UserIcon />
+          </Link>
+        </div>
       </header>
 
       <main className={styles.main}>
