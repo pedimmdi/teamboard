@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "tasks.apps.TasksConfig",
     "comments.apps.CommentsConfig",
     "notifications.apps.NotificationsConfig",
+    "calendars.apps.CalendarsConfig",
 ]
 
 MIDDLEWARE = [
@@ -283,6 +284,11 @@ SPECTACULAR_SETTINGS = {
             ("medium", "Medium"),
             ("high", "High"),
             ("urgent", "Urgent"),
+        ],
+        "CalendarEventTypeEnum": [
+            ("event", "Event"),
+            ("meeting", "Meeting"),
+            ("deadline", "Deadline"),
         ],
     },
 }

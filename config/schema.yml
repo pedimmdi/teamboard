@@ -630,6 +630,92 @@ paths:
           description: Only the workspace owner can delete the workspace.
         '404':
           description: Workspace not found.
+  /api/v1/workspaces/{slug}/calendar/:
+    get:
+      operationId: calendar_workspace_events_list
+      summary: List accessible workspace calendar events
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date-time
+        description: Exclusive range end (ISO 8601).
+      - in: query
+        name: event_type
+        schema:
+          type: string
+          enum:
+          - deadline
+          - event
+          - meeting
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date-time
+        description: Inclusive range start (ISO 8601).
+      tags:
+      - Calendars
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCalendarEventList'
+          description: ''
+  /api/v1/workspaces/{slug}/calendar/timeline/:
+    get:
+      operationId: workspace_calendar_timeline_list
+      summary: Get workspace calendar timeline
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date-time
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date-time
+        required: true
+      tags:
+      - Calendars
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarTimelineResponse'
+          description: ''
   /api/v1/workspaces/{slug}/invitations/:
     get:
       operationId: v1_workspaces_invitations_list
@@ -1063,6 +1149,246 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/workspaces/{slug}/projects/{project_id}/calendar/:
+    get:
+      operationId: calendar_project_events_list
+      summary: List project calendar events
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date-time
+        description: Exclusive range end (ISO 8601).
+      - in: query
+        name: event_type
+        schema:
+          type: string
+          enum:
+          - deadline
+          - event
+          - meeting
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date-time
+        description: Inclusive range start (ISO 8601).
+      tags:
+      - Calendars
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCalendarEventList'
+          description: ''
+    post:
+      operationId: calendar_project_events_create
+      summary: Create project calendar event
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Calendars
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalendarEventCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CalendarEventCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CalendarEventCreateRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+          description: ''
+  /api/v1/workspaces/{slug}/projects/{project_id}/calendar/{event_id}/:
+    get:
+      operationId: calendar_events_retrieve
+      summary: Retrieve calendar event
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Calendars
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+          description: ''
+    patch:
+      operationId: calendar_events_update
+      summary: Update calendar event
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Calendars
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCalendarEventUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCalendarEventUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCalendarEventUpdateRequest'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+          description: ''
+    delete:
+      operationId: calendar_events_delete
+      summary: Delete calendar event
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Calendars
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/workspaces/{slug}/projects/{project_id}/calendar/timeline/:
+    get:
+      operationId: project_calendar_timeline_list
+      summary: Get project calendar timeline
+      parameters:
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date-time
+        required: true
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date-time
+        required: true
+      tags:
+      - Calendars
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarTimelineResponse'
+          description: ''
   /api/v1/workspaces/{slug}/projects/{project_id}/leave/:
     post:
       operationId: projects_leave
@@ -1844,6 +2170,158 @@ components:
       required:
       - filename
       - size
+    CalendarEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/CalendarEventTypeEnum'
+          readOnly: true
+        starts_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ends_at:
+          type: string
+          format: date-time
+          readOnly: true
+        all_day:
+          type: boolean
+          readOnly: true
+        created_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        created_by_email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - all_day
+      - created_at
+      - created_by
+      - created_by_email
+      - description
+      - ends_at
+      - event_type
+      - id
+      - project
+      - starts_at
+      - title
+      - updated_at
+    CalendarEventCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 10000
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/CalendarEventTypeEnum'
+          default: event
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        all_day:
+          type: boolean
+          default: false
+      required:
+      - ends_at
+      - starts_at
+      - title
+    CalendarEventTypeEnum:
+      enum:
+      - event
+      - meeting
+      - deadline
+      type: string
+      description: |-
+        * `event` - Event
+        * `meeting` - Meeting
+        * `deadline` - Deadline
+    CalendarTimelineItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        item_type:
+          $ref: '#/components/schemas/ItemTypeEnum'
+        project:
+          type: string
+          format: uuid
+        title:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        all_day:
+          type: boolean
+        event_type:
+          type: string
+          nullable: true
+        task_status:
+          type: string
+          nullable: true
+        task_priority:
+          type: string
+          nullable: true
+      required:
+      - all_day
+      - ends_at
+      - event_type
+      - id
+      - item_type
+      - project
+      - starts_at
+      - task_priority
+      - task_status
+      - title
+    CalendarTimelineResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarTimelineItem'
+      required:
+      - count
+      - results
     ChangePasswordRequest:
       type: object
       properties:
@@ -1997,26 +2475,14 @@ components:
           type: string
       required:
       - detail
-    EventTypeEnum:
+    ItemTypeEnum:
       enum:
-      - task_assigned
-      - task_updated
-      - comment_mentioned
-      - comment_replied
-      - workspace_invited
-      - workspace_role_changed
-      - project_member_added
-      - project_role_changed
+      - event
+      - task
       type: string
       description: |-
-        * `task_assigned` - Task Assigned
-        * `task_updated` - Task Updated
-        * `comment_mentioned` - Comment Mentioned
-        * `comment_replied` - Comment Replied
-        * `workspace_invited` - Workspace Invited
-        * `workspace_role_changed` - Workspace Role Changed
-        * `project_member_added` - Project Member Added
-        * `project_role_changed` - Project Role Changed
+        * `event` - event
+        * `task` - task
     LoginRequest:
       type: object
       properties:
@@ -2047,7 +2513,7 @@ components:
           readOnly: true
         event_type:
           allOf:
-          - $ref: '#/components/schemas/EventTypeEnum'
+          - $ref: '#/components/schemas/NotificationEventTypeEnum'
           readOnly: true
         actor:
           type: integer
@@ -2120,6 +2586,26 @@ components:
       - workspace
       - workspace_name
       - workspace_slug
+    NotificationEventTypeEnum:
+      enum:
+      - task_assigned
+      - task_updated
+      - comment_mentioned
+      - comment_replied
+      - workspace_invited
+      - workspace_role_changed
+      - project_member_added
+      - project_role_changed
+      type: string
+      description: |-
+        * `task_assigned` - Task Assigned
+        * `task_updated` - Task Updated
+        * `comment_mentioned` - Comment Mentioned
+        * `comment_replied` - Comment Replied
+        * `workspace_invited` - Workspace Invited
+        * `workspace_role_changed` - Workspace Role Changed
+        * `project_member_added` - Project Member Added
+        * `project_role_changed` - Project Role Changed
     NotificationMarkAllReadResponse:
       type: object
       properties:
@@ -2132,6 +2618,29 @@ components:
     NullEnum:
       enum:
       - null
+    PaginatedCalendarEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarEvent'
     PaginatedCommentList:
       type: object
       required:
@@ -2356,6 +2865,26 @@ components:
           type: string
       required:
       - detail
+    PatchedCalendarEventUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 10000
+        event_type:
+          $ref: '#/components/schemas/CalendarEventTypeEnum'
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        all_day:
+          type: boolean
     PatchedCommentUpdateRequest:
       type: object
       properties:

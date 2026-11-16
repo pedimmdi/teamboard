@@ -14,6 +14,13 @@ from .views import (
     WorkspaceInvitationResendView,
 )
 
+from calendars.api.v1.views import (
+    WorkspaceCalendarView,
+    WorkspaceCalendarTimelineView,
+    ProjectCalendarTimelineView,
+)
+
+
 app_name = "workspaces_api_v1"
 
 urlpatterns = [
@@ -83,5 +90,24 @@ urlpatterns = [
     path(
         "<slug:slug>/projects/<uuid:project_id>/tasks/<uuid:task_id>/comments/",
         include("comments.api.v1.urls"),
+    ),
+    path(
+        "<slug:slug>/calendar/",
+        WorkspaceCalendarView.as_view(),
+        name="workspace-calendar",
+    ),
+    path(
+        "<slug:slug>/projects/<uuid:project_id>/calendar/",
+        include("calendars.api.v1.urls"),
+    ),
+    path(
+        "<slug:slug>/calendar/timeline/",
+        WorkspaceCalendarTimelineView.as_view(),
+        name="workspace-calendar-timeline",
+    ),
+    path(
+        "<slug:slug>/projects/<uuid:project_id>/calendar/timeline/",
+        ProjectCalendarTimelineView.as_view(),
+        name="project-calendar-timeline",
     ),
 ]

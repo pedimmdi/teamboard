@@ -23,6 +23,7 @@ class WorkspaceUpgradeTests(TransactionTestCase):
                 "tasks",
                 "comments",
                 "notifications",
+                "calendars",
             )
         ] + [first]
         executor.migrate(previous)
