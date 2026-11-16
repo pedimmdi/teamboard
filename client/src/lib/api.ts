@@ -1279,3 +1279,56 @@ export function acceptNotificationInvitation(token: string, id: string) {
     { token, method: "POST" },
   );
 }
+
+export type CalendarEventType = "event" | "meeting" | "deadline";
+
+export type CalendarTimelineItem = {
+  id: string;
+  project: string;
+  title: string;
+  item_type: "event" | "task";
+  starts_at: string;
+  ends_at: string;
+  all_day: boolean;
+  event_type: CalendarEventType | null;
+  task_status: TaskStatus | null;
+  task_priority: TaskPriority | null;
+};
+
+export type CalendarEventInput = {
+  title: string;
+  description: string;
+  event_type: CalendarEventType;
+  starts_at: string;
+  ends_at: string;
+  all_day: boolean;
+};
+
+export type CalendarEvent = CalendarEventInput & { id: string; project: string };
+
+function calendarPath(slug: string, projectId?: string) {
+  const workspace = `/api/v1/workspaces/${encodeURIComponent(slug)}`;
+  return projectId ? `${workspace}/projects/${encodeURIComponent(projectId)}/calendar/` : `${workspace}/calendar/`;
+}
+
+export function getCalendarTimeline(token: string, slug: string, start: string, end: string, projectId?: string, signal?: AbortSignal) {
+  const query = new URLSearchParams({ start, end });
+  return apiFetch<{ count: number; results: CalendarTimelineItem[] }>(
+    `${calendarPath(slug, projectId)}timeline/?${query}`, { token, signal },
+  );
+}
+
+export function getCalendarEvent(token: string, slug: string, projectId: string, id: string, signal?: AbortSignal) {
+  return apiFetch<CalendarEvent>(`${calendarPath(slug, projectId)}${encodeURIComponent(id)}/`, { token, signal });
+}
+
+export function saveCalendarEvent(token: string, slug: string, projectId: string, data: CalendarEventInput, id?: string) {
+  const path = calendarPath(slug, projectId);
+  return apiFetch<CalendarEvent>(id ? `${path}${encodeURIComponent(id)}/` : path, {
+    token, method: id ? "PATCH" : "POST", body: JSON.stringify(data),
+  });
+}
+
+export function deleteCalendarEvent(token: string, slug: string, projectId: string, id: string) {
+  return apiFetch<void>(`${calendarPath(slug, projectId)}${encodeURIComponent(id)}/`, { token, method: "DELETE" });
+}
