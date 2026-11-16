@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "comments.apps.CommentsConfig",
     "notifications.apps.NotificationsConfig",
     "calendars.apps.CalendarsConfig",
+    "reports.apps.ReportsConfig",
 ]
 
 MIDDLEWARE = [

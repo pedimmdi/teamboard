@@ -1552,6 +1552,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProjectMembership'
           description: ''
+  /api/v1/workspaces/{slug}/projects/{project_id}/reports/:
+    get:
+      operationId: reports_project_overview
+      description: Returns current task statistics, status and priority distributions,
+        and member workload. Accessible to project members and workspace owners/admins.
+      summary: Get project analytics
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Reports
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectReport'
+          description: ''
   /api/v1/workspaces/{slug}/projects/{project_id}/tasks/:
     get:
       operationId: tasks_list
@@ -2087,6 +2116,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
           description: ''
+  /api/v1/workspaces/{slug}/reports/:
+    get:
+      operationId: reports_workspace_overview
+      description: Returns aggregated task analytics for projects accessible to the
+        authenticated user. Workspace owners and admins can see all projects.
+      summary: Get workspace analytics
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Reports
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceReport'
+          description: ''
   /api/v1/workspaces/{slug}/transfer-ownership/:
     post:
       operationId: v1_workspaces_transfer_ownership_create
@@ -2504,6 +2556,37 @@ components:
           type: string
       required:
       - detail
+    MemberWorkload:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        user_email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/MemberWorkloadRoleEnum'
+        total_tasks:
+          type: integer
+        completed_tasks:
+          type: integer
+        overdue_tasks:
+          type: integer
+      required:
+      - completed_tasks
+      - overdue_tasks
+      - role
+      - total_tasks
+      - user_email
+      - user_id
+    MemberWorkloadRoleEnum:
+      enum:
+      - manager
+      - member
+      type: string
+      description: |-
+        * `manager` - manager
+        * `member` - member
     Notification:
       type: object
       properties:
@@ -3070,6 +3153,58 @@ components:
       - role
       - user_email
       - user_id
+    ProjectReport:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        project_name:
+          type: string
+        as_of:
+          type: string
+          format: date
+        summary:
+          $ref: '#/components/schemas/ProjectReportSummary'
+        status_distribution:
+          $ref: '#/components/schemas/TaskStatusDistribution'
+        priority_distribution:
+          $ref: '#/components/schemas/TaskPriorityDistribution'
+        member_workload:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberWorkload'
+      required:
+      - as_of
+      - member_workload
+      - priority_distribution
+      - project_id
+      - project_name
+      - status_distribution
+      - summary
+    ProjectReportSummary:
+      type: object
+      properties:
+        total_tasks:
+          type: integer
+        completed_tasks:
+          type: integer
+        active_tasks:
+          type: integer
+        overdue_tasks:
+          type: integer
+        unassigned_tasks:
+          type: integer
+        completion_rate:
+          type: number
+          format: double
+      required:
+      - active_tasks
+      - completed_tasks
+      - completion_rate
+      - overdue_tasks
+      - total_tasks
+      - unassigned_tasks
     ProjectRoleEnum:
       enum:
       - manager
@@ -3302,6 +3437,22 @@ components:
             * `last` - last
       required:
       - status
+    TaskPriorityDistribution:
+      type: object
+      properties:
+        low:
+          type: integer
+        medium:
+          type: integer
+        high:
+          type: integer
+        urgent:
+          type: integer
+      required:
+      - high
+      - low
+      - medium
+      - urgent
     TaskPriorityEnum:
       enum:
       - low
@@ -3314,6 +3465,22 @@ components:
         * `medium` - Medium
         * `high` - High
         * `urgent` - Urgent
+    TaskStatusDistribution:
+      type: object
+      properties:
+        todo:
+          type: integer
+        in_progress:
+          type: integer
+        in_review:
+          type: integer
+        done:
+          type: integer
+      required:
+      - done
+      - in_progress
+      - in_review
+      - todo
     TaskStatusEnum:
       enum:
       - todo
@@ -3538,6 +3705,62 @@ components:
           format: uuid
       required:
       - membership_id
+    WorkspaceProjectSummary:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        project_name:
+          type: string
+        total_tasks:
+          type: integer
+        completed_tasks:
+          type: integer
+        overdue_tasks:
+          type: integer
+        completion_rate:
+          type: number
+          format: double
+      required:
+      - completed_tasks
+      - completion_rate
+      - overdue_tasks
+      - project_id
+      - project_name
+      - total_tasks
+    WorkspaceReport:
+      type: object
+      properties:
+        workspace_id:
+          type: string
+          format: uuid
+        workspace_name:
+          type: string
+        as_of:
+          type: string
+          format: date
+        total_projects:
+          type: integer
+        summary:
+          $ref: '#/components/schemas/ProjectReportSummary'
+        status_distribution:
+          $ref: '#/components/schemas/TaskStatusDistribution'
+        priority_distribution:
+          $ref: '#/components/schemas/TaskPriorityDistribution'
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceProjectSummary'
+      required:
+      - as_of
+      - priority_distribution
+      - projects
+      - status_distribution
+      - summary
+      - total_projects
+      - workspace_id
+      - workspace_name
     WorkspaceRequest:
       type: object
       properties:
