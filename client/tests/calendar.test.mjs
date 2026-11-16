@@ -48,3 +48,30 @@ test("calendar API uses the workspace and project URLs and event methods", async
     ["/api/v1/workspaces/team/projects/project/calendar/event/", "DELETE"],
   ]);
 });
+
+test("project members can create and edit calendar events while deletion requires management", () => {
+  const { calendarEventPermissions } = load("../src/components/calendar/calendar-dates.ts");
+  for (const [workspace, project, expected] of [
+    ["member", "member", [true, true, false]],
+    ["member", "manager", [true, true, true]],
+    ["member", null, [false, false, false]],
+    ["owner", null, [true, true, true]],
+    ["admin", null, [true, true, true]],
+    [null, "member", [false, false, false]],
+  ]) {
+    const permissions = calendarEventPermissions(workspace, project);
+    assert.deepEqual(Object.values(permissions), expected);
+  }
+});
+
+test("all-day edits retain the last covered date across a month boundary", () => {
+  const { toggleEventDates, itemsForDay } = load("../src/components/calendar/calendar-dates.ts");
+  const start = "2026-10-31T09:00";
+  const end = "2026-11-02T00:00";
+  const dates = Array.from(toggleEventDates(start, end, true));
+  assert.deepEqual(dates, ["2026-10-31", "2026-11-01"]);
+  assert.deepEqual(Array.from(toggleEventDates(...dates, false)), [start, "2026-11-01T10:00"]);
+  const item = { starts_at: "2026-10-31T09:00-04:00", ends_at: "2026-11-01T19:00-05:00" };
+  assert.equal(itemsForDay([item], new Date("2026-11-01")).length, 1);
+  assert.equal(itemsForDay([item], new Date("2026-11-02")).length, 0);
+});

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createProject, getProjects, type PaginatedProjects } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Avatar from "@/components/ui/Avatar";
@@ -13,6 +13,12 @@ import ProjectForm from "./project-form";
 import styles from "./projects.module.css";
 import { projectRoleLabel, formatProjectDate } from "./project-utils";
 
+function subscribeToMobile(callback: () => void) {
+  const query = window.matchMedia("(max-width: 767px)");
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+
 export default function ProjectsPage() {
   const workspace = useWorkspace();
   const { accessToken } = useAuth();
@@ -21,6 +27,7 @@ export default function ProjectsPage() {
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const mobile = useSyncExternalStore(subscribeToMobile, () => window.matchMedia("(max-width: 767px)").matches, () => false);
   const [view, setView] = useState<"board" | "list">("board");
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,7 +85,7 @@ export default function ProjectsPage() {
             </button>
           )}
         </header>
-        <div className={styles.projectView} role="group" aria-label="Project view">
+        <div hidden={mobile} className={mobile ? undefined : styles.projectView} role="group" aria-label="Project view">
           {(["board", "list"] as const).map((option) => (
             <button
               type="button"
@@ -113,7 +120,7 @@ export default function ProjectsPage() {
           </div>
         ) : result?.results.length ? (
           <div className={styles.tableCard}>
-            {view === "board" ? (
+            {!mobile && view === "board" ? (
               <div className={styles.projectBoard}>
                 {result.results.map((project) => (
                   <Link className={styles.projectBoardCard} key={project.id} href={`${base}/${project.id}/tasks`}>

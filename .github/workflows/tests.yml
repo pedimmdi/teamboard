@@ -41,7 +41,7 @@ jobs:
       - name: Run backend tests
         working-directory: config
         env:
-          SECRET_KEY: ci-test-secret-key
+          SECRET_KEY: ci-test-secret-key-for-teamboard-tests-only
           POSTGRES_DB: teamboard
           POSTGRES_USER: teamboard
           POSTGRES_PASSWORD: test-password
@@ -106,7 +106,7 @@ jobs:
 
 
     env:
-      SECRET_KEY: browser-test-secret-key
+      SECRET_KEY: browser-test-secret-key-for-teamboard-tests-only
       POSTGRES_DB: teamboard_e2e
       POSTGRES_USER: teamboard
       POSTGRES_PASSWORD: test-password

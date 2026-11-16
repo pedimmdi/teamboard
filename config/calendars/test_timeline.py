@@ -318,8 +318,8 @@ class CalendarTimelineTests(TestCase):
             str(first_task.pk),
         )
 
-    def test_timeline_excludes_task_before_partial_day(self):
-        self.create_task(
+    def test_timeline_includes_tasks_overlapping_partial_start(self):
+        first_task = self.create_task(
             due_date=self.start.date()
         )
         next_day_task = self.create_task(
@@ -339,10 +339,10 @@ class CalendarTimelineTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["count"], 2)
         self.assertEqual(
-            response.data["results"][0]["id"],
-            str(next_day_task.pk),
+            [row["id"] for row in response.data["results"]],
+            [str(first_task.pk), str(next_day_task.pk)],
         )
 
     def test_timeline_includes_task_before_partial_end(self):

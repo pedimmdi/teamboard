@@ -2,12 +2,12 @@
 
 import CalendarView from "@/components/calendar/calendar-view";
 import { useWorkspace } from "../../../workspace-context";
-import { projectPermissions } from "../../project-utils";
+import { calendarEventPermissions } from "@/components/calendar/calendar-dates";
 import { useProjectContext } from "../project-context";
 
 export default function ProjectCalendarPage() {
   const workspace = useWorkspace();
   const { project } = useProjectContext();
-  const { canManage } = projectPermissions(workspace.role, project.role);
-  return <CalendarView slug={workspace.slug} projectId={project.id} canManage={canManage} />;
+  const permissions = calendarEventPermissions(workspace.role, project.role);
+  return <CalendarView slug={workspace.slug} projectId={project.id} {...permissions} />;
 }

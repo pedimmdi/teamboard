@@ -145,3 +145,8 @@ button.danger, .error { color: #b91c1c; }
   .agenda li { grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; }
   .agenda li time { grid-column: 2; }
 }
+
+.dateFields input { min-width: 0; max-width: 100%; }
+.dateFields label { min-width: 0; }
+
+.agendaHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }

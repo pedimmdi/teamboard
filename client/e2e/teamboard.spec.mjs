@@ -79,24 +79,39 @@ test("sign in, create workspace, project and task, then discuss the task", async
   const event = page.getByRole("dialog", { name: "New event" });
   await event.getByLabel("Title").fill("Calendar review");
   await event.getByLabel("Type").selectOption("meeting");
+  const starts = await event.getByLabel("Starts at (UTC)").boundingBox();
+  const ends = await event.getByLabel("Ends at (UTC)").boundingBox();
+  expect(ends.x - (starts.x + starts.width)).toBeGreaterThanOrEqual(8);
   await event.getByLabel("All day").check();
   await event.getByRole("button", { name: "Save event" }).click();
-  await expect(agenda.getByRole("button", { name: "Calendar review" })).toBeVisible();
+  await expect(agenda.getByRole("button", { name: "Calendar review", exact: true })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() =>
     document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("navigation", { name: "Dashboard" })
     .getByRole("link", { name: "Calendar" }).click();
-  await agenda.getByRole("button", { name: "Calendar review" }).click();
-  const readOnlyEvent = page.getByRole("dialog", { name: "Calendar review" });
+  await calendar.getByRole("button", { name: "New event" }).click();
+  const workspaceEvent = page.getByRole("dialog", { name: "New event" });
+  await workspaceEvent.getByLabel("Project").selectOption({ label: project });
+  await workspaceEvent.getByLabel("Title").fill("Workspace calendar review");
+  await workspaceEvent.getByLabel("Ends at (UTC)").fill(
+    await workspaceEvent.getByLabel("Starts at (UTC)").inputValue(),
+  );
+  await workspaceEvent.getByRole("button", { name: "Save event" }).click();
+  await expect(workspaceEvent.getByRole("alert")).toContainText("end after the start");
+  await workspaceEvent.getByLabel("All day").check();
+  await workspaceEvent.getByRole("button", { name: "Save event" }).click();
+  await expect(agenda.getByRole("button", { name: "Workspace calendar review" })).toBeVisible();
+  await agenda.getByRole("button", { name: "Calendar review", exact: true }).click();
+  const readOnlyEvent = page.getByRole("dialog", { name: "Calendar review", exact: true });
   await expect(readOnlyEvent.getByText(/All day/)).toBeVisible();
   await readOnlyEvent.getByRole("link", { name: "Open project calendar" }).click();
 
   await calendar.getByRole("button", { name: "Next month" }).click();
   await expect(agenda.getByText("No items for this day.")).toBeVisible();
   await calendar.getByRole("button", { name: "Today" }).click();
-  await agenda.getByRole("button", { name: "Calendar review" }).click();
+  await agenda.getByRole("button", { name: "Calendar review", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit event" });
   await edit.getByLabel("Title").fill("Updated calendar review");
   await edit.getByRole("button", { name: "Save event" }).click();

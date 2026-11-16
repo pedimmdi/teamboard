@@ -42,15 +42,11 @@ def get_timeline_items(*, workspace_slug, user, start, end, project_id=None):
         ends_at__gt=start,
     ).order_by("starts_at", "id")
 
-    # Task due_date is represented as midnight UTC.
-    # Normalize incoming datetimes before calculating
-    # the inclusive/exclusive date boundaries.
+    # Each due date covers the full UTC day. Match overlap with [start, end).
     start_utc = start.astimezone(dt_timezone.utc)
     end_utc = end.astimezone(dt_timezone.utc)
 
     first_day = start_utc.date()
-    if start_utc.time() != time.min:
-        first_day += timedelta(days=1)
 
     last_day_exclusive = end_utc.date()
     if end_utc.time() != time.min:
