@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import CalendarIcon from "@/components/calendar/calendar-icon";
 import Avatar from "@/components/ui/Avatar";
 import DesignIcon from "@/components/ui/DesignIcon";
 import { BellIcon, NotificationCountProvider, useNotificationCount } from "./notifications/notification-count";
@@ -161,6 +162,12 @@ function WorkspaceNavigation({
         label="Projects"
         active={pathname.startsWith(`${workspaceBase}/projects`)}
         icon={<DesignIcon name="folder" />}
+      />
+      <NavItem
+        href={workspaceBase ? `${workspaceBase}/calendar` : null}
+        label="Calendar"
+        active={pathname === `${workspaceBase}/calendar`}
+        icon={<CalendarIcon />}
       />
       <NavItem
         href={workspaceBase ? `${workspaceBase}/members` : null}

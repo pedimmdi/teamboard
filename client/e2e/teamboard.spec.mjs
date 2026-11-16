@@ -32,6 +32,7 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await page.getByRole("button", { name: "New task", exact: true }).filter({ visible: true }).first().click();
   const taskDialog = page.getByRole("dialog", { name: "New task" });
   await taskDialog.getByRole("textbox").first().fill("Browser test task");
+  await taskDialog.getByLabel("Due date").fill(new Date().toISOString().slice(0, 10));
   await taskDialog.getByRole("button", { name: "Create task" }).click();
   await page.getByRole("button", { name: "Browser test task", exact: true }).click();
   const drawer = page.getByRole("dialog", { name: "Task", exact: true });
@@ -59,4 +60,50 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await expect(drawer.getByRole("button", { name: "Comments (1)" })).toBeVisible();
   await expect(drawer.getByText("Browser test comment", { exact: true })).toHaveCount(0);
   await expect(drawer.getByText("Browser test reply", { exact: true })).toBeVisible();
+
+  await drawer.getByRole("button", { name: "Back to tasks" }).click();
+  const timeline = /\/calendar\/timeline\/\?/;
+  await page.route(timeline, (route) => route.abort());
+  await page.getByRole("navigation", { name: "Project navigation" })
+    .getByRole("link", { name: "Calendar" }).click();
+  const calendar = page.getByRole("region", { name: "Calendar", exact: true });
+  const agenda = calendar.getByRole("region", { name: "Day agenda" });
+  await expect(calendar.getByRole("alert")).toBeVisible();
+  await page.unroute(timeline);
+  await calendar.getByRole("button", { name: "Try again" }).click();
+  await expect(agenda.getByRole("link", { name: "Browser test task" }))
+    .toHaveAttribute("href", /\/tasks\?task=/);
+  await calendar.getByLabel("Show").selectOption("event");
+  await expect(agenda.getByText("No items for this day.")).toBeVisible();
+  await calendar.getByRole("button", { name: "New event" }).click();
+  const event = page.getByRole("dialog", { name: "New event" });
+  await event.getByLabel("Title").fill("Calendar review");
+  await event.getByLabel("Type").selectOption("meeting");
+  await event.getByLabel("All day").check();
+  await event.getByRole("button", { name: "Save event" }).click();
+  await expect(agenda.getByRole("button", { name: "Calendar review" })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(() => page.evaluate(() =>
+    document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("navigation", { name: "Dashboard" })
+    .getByRole("link", { name: "Calendar" }).click();
+  await agenda.getByRole("button", { name: "Calendar review" }).click();
+  const readOnlyEvent = page.getByRole("dialog", { name: "Calendar review" });
+  await expect(readOnlyEvent.getByText(/All day/)).toBeVisible();
+  await readOnlyEvent.getByRole("link", { name: "Open project calendar" }).click();
+
+  await calendar.getByRole("button", { name: "Next month" }).click();
+  await expect(agenda.getByText("No items for this day.")).toBeVisible();
+  await calendar.getByRole("button", { name: "Today" }).click();
+  await agenda.getByRole("button", { name: "Calendar review" }).click();
+  const edit = page.getByRole("dialog", { name: "Edit event" });
+  await edit.getByLabel("Title").fill("Updated calendar review");
+  await edit.getByRole("button", { name: "Save event" }).click();
+  await agenda.getByRole("button", { name: "Updated calendar review" }).click();
+  await edit.getByRole("button", { name: "Delete event" }).click();
+  await page.getByRole("dialog", { name: "Delete event?" })
+    .getByRole("button", { name: "Delete event" }).click();
+  await expect(agenda.getByRole("button", { name: "Updated calendar review" })).toHaveCount(0);
+  await expect(agenda.getByRole("link", { name: "Browser test task" })).toBeVisible();
 });

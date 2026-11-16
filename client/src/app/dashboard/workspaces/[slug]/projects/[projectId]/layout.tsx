@@ -99,6 +99,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
             <nav className={styles.tabs} aria-label="Project navigation">
               {[
                 { title: "Tasks", href: `${base}/tasks` },
+                { title: "Calendar", href: `${base}/calendar` },
                 { title: "Members", href: `${base}/members` },
                 ...(permissions.canManage || permissions.canLeave
                   ? [{ title: "Settings", href: `${base}/settings` }]

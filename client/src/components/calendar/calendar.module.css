@@ -1,0 +1,147 @@
+.calendar { display: grid; gap: 20px; color: #0f172a; }
+.header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.header h2, .toolbar h3, .agenda h3 { margin: 0; }
+.header p { margin: 4px 0 0; color: #475569; font-size: 14px; }
+.header > button { margin-inline-start: auto; }
+.badge {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+.panel, .agenda {
+  min-width: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+.panel { overflow: hidden; }
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px;
+}
+.toolbar h3 { margin-inline-end: auto; font-size: 18px; }
+.controls, .filter, .actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.filter { font-size: 13px; font-weight: 600; }
+.controls button, .filter select, .notice button, .form button,
+.form input:not([type="checkbox"]), .form textarea, .form select, button.primary {
+  min-height: 38px;
+  padding: 7px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  color: #0f172a;
+  font: inherit;
+}
+.controls button, .notice button, .form button, button.primary { cursor: pointer; }
+button.primary {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+button.primary:hover:not(:disabled) { background: #4338ca; }
+.form button:disabled { opacity: .55; cursor: default; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: #e2e8f0;
+  border-top: 1px solid #e2e8f0;
+}
+.weekday {
+  text-align: center;
+  padding: 8px 0;
+  color: #475569;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+}
+.day {
+  min-width: 0;
+  min-height: 86px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  color: #0f172a;
+  background: white;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.day[data-outside="true"] { background: #f8fafc; color: #64748b; }
+.day:hover, .day[aria-pressed="true"] { background: #eef2ff; }
+.day[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #6366f1; }
+.day:focus-visible { outline-offset: -3px; }
+.number { display: grid; place-items: center; width: 24px; height: 24px; font-size: 13px; }
+.day[aria-current="date"] .number { border-radius: 50%; background: #4f46e5; color: white; }
+.preview { width: 100%; display: grid; gap: 3px; }
+.preview span, .kind {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: start;
+  border-radius: 5px;
+  padding: 2px 5px;
+  font-size: 11px;
+  background: #ede9fe;
+  color: #5b21b6;
+}
+.preview span[data-kind="task"], .kind[data-kind="task"] { background: #dbeafe; color: #1e40af; }
+.kind { text-transform: capitalize; }
+.more { color: #475569; font-size: 11px; }
+.dot { display: none; }
+.notice, .agenda { padding: 14px; }
+.notice p { margin-top: 0; }
+.agenda p { color: #475569; }
+.agenda ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.agenda li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid #e2e8f0;
+}
+.agenda li a, .agenda li button {
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: start;
+  color: #4338ca;
+  border: 0;
+  padding: 5px 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.agenda li time { font-size: 12px; color: #475569; }
+.form { display: grid; gap: 12px; }
+.form label:not(.check) { display: grid; gap: 5px; min-width: 0; }
+.form input:not([type="checkbox"]), .form select, .form textarea { width: 100%; box-sizing: border-box; }
+.dateFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.actions { justify-content: flex-end; flex-wrap: wrap; }
+button.danger, .error { color: #b91c1c; }
+.description { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 767px) {
+  .day { min-height: 46px; align-items: center; justify-content: center; padding: 3px; gap: 2px; }
+  .preview, .more { display: none; }
+  .dot { display: block; width: 5px; height: 5px; border-radius: 50%; background: #4f46e5; }
+  .dateFields { grid-template-columns: 1fr; }
+  .agenda li { grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; }
+  .agenda li time { grid-column: 2; }
+}

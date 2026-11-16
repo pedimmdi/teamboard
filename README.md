@@ -10,6 +10,7 @@ TeamBoard is a workspace for planning projects, tracking tasks on a Kanban board
 - **Tasks** with four Kanban columns, drag-and-drop, assignees, priorities, due dates, and filters. Open a card to see its discussion and details.
 - **Comments** with replies, project-member mentions, editing, moderation, attachment downloads, and counts on task cards.
 - **Notifications** with an account-wide inbox, unread badge, read filters and links to the related project or task. Workspace invitations are accepted using their email link.
+- **Calendars** with monthly Workspace and Project views, a day agenda for events and task due dates, and project event management. Calendar dates and times use UTC.
 
 ## Stack and layout
 
