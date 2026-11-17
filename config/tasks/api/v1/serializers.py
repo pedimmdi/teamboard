@@ -89,6 +89,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "position",
             "comment_count",
             "created_at",
+            "completed_at",
             "updated_at",
         )
         read_only_fields = fields

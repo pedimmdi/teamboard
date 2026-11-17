@@ -85,6 +85,17 @@ Workspace Owners and Admins can manage project access across the workspace. Proj
 
 A comment request accepts `body` and optional `reply_to`. Send multipart form data to include one `attachment`. Use `@` in the composer to select a project member. Authors can edit their own comments. Managers and workspace administrators can moderate comments. Download an attachment through the authenticated `<comment_id>/attachment/` endpoint.
 
+### Advanced Reports API
+
+The existing project and workspace overview endpoints return current statistics. Under either reports URL, use:
+
+- `history/` for UTC daily or Monday-based weekly creation and completion counts, and an equally long preceding period. Use `period=7d|30d|90d` (default 30 days) or inclusive `start_date` and `end_date`. A completion is a transition into Done, including creation directly in Done. A reopened and later completed task counts again. Historical status, priority, and assignee filters use the snapshot at the transition. Creation of surviving pre-migration tasks uses its recorded creation date and current fields. Completion data before `completion_tracking_since` is unavailable.
+- `workload/` for current per-assignee totals, active and completed tasks, overdue tasks, tasks due in the next seven days (including today and day seven), and completion rates. A null assignee is the unassigned group.
+- `export/` for the current filtered task snapshot as CSV, capped at 5,000 rows.
+- Workspace `projects/` for paginated project comparisons. Use `ordering` with `name`, `total_tasks`, `completed_tasks`, or `overdue_tasks` and an optional minus prefix.
+
+Each endpoint accepts `assignee` (user ID, `me`, or `unassigned`), `status`, and `priority`. Outside historical analytics, date filters apply to task creation. Supply both dates together and use a maximum range of 366 days. Reports and exports include only accessible projects.
+
 ## Persistent data and deployment
 
 - Back up PostgreSQL, uploaded avatars, and the private attachment directory together. Docker Compose persists PostgreSQL in `postgres_data`. The backend bind mount persists local uploads in `config/media/` and `config/private_attachments/`.

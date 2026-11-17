@@ -224,6 +224,7 @@ def create_task(
             actor=actor,
         )
 
+    task.refresh_from_db(fields=["completed_at"])
     return task
 
 
@@ -349,6 +350,7 @@ def update_task(
             changed_fields=changed_fields,
         )
 
+    task.refresh_from_db(fields=["completed_at"])
     return task
 
 

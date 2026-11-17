@@ -1,14 +1,11 @@
 
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
 from calendars.models import CalendarEvent
 from projects.access import (
+    get_accessible_workspace_project_ids,
     get_workspace_project_membership_or_404,
 )
-from projects.models import Project
-from workspaces.access import get_membership_or_404
-from workspaces.models import WorkspaceMembership
 
 
 def get_calendar_project_access_or_404(
@@ -73,37 +70,6 @@ def get_accessible_project_events(
         "project",
         "created_by",
     )
-
-
-def get_accessible_workspace_project_ids(
-    *,
-    workspace_slug,
-    user,
-):
-    """
-    Return project IDs the user can access in a workspace.
-
-    Workspace owners/admins can access all projects.
-    Regular members can access only joined projects.
-    """
-    membership = get_membership_or_404(
-        workspace_slug,
-        user,
-    )
-
-    queryset = Project.objects.filter(
-        workspace=membership.workspace,
-    )
-
-    if membership.role not in (
-        WorkspaceMembership.Role.OWNER,
-        WorkspaceMembership.Role.ADMIN,
-    ):
-        queryset = queryset.filter(
-            memberships__user=user,
-        )
-
-    return queryset.values_list("pk", flat=True)
 
 
 def get_accessible_workspace_events(

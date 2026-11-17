@@ -961,6 +961,7 @@ export type Task = {
   created_by_avatar: string | null;
   due_date: string | null;
   position: number;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
 };

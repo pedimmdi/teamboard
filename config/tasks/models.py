@@ -79,6 +79,8 @@ class Task(models.Model):
         auto_now_add=True,
     )
 
+    completed_at = models.DateTimeField(null=True, blank=True, editable=False)
+
     updated_at = models.DateTimeField(
         auto_now=True,
     )
@@ -112,6 +114,7 @@ class Task(models.Model):
         ]
 
         indexes = [
+            models.Index(fields=["project", "created_at"], name="task_project_created_idx"),
             models.Index(
                 fields=["project", "status"],
                 name="task_project_status_idx",
@@ -132,3 +135,17 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+
+class TaskStatusHistory(models.Model):
+    project = models.ForeignKey("projects.Project", on_delete=models.CASCADE)
+    task_id = models.UUIDField(db_index=True)
+    previous_status = models.CharField(max_length=20, choices=Task.Status.choices, null=True)
+    status = models.CharField(max_length=20, choices=Task.Status.choices)
+    priority = models.CharField(max_length=10, choices=Task.Priority.choices)
+    assignee_id = models.BigIntegerField(null=True)
+    changed_at = models.DateTimeField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["project", "status", "changed_at"], name="task_history_report_idx"),
+        ]
