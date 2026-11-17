@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db import connection, connections, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
+from rest_framework.test import APIClient
 
 from projects.models import Project, ProjectMembership
 from tasks.models import Task, TaskStatusHistory
@@ -37,6 +38,17 @@ class TaskHistoryTests(TransactionTestCase):
         task = Task.objects.get(pk=task_id)
         self.assertIsNone(task.completed_at)
         self.assertFalse(TaskStatusHistory.objects.filter(task_id=task.pk).exists())
+        client = APIClient()
+        client.force_authenticate(user=self.owner)
+        project_path = f"/api/v1/workspaces/{self.project.workspace.slug}/projects/"
+        self.assertEqual(client.get(project_path).status_code, 200)
+        response = client.get(f"{project_path}{self.project.pk}/tasks/", {
+            "ordering": "position", "status": "done", "page": 1, "page_size": 4,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["results"][0]["id"], str(task_id))
+        self.assertIsNone(response.data["results"][0]["completed_at"])
+
         task = update_task(task=task, actor=self.owner, status="todo")
         task = move_task(task=task, actor=self.owner, status="done", placement="last")
         self.assertIsNotNone(task.completed_at)

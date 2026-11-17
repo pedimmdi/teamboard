@@ -51,10 +51,12 @@ After pulling changes, run `docker compose up -d --build`. If the backend contai
 
 ```sh
 docker compose exec backend python manage.py migrate --noinput
-docker compose exec backend python manage.py showmigrations comments
+docker compose exec backend python manage.py migrate --check
 ```
 
 If the Comments tab repeatedly reports a generic error, check the backend logs and confirm that `comments.0003_private_attachment_storage` is marked applied. Retry the tab after the backend is ready.
+
+Django's development auto-reload picks up mounted Python files while the backend is running. Run the migration command after pulling changes to the schema. If Projects opens but the Tasks board returns a 500 and the backend log mentions `tasks_task.completed_at`, check that `tasks.0006_track_task_status` is applied with `docker compose exec backend python manage.py showmigrations tasks`.
 
 ### Running the frontend outside Docker
 
