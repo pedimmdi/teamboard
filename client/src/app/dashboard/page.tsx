@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransientMessage } from "@/hooks/use-transient-message";
+
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Avatar from "@/components/ui/Avatar";
 
@@ -36,7 +38,7 @@ function ProfileForm({
   }, [preview]);
 
   const [isSaving, setIsSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useTransientMessage<string>("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const { updateUser } = useAuth();

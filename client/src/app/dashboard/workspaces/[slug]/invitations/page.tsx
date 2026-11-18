@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useTransientMessage } from "@/hooks/use-transient-message";
+
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/lib/auth";
@@ -55,7 +57,7 @@ export default function InvitationsPage() {
     useState<string | null>(null);
 
   const [actionError, setActionError] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useTransientMessage<string | null>(null);
 
   useEffect(() => {
     if (!accessToken || !canManageInvitations) return;

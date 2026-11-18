@@ -79,6 +79,14 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await expect(page.getByRole("button", { name: "Browser test task", exact: true }).locator("span"))
     .toHaveCSS("text-decoration-line", "none");
 
+  await page.getByRole("button", { name: "Actions for Browser test task" }).click();
+  await page.getByRole("menuitem", { name: "Move task" }).click();
+  const moveDialog = page.getByRole("dialog", { name: "Move task" });
+  await moveDialog.getByRole("radio", { name: /^In Progress/ }).check();
+  await moveDialog.getByRole("button", { name: "Move task", exact: true }).click();
+  const moved = page.getByText("Moved Browser test task to In Progress.", { exact: true });
+  await expect(moved).toBeVisible();
+  await expect(moved).toHaveCount(0, { timeout: 7000 });
   const timeline = /\/calendar\/timeline\/\?/;
   await page.route(timeline, (route) => route.abort());
   await page.getByRole("navigation", { name: "Project navigation" })

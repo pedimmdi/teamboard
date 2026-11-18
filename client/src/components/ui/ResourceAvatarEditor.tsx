@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransientMessage } from "@/hooks/use-transient-message";
+
 import { useRef, useState } from "react";
 import { ApiError } from "@/lib/api";
 import Avatar from "./Avatar";
@@ -19,7 +21,7 @@ export default function ResourceAvatarEditor({
   const input = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useTransientMessage<string>("");
 
   async function save(image: File | null) {
     if (pending) return;

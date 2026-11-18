@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransientMessage } from "@/hooks/use-transient-message";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -25,7 +27,7 @@ export default function ProjectSettingsPage() {
   const { accessToken } = useAuth();
   const router = useRouter();
   const permissions = projectPermissions(workspace.role, project.role);
-  const [success, setSuccess] = useState("");
+  const [success, setSuccess] = useTransientMessage<string>("");
   const [action, setAction] = useState<"leave" | "delete" | null>(null);
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);

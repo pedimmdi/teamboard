@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransientMessage } from "@/hooks/use-transient-message";
+
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
@@ -28,7 +30,7 @@ export default function SettingsPage() {
   const [name, setName] = useState(workspace.name);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [success, setSuccess] = useTransientMessage<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
 
   const canEdit =

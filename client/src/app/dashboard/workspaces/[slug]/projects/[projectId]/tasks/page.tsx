@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransientMessage } from "@/hooks/use-transient-message";
+
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -104,7 +106,7 @@ export default function TasksPage() {
   >({});
   const [activeStatus, setActiveStatus] = useState<TaskStatus>("todo");
   const [missingId, setMissingId] = useState<string | null>(null);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useTransientMessage<string>("");
   const updateCommentCount = useCallback((id: string, count: number) => {
     const update = (task: Task) => task.id === id ? { ...task, comment_count: count } : task;
     setList((current) => current && { ...current, results: current.results.map(update) });
@@ -391,7 +393,7 @@ export default function TasksPage() {
       );
       setMoving(null);
       setNotice(
-        `Moved $<span className={task.status === "done" ? styles.completedTitle : undefined}>{task.title}</span> to ${taskStatuses.find((item) => item.value === status)?.label}.`,
+        `Moved ${task.title} to ${taskStatuses.find((item) => item.value === status)?.label}.`,
       );
     } catch (err) {
       const fields = err instanceof ApiError ? err.errors : null;

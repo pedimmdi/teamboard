@@ -161,7 +161,10 @@ function WorkspaceNavigation({
         href={workspaceBase ? `${workspaceBase}/projects` : null}
         label="Projects"
         active={pathname.startsWith(`${workspaceBase}/projects`)}
-        icon={<DesignIcon name="folder" />}
+        icon={<svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M2 5a2 2 0 0 1 2-2h3l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5Z"
+            stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>}
       />
       <NavItem
         href={workspaceBase ? `${workspaceBase}/calendar` : null}
