@@ -68,7 +68,13 @@ def history_report(projects, filters, user, today):
         completed = counts(completions, "changed_at", first, end_before)
         day = first - timedelta(days=first.weekday()) if weekly else first
         while day < end_before:
-            yield {"date": day, "created": created.get(day, 0), "completed": completed.get(day, 0)}
+            yield {
+                "date": day,
+                "start_date": max(day, first),
+                "end_date": min(day + timedelta(days=6 if weekly else 0), end_before - timedelta(days=1)),
+                "created": created.get(day, 0),
+                "completed": completed.get(day, 0),
+            }
             day += timedelta(days=7 if weekly else 1)
 
     coverage = MigrationRecorder.Migration.objects.filter(

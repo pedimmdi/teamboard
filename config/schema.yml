@@ -3105,6 +3105,15 @@ components:
         date:
           type: string
           format: date
+          description: UTC day or Monday of the calendar week.
+        start_date:
+          type: string
+          format: date
+          description: First included day, inclusive.
+        end_date:
+          type: string
+          format: date
+          description: Last included day, inclusive.
         created:
           type: integer
         completed:
@@ -3113,6 +3122,8 @@ components:
       - completed
       - created
       - date
+      - end_date
+      - start_date
     ItemTypeEnum:
       enum:
       - event

@@ -1166,3 +1166,5 @@
 }
 .commentCount svg { width: 16px; height: 16px; }
 .selectButton svg { flex-shrink: 0; width: 16px; height: 16px; }
+
+.completedTitle { text-decoration: line-through; color: #64748b; }

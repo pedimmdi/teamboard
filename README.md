@@ -137,3 +137,9 @@ Playwright starts Next.js on port 3100 and Django on port 8100. The test server 
 ## License
 
 TeamBoard is distributed under the [MIT License](LICENSE).
+
+Weekly report buckets follow calendar weeks starting on Monday. Their `date` labels that Monday, while `start_date` and `end_date` identify the included portion of each bucket. Boundary weeks can be partial in both the selected and comparison periods.
+
+When updating a running Docker frontend, run `docker compose exec frontend npm ci` and `docker compose restart frontend` to synchronize the persistent dependency volume with the checked-in lockfile.
+
+If Windows reserves port 8000, set `BACKEND_PORT=8001` in `.env` and set any explicit `NEXT_PUBLIC_API_URL` to `http://localhost:8001`. Run `docker compose up -d --force-recreate backend frontend`.

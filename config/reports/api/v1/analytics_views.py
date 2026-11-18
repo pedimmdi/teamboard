@@ -106,7 +106,9 @@ CSV_ROW_LIMIT = 5000
 
 
 def safe_csv_text(value):
-    if value.lstrip().startswith(("=", "+", "-", "@")) or value.startswith(("\t", "\r", "\n")):
+    prefix = value[:len(value) - len(value.lstrip())]
+    stripped = value.lstrip("".join(chr(code) for code in range(33)) + "\ufeff")
+    if stripped.startswith(("=", "+", "-", "@")) or any(ord(char) < 32 for char in prefix) or value.startswith(tuple(chr(code) for code in range(32))):
         return "'" + value
     return value
 

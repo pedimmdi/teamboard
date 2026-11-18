@@ -107,7 +107,9 @@ class RankingFilters(AdvancedReportFilters):
 
 
 class HistoryBucketSerializer(serializers.Serializer):
-    date = serializers.DateField()
+    date = serializers.DateField(help_text="UTC day or Monday of the calendar week.")
+    start_date = serializers.DateField(help_text="First included day, inclusive.")
+    end_date = serializers.DateField(help_text="Last included day, inclusive.")
     created = serializers.IntegerField()
     completed = serializers.IntegerField()
 

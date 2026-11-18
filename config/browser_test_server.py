@@ -40,4 +40,4 @@ for index in range(21):
         },
     )
 
-call_command("runserver", "127.0.0.1:8100", use_reloader=False)
+call_command("runserver", "127.0.0.1:" + os.environ.get("E2E_BACKEND_PORT", "8100"), use_reloader=False)

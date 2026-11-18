@@ -391,7 +391,7 @@ export default function TasksPage() {
       );
       setMoving(null);
       setNotice(
-        `Moved ${task.title} to ${taskStatuses.find((item) => item.value === status)?.label}.`,
+        `Moved $<span className={task.status === "done" ? styles.completedTitle : undefined}>{task.title}</span> to ${taskStatuses.find((item) => item.value === status)?.label}.`,
       );
     } catch (err) {
       const fields = err instanceof ApiError ? err.errors : null;
@@ -796,7 +796,7 @@ export default function TasksPage() {
                         className={styles.titleButton}
                         onClick={() => openTask(task.id)}
                       >
-                        {task.title}
+                        <span className={task.status === "done" ? styles.completedTitle : undefined}>{task.title}</span>
                       </button>
                       {actions(task)}
                     </div>
@@ -899,7 +899,7 @@ export default function TasksPage() {
                           className={styles.titleButton}
                           onClick={() => openTask(task.id)}
                         >
-                          {task.title}
+                          <span className={task.status === "done" ? styles.completedTitle : undefined}>{task.title}</span>
                         </button>
                       </td>
                       <td>{badge(task)}</td>
@@ -923,7 +923,7 @@ export default function TasksPage() {
                       className={styles.titleButton}
                       onClick={() => openTask(task.id)}
                     >
-                      {task.title}
+                      <span className={task.status === "done" ? styles.completedTitle : undefined}>{task.title}</span>
                     </button>
                     {actions(task)}
                   </div>

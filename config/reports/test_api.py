@@ -1,4 +1,6 @@
 
+from uuid import uuid4
+
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -248,3 +250,29 @@ class ProjectReportAPITests(TestCase):
         short_range = query_count("7d")
         self.assertEqual(query_count("90d"), short_range)
         self.assertLessEqual(short_range, 10)
+
+    def test_weekly_buckets_expose_partial_and_full_calendar_weeks(self):
+        from datetime import datetime, timezone
+        from tasks.models import TaskStatusHistory
+
+        self.client.force_authenticate(user=self.owner)
+        for day in (2, 7, 9):
+            TaskStatusHistory.objects.create(
+                project=self.project, task_id=uuid4(),
+                previous_status="todo", status="done", priority="medium",
+                changed_at=datetime(2026, 11, day, 12, tzinfo=timezone.utc),
+            )
+        response = self.client.get(self.url + "history/", {
+            "start_date": "2026-11-04", "end_date": "2026-11-10", "granularity": "week",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["results"], [
+            {"date": "2026-11-02", "start_date": "2026-11-04", "end_date": "2026-11-08", "created": 0, "completed": 1},
+            {"date": "2026-11-09", "start_date": "2026-11-09", "end_date": "2026-11-10", "created": 0, "completed": 1},
+        ])
+        response = self.client.get(self.url + "history/", {
+            "start_date": "2026-11-02", "end_date": "2026-11-08", "granularity": "week",
+        })
+        self.assertEqual(response.data["results"][0]["completed"], 2)
+        self.assertEqual(response.data["results"][0]["start_date"], "2026-11-02")
+        self.assertEqual(response.data["results"][0]["end_date"], "2026-11-08")

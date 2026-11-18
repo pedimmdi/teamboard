@@ -137,6 +137,11 @@ class Task(models.Model):
         return self.title
 
 class TaskStatusHistory(models.Model):
+    """Snapshots survive task deletion.
+
+    task_id deliberately has no Task foreign key. The BEFORE INSERT trigger
+    records the initial snapshot before the task row exists.
+    """
     project = models.ForeignKey("projects.Project", on_delete=models.CASCADE)
     task_id = models.UUIDField(db_index=True)
     previous_status = models.CharField(max_length=20, choices=Task.Status.choices, null=True)

@@ -22,8 +22,12 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await page.getByRole("button", { name: "Create workspace", exact: true }).click();
   const workspaceDialog = page.getByRole("dialog");
   await workspaceDialog.getByRole("textbox").fill(workspace);
+  const workspaceCreated = page.waitForResponse((response) =>
+    response.request().method() === "POST" &&
+    response.url().endsWith("/api/v1/workspaces/") && response.status() === 201);
   await workspaceDialog.getByRole("button", { name: "Create workspace", exact: true }).click();
-  await page.getByRole("link", { name: new RegExp(workspace) }).click();
+  const createdWorkspace = await (await workspaceCreated).json();
+  await page.goto(`/dashboard/workspaces/${createdWorkspace.slug}/projects`);
   await page.getByRole("button", { name: "New project", exact: true }).click();
   const projectDialog = page.getByRole("dialog", { name: "New project" });
   await projectDialog.getByRole("textbox").first().fill(project);
@@ -61,7 +65,20 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await expect(drawer.getByText("Browser test comment", { exact: true })).toHaveCount(0);
   await expect(drawer.getByText("Browser test reply", { exact: true })).toBeVisible();
 
+  await drawer.getByRole("button", { name: "Details", exact: true }).click();
+  await drawer.getByLabel("Status", { exact: true }).selectOption("done");
+  await drawer.getByRole("button", { name: "Save changes" }).click();
   await drawer.getByRole("button", { name: "Back to tasks" }).click();
+  const completedTitle = page.getByRole("button", { name: "Browser test task", exact: true });
+  await expect(completedTitle.locator("span")).toHaveCSS("text-decoration-line", "line-through");
+  await completedTitle.click();
+  await drawer.getByRole("button", { name: "Details", exact: true }).click();
+  await drawer.getByLabel("Status", { exact: true }).selectOption("todo");
+  await drawer.getByRole("button", { name: "Save changes" }).click();
+  await drawer.getByRole("button", { name: "Back to tasks" }).click();
+  await expect(page.getByRole("button", { name: "Browser test task", exact: true }).locator("span"))
+    .toHaveCSS("text-decoration-line", "none");
+
   const timeline = /\/calendar\/timeline\/\?/;
   await page.route(timeline, (route) => route.abort());
   await page.getByRole("navigation", { name: "Project navigation" })
