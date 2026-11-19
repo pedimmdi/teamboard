@@ -26,8 +26,28 @@ from .storage import (
     chat_attachment_storage,
     validate_chat_attachments,
 )
+from .events import schedule_chat_event
+from chats.attachment_cleanup import cleanup_deleted_attachment
 
 logger = logging.getLogger(__name__)
+
+
+def cleanup_deleted_message_attachments(message_id):
+    attachment_ids = list(
+        ChatAttachment.objects.filter(
+            message_id=message_id,
+            message__deleted_at__isnull=False,
+        ).values_list("pk", flat=True)
+    )
+
+    for attachment_id in attachment_ids:
+        try:
+            cleanup_deleted_attachment(attachment_id)
+        except Exception:
+            logger.exception(
+                "Failed to clean chat attachment: %s",
+                attachment_id,
+            )
 
 
 @transaction.atomic
@@ -214,6 +234,12 @@ def create_chat_message(
                 )
         raise
 
+    schedule_chat_event(
+        conversation_id=conversation.pk,
+        event_type="message.created",
+        message_id=message.pk,
+    )
+
     return message
 
 
@@ -246,6 +272,12 @@ def update_chat_message(
     message.edited_at = timezone.now()
     message.save(update_fields=["content", "edited_at"])
 
+    schedule_chat_event(
+        conversation_id=message.conversation_id,
+        event_type="message.updated",
+        message_id=message.pk,
+    )
+
     return message
 
 
@@ -274,7 +306,21 @@ def delete_chat_message(
 
     message.content = ""
     message.deleted_at = timezone.now()
-    message.save(update_fields=["content", "deleted_at"])
+    message.save(
+        update_fields=["content", "deleted_at"]
+    )
+
+    transaction.on_commit(
+        lambda: cleanup_deleted_message_attachments(
+            message.pk
+        )
+    )
+
+    schedule_chat_event(
+        conversation_id=message.conversation_id,
+        event_type="message.deleted",
+        message_id=message.pk,
+    )
 
     return message
 

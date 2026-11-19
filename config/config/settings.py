@@ -39,6 +39,7 @@ ALLOWED_HOSTS = env.list(
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "drf_spectacular_sidecar",
+    "channels",
     "accounts.apps.AccountsConfig",
     "workspaces.apps.WorkspacesConfig",
     "projects.apps.ProjectsConfig",
@@ -91,6 +93,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+
+ASGI_APPLICATION = "config.asgi.application"
+
+# Development only: messages are shared within one process.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": (
+            "channels.layers.InMemoryChannelLayer"
+        ),
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases

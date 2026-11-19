@@ -1,5 +1,5 @@
-
 import os
+from unittest.mock import MagicMock
 from datetime import timedelta
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -9,6 +9,7 @@ from django.core.management.base import CommandError
 from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 
+from chats.models import ChatAttachment
 from chats.storage import chat_attachment_storage
 
 
@@ -96,5 +97,105 @@ class ChatAttachmentCleanupTests(SimpleTestCase):
             "cleanup_chat_attachments",
             delete=True,
         )
+
+        self.assertTrue(os.path.exists(path))
+
+    @patch(
+        "chats.management.commands.cleanup_chat_attachments."
+        "ChatAttachment.objects"
+    )
+    def test_old_orphan_cleanup_is_idempotent(self, objects):
+        objects.filter.return_value.exists.return_value = False
+
+        path = self.create_file("orphan-for-retry")
+
+        call_command(
+            "cleanup_chat_attachments",
+            delete=True,
+        )
+
+        self.assertFalse(os.path.exists(path))
+
+        # Running cleanup again must not fail.
+        call_command(
+            "cleanup_chat_attachments",
+            delete=True,
+        )
+
+        self.assertFalse(os.path.exists(path))
+
+    @patch(
+        "chats.management.commands.cleanup_chat_attachments."
+        "ChatAttachment.objects"
+    )
+    def test_cleanup_preserves_registered_file(self, objects):
+        objects.filter.return_value.exists.return_value = True
+
+        path = self.create_file("protected-attachment")
+
+        call_command(
+            "cleanup_chat_attachments",
+            delete=True,
+        )
+
+        self.assertTrue(os.path.exists(path))
+
+    @patch(
+        "chats.management.commands.cleanup_chat_attachments."
+        "ChatAttachment.objects"
+    )
+    def test_orphan_recheck_prevents_deleting_registered_file(
+        self, objects
+    ):
+        path = self.create_file("registered-during-scan")
+
+        # First lookup: file appears orphaned.
+        # Second lookup: metadata now exists.
+        objects.filter.return_value.exists.side_effect = [
+            False,
+            True,
+        ]
+
+        call_command(
+            "cleanup_chat_attachments",
+            delete=True,
+        )
+
+        self.assertTrue(os.path.exists(path))
+        self.assertEqual(
+            objects.filter.return_value.exists.call_count,
+            2,
+        )
+
+    @patch(
+        "chats.management.commands.cleanup_chat_attachments."
+        "ChatAttachment.objects"
+    )
+    def test_orphan_modified_during_scan_is_preserved(
+        self, objects
+    ):
+        objects.filter.return_value.exists.return_value = False
+
+        path = self.create_file("modified-during-scan")
+        storage = chat_attachment_storage()
+
+        old_time = timezone.now() - timedelta(hours=48)
+        recent_time = timezone.now()
+
+        with patch.object(
+            storage,
+            "get_modified_time",
+            side_effect=[old_time, recent_time],
+        ):
+            with patch(
+                "chats.management.commands."
+                "cleanup_chat_attachments."
+                "chat_attachment_storage",
+                return_value=storage,
+            ):
+                call_command(
+                    "cleanup_chat_attachments",
+                    delete=True,
+                )
 
         self.assertTrue(os.path.exists(path))

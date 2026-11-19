@@ -1,4 +1,5 @@
-
+from django.db import transaction
+from chats.services import delete_chat_message
 from tempfile import TemporaryDirectory
 
 from django.contrib.auth import get_user_model
@@ -271,3 +272,135 @@ class ChatAttachmentAPITests(TestCase):
         )
 
         self.assertEqual(download.status_code, 404)
+
+    def test_attachment_deleted_only_after_commit(self):
+        response = self.upload(
+            files=[
+                SimpleUploadedFile(
+                    "commit.txt", b"Commit test"
+                ),
+            ],
+        )
+        self.assertEqual(response.status_code, 201)
+
+        message_id = response.data["id"]
+        attachment = ChatAttachment.objects.get(
+            message_id=message_id
+        )
+        storage = chat_attachment_storage()
+        key = attachment.storage_key
+
+        self.assertTrue(storage.exists(key))
+
+        with self.captureOnCommitCallbacks(
+            execute=True
+        ) as callbacks:
+            delete_chat_message(
+                workspace_slug=self.workspace.slug,
+                message_id=message_id,
+                actor=self.alice,
+            )
+
+            self.assertTrue(storage.exists(key))
+            self.assertTrue(
+                ChatAttachment.objects.filter(
+                    pk=attachment.pk
+                ).exists()
+            )
+
+        self.assertEqual(len(callbacks), 2)
+        self.assertFalse(storage.exists(key))
+        self.assertFalse(
+            ChatAttachment.objects.filter(
+                pk=attachment.pk
+            ).exists()
+        )
+
+        message = ChatMessage.objects.get(pk=message_id)
+        self.assertIsNotNone(message.deleted_at)
+
+    def test_rollback_preserves_attachment_and_message(self):
+        response = self.upload(
+            files=[
+                SimpleUploadedFile(
+                    "rollback.txt", b"Rollback test"
+                ),
+            ],
+        )
+        self.assertEqual(response.status_code, 201)
+
+        message_id = response.data["id"]
+        attachment = ChatAttachment.objects.get(
+            message_id=message_id
+        )
+        storage = chat_attachment_storage()
+        key = attachment.storage_key
+
+        with self.captureOnCommitCallbacks(
+            execute=True
+        ) as callbacks:
+            try:
+                with transaction.atomic():
+                    delete_chat_message(
+                        workspace_slug=self.workspace.slug,
+                        message_id=message_id,
+                        actor=self.alice,
+                    )
+
+                    self.assertIsNotNone(
+                        ChatMessage.objects.get(
+                            pk=message_id
+                        ).deleted_at
+                    )
+
+                    raise RuntimeError(
+                        "Simulated transaction rollback"
+                    )
+            except RuntimeError:
+                pass
+
+        self.assertEqual(len(callbacks), 0)
+        self.assertTrue(storage.exists(key))
+        self.assertTrue(
+            ChatAttachment.objects.filter(
+                pk=attachment.pk
+            ).exists()
+        )
+
+        message = ChatMessage.objects.get(pk=message_id)
+        self.assertIsNone(message.deleted_at)
+
+    def test_repeated_delete_is_idempotent(self):
+        response = self.upload(
+            files=[
+                SimpleUploadedFile(
+                    "repeat.txt", b"Repeat test"
+                ),
+            ],
+        )
+        self.assertEqual(response.status_code, 201)
+
+        message_id = response.data["id"]
+        attachment = ChatAttachment.objects.get(
+            message_id=message_id
+        )
+        storage = chat_attachment_storage()
+        key = attachment.storage_key
+
+        with self.captureOnCommitCallbacks(
+            execute=True
+        ) as callbacks:
+            for _ in range(2):
+                delete_chat_message(
+                    workspace_slug=self.workspace.slug,
+                    message_id=message_id,
+                    actor=self.alice,
+                )
+
+        self.assertEqual(len(callbacks), 2)
+        self.assertFalse(storage.exists(key))
+        self.assertFalse(
+            ChatAttachment.objects.filter(
+                pk=attachment.pk
+            ).exists()
+        )
