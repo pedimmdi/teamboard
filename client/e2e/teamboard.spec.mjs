@@ -159,7 +159,7 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await expect(reports.getByRole("region", { name: "Current overview" })).toBeVisible();
   await expect(reports.getByRole("region", { name: "Member workload" }).getByText("Unassigned")).toBeVisible();
   await reports.getByLabel("Group by").selectOption("week");
-  await expect(reports.getByRole("img", { name: "Created and completed tasks by date" })).toBeVisible();
+  await expect(reports.getByRole("group", { name: "Created and completed tasks by date" })).toBeVisible();
   const downloaded = page.waitForEvent("download");
   await reports.getByRole("button", { name: "Export CSV" }).click();
   expect((await downloaded).suggestedFilename()).toBe("task-report.csv");
@@ -174,5 +174,6 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("navigation", { name: "Dashboard" }).getByRole("link", { name: "Reports" }).click();
   await expect(reports.getByRole("region", { name: "Project comparison" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Dashboard", exact: true }).getByRole("link")).toHaveCount(5);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

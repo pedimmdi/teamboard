@@ -124,6 +124,7 @@ class ReportExportView(ScopedReportView):
             raise ValidationError({"export": "Narrow your filters to export at most 5000 tasks."})
         response = HttpResponse(content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = 'attachment; filename="task-report.csv"'
+        response.write("\ufeffsep=,\r\n")
         writer = csv.writer(response)
         writer.writerow(("task_id", "project", "title", "status", "priority", "assignee_id", "due_date", "completed_at"))
         writer.writerows(

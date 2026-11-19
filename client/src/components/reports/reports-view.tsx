@@ -19,7 +19,7 @@ function errorMessage(error: unknown) {
     || (error instanceof Error ? error.message : "Unable to load reports.");
 }
 
-export default function ReportsView({ slug, projectId }: { slug: string; projectId?: string }) {
+export default function ReportsView({ slug, projectId, workspaceRole }: { slug: string; projectId?: string; workspaceRole: string | null }) {
   const { accessToken } = useAuth();
   const [members, setMembers] = useState<{ slug: string; rows: { user_id: number; user_email: string }[] }>();
   const [memberError, setMemberError] = useState(false);
@@ -109,12 +109,17 @@ export default function ReportsView({ slug, projectId }: { slug: string; project
   }
 
   const totals = (rows: ReportHistory["results"], field: "created" | "completed") => rows.reduce((sum, row) => sum + row[field], 0);
+  const [selectedBucket, setSelectedBucket] = useState<string | null>(null);
+  const activeBucket = data?.history.results.find((row) => row.date === selectedBucket);
+  const formatDay = (day: string) => new Intl.DateTimeFormat("en", {
+    month: "short", day: "numeric", timeZone: "UTC",
+  }).format(new Date(day + "T00:00:00Z"));
   const maximum = Math.max(1, ...(data?.history.results.flatMap((row) => [row.created, row.completed]) ?? []));
   return (
     <section className={styles.reports} aria-label="Reports">
       <header className={styles.header}>
         <span className={styles.icon}><ReportIcon /></span>
-        <div><h2>Reports</h2><p>Task progress, activity and workload</p></div>
+        <div><h2>Reports</h2><p>{workspaceRole === "member" && !projectId ? "Reports from projects you belong to" : "Task progress, activity and workload"}</p></div>
         <button disabled={exporting || !data} onClick={() => void download()}>{exporting ? "Exporting…" : "Export CSV"}</button>
       </header>
       {exportError && <p role="alert" className={styles.error}>{exportError}</p>}
@@ -181,13 +186,20 @@ export default function ReportsView({ slug, projectId }: { slug: string; project
               <span>Previous period {totals(data.history.previous_results, field)}</span></p>)}
           </div>
           <div className={styles.legend}><span>● Created</span><span>● Completed</span></div>
-          <div className={styles.chart} role="img" aria-label="Created and completed tasks by date">
-            {data.history.results.map((row) => <div className={styles.chartColumn} key={row.date}
+          <p className={styles.hint}>Dates along the bottom show when activity occurred. Bar height shows the number of tasks. Select a date for exact counts.</p>
+          <div className={styles.axisLabel}>Tasks · scale 0–{maximum}</div>
+          <div className={styles.chart} role="group" aria-label="Created and completed tasks by date">
+            {data.history.results.map((row) => <button type="button" className={styles.chartColumn} key={row.date}
+              aria-pressed={selectedBucket === row.date} onClick={() => setSelectedBucket(row.date)}
+              aria-label={`${formatDay(row.start_date)} through ${formatDay(row.end_date)}: ${row.created} created, ${row.completed} completed`}
               title={`${row.start_date}–${row.end_date}: ${row.created} created, ${row.completed} completed`}>
               <div className={styles.bars}><span style={{ height: `${row.created * 100 / maximum}%` }} /><span style={{ height: `${row.completed * 100 / maximum}%` }} /></div>
-              <small>{row.date.slice(5)}</small>
-            </div>)}
+              <small>{formatDay(row.date)}</small>
+            </button>)}
           </div>
+          {activeBucket && <p className={styles.bucketDetail} role="status">
+            {formatDay(activeBucket.start_date)}–{formatDay(activeBucket.end_date)} · {activeBucket.created} created · {activeBucket.completed} completed
+          </p>}
           <details><summary>Activity data</summary><div className={styles.scroll}><table><thead><tr><th>From</th><th>Through</th><th>Created</th><th>Completed</th></tr></thead><tbody>
             {data.history.results.map((row) => <tr key={row.date}><td>{row.start_date}</td><td>{row.end_date}</td><td>{row.created}</td><td>{row.completed}</td></tr>)}
           </tbody></table></div></details>

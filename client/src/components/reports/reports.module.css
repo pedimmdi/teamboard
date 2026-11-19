@@ -53,3 +53,12 @@ button.primary:hover:not(:disabled) { background: #4338ca; }
   .header > button { margin-left: 0; }
   .reports h3 small { display: block; }
 }
+
+.reports button.chartColumn {
+  border: 0; border-radius: 4px; padding: 0 2px; background: transparent;
+  flex: 1 0 62px; min-width: 62px; font-weight: 400;
+}
+.reports button.chartColumn[aria-pressed="true"] { background: #eef2ff; }
+.chartColumn small { white-space: nowrap; font-size: 11px; }
+.axisLabel { color: #475569; font-size: 12px; margin-top: 12px; }
+.bucketDetail { padding: 10px; background: #eef2ff; border-radius: 8px; color: #3730a3; font-size: 13px; }

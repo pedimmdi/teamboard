@@ -152,7 +152,9 @@ function NavItem({
 function WorkspaceNavigation({
   workspaceBase,
   pathname,
+  mobile = false,
 }: {
+  mobile?: boolean;
   workspaceBase: string | null;
   pathname: string;
 }) {
@@ -188,12 +190,12 @@ function WorkspaceNavigation({
         }
         icon={<DesignIcon name="users" />}
       />
-      <NavItem
+      {!mobile && <NavItem
         href={workspaceBase ? `${workspaceBase}/settings` : null}
         label="Settings"
         active={pathname === `${workspaceBase}/settings`}
         icon={<DesignIcon name="settings" />}
-      />
+      />}
     </>
   );
 }
@@ -419,7 +421,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
       </main>
 
       <nav className={styles.mobileTabBar} aria-label="Dashboard">
-        <WorkspaceNavigation
+        <WorkspaceNavigation mobile
           workspaceBase={workspaceBase}
           pathname={pathname}
         />

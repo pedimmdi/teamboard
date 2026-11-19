@@ -5,7 +5,7 @@ import { useWorkspace } from "../../../workspace-context";
 import { useProjectContext } from "../project-context";
 
 export default function ReportsPage() {
-  const { slug } = useWorkspace();
+  const { slug, role } = useWorkspace();
   const { project } = useProjectContext();
-  return <ReportsView slug={slug} projectId={project.id} />;
+  return <ReportsView workspaceRole={role} slug={slug} projectId={project.id} />;
 }

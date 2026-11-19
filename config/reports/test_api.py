@@ -205,7 +205,8 @@ class ProjectReportAPITests(TestCase):
         self.assertIsNone(result.data[0]["assignee"])
         result = self.client.get(self.url + "export/", query)
         self.assertEqual(result.status_code, 200)
-        rows = list(csv.reader(StringIO(result.content.decode())))
+        self.assertTrue(result.content.startswith(b"\xef\xbb\xbfsep=,\r\n"))
+        rows = list(csv.reader(StringIO(result.content.decode("utf-8-sig").split("\r\n", 1)[1])))
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[1][2], "' =1+1")
         with patch("reports.api.v1.analytics_views.CSV_ROW_LIMIT", 1):
@@ -276,3 +277,25 @@ class ProjectReportAPITests(TestCase):
         self.assertEqual(response.data["results"][0]["completed"], 2)
         self.assertEqual(response.data["results"][0]["start_date"], "2026-11-02")
         self.assertEqual(response.data["results"][0]["end_date"], "2026-11-08")
+
+    def test_all_report_endpoints_enforce_project_visibility_for_each_workspace_role(self):
+        from tasks.models import Task
+
+        private = Project.objects.create(workspace=self.workspace, name="Hidden", created_by=self.owner)
+        ProjectMembership.objects.create(project=private, user=self.owner, role="manager")
+        Task.objects.create(project=private, title="داده خصوصی")
+        base = f"/api/v1/workspaces/{self.workspace.slug}/projects/{private.pk}/reports/"
+        workspace_base = f"/api/v1/workspaces/{self.workspace.slug}/reports/"
+        admin = User.objects.create_user(email="report-admin@example.com")
+        WorkspaceMembership.objects.create(user=admin, workspace=self.workspace, role="admin")
+        for role, user in (("member", self.member), ("admin", admin), ("owner", self.owner)):
+            self.client.force_authenticate(user=user)
+            for suffix in ("", "history/", "workload/", "export/"):
+                with self.subTest(role=role, endpoint=suffix):
+                    self.assertEqual(self.client.get(base + suffix).status_code, 404 if role == "member" else 200)
+            ranking = self.client.get(workspace_base + "projects/")
+            expected = 1 if role == "member" else 2
+            self.assertEqual(ranking.data["count"], expected)
+            export = self.client.get(workspace_base + "export/")
+            self.assertEqual(export.status_code, 200)
+            self.assertEqual("داده خصوصی" in export.content.decode("utf-8-sig"), role != "member")

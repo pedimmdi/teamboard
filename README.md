@@ -145,3 +145,5 @@ Weekly report buckets follow calendar weeks starting on Monday. Their `date` lab
 When updating a running Docker frontend, run `docker compose exec frontend npm ci` and `docker compose restart frontend` to synchronize the persistent dependency volume with the checked-in lockfile.
 
 If Windows reserves port 8000, set `BACKEND_PORT=8001` in `.env` and set any explicit `NEXT_PUBLIC_API_URL` to `http://localhost:8001`. Run `docker compose up -d --force-recreate backend frontend`.
+
+Report CSV downloads start with a UTF-8 BOM and an Excel `sep=,` directive so Persian text and comma-separated columns open correctly regardless of the system list separator. General CSV parsers should skip the directive line.
