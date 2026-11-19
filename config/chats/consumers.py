@@ -96,7 +96,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         self.joined_group = True
 
         # Never echo the JWT as an accepted subprotocol.
-        await self.accept()
+        await self.accept(subprotocol="jwt")
 
     async def disconnect(self, close_code):
         if getattr(self, "joined_group", False):

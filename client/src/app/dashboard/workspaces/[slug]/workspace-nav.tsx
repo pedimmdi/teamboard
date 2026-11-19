@@ -18,6 +18,7 @@ export default function WorkspaceNav({ slug }: Props) {
     { label: "Projects", href: `${basePath}/projects` },
     { label: "Calendar", href: `${basePath}/calendar` },
     { label: "Reports", href: `${basePath}/reports` },
+    { label: "Chats", href: `${basePath}/chats` },
     { label: "Members", href: `${basePath}/members` },
     { label: "Invitations", href: `${basePath}/invitations` },
     { label: "Overview", href: basePath },

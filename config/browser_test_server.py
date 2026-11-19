@@ -40,4 +40,19 @@ for index in range(21):
         },
     )
 
+chat_workspace, _ = Workspace.objects.get_or_create(
+    slug="chat-tests", defaults={"name": "Browser chat tests"},
+)
+WorkspaceMembership.objects.get_or_create(
+    workspace=chat_workspace, user=user, defaults={"role": "owner"},
+)
+teammate, _ = User.objects.get_or_create(
+    email="browser-chat-teammate@example.com", defaults={"is_email_verified": True},
+)
+teammate.set_password(password)
+teammate.save(update_fields=["password"])
+WorkspaceMembership.objects.get_or_create(
+    workspace=chat_workspace, user=teammate, defaults={"role": "member"},
+)
+
 call_command("runserver", "127.0.0.1:" + os.environ.get("E2E_BACKEND_PORT", "8100"), use_reloader=False)

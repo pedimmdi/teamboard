@@ -14,6 +14,8 @@ TeamBoard is a workspace for planning projects, tracking tasks on a Kanban board
 
 - **Reports** for projects and workspaces with current task statistics, historical activity, date and task filters, workload, paginated project comparisons, and CSV export.
 
+- **Chats** with project conversations and direct workspace messages, replies, editing, deletion and private TXT/JPEG/PNG attachments. Live updates reconnect automatically, with periodic REST synchronization when needed.
+
 ## Stack and layout
 
 | Path | Purpose |

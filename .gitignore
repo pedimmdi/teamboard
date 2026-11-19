@@ -224,3 +224,5 @@ config/media/
 config/private_attachments/
 client/test-results/
 client/playwright-report/
+
+config/private_chat_attachments/

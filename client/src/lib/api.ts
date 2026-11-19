@@ -1386,3 +1386,60 @@ export function getReportRanking(token: string, slug: string, filters: ReportFil
 export function exportReport(token: string, slug: string, filters: ReportFilters, projectId?: string) {
   return apiFetch<Blob>(`${reportPath(slug, projectId)}export/?${reportQuery(filters)}`, { token, responseType: "blob" });
 }
+
+export type ChatConversation = {
+  id: string; workspace: string; type: "project" | "direct"; project: string | null;
+  direct_user_low: number | null; direct_user_high: number | null; updated_at: string;
+};
+export type ChatMessage = {
+  id: string; conversation: string; sender_id: number | null; content: string; reply_to: string | null;
+  attachments: { id: string; filename: string; size: number }[];
+  created_at: string; edited_at: string | null; deleted_at: string | null;
+};
+export type ChatMessagePage = { count: number; next: string | null; previous: string | null; results: ChatMessage[] };
+function chatsPath(slug: string, conversation?: string) {
+  const base = `/api/v1/workspaces/${encodeURIComponent(slug)}/chats/`;
+  return conversation ? `${base}${encodeURIComponent(conversation)}/messages/` : base;
+}
+export function getProjectChat(token: string, slug: string, project: string) {
+  return apiFetch<ChatConversation>(`${projectsPath(slug, project)}chat/`, { token });
+}
+export function getDirectChats(token: string, slug: string) {
+  return apiFetch<ChatConversation[]>(`${chatsPath(slug)}direct/`, { token });
+}
+export function startDirectChat(token: string, slug: string, recipient: number) {
+  return apiFetch<ChatConversation>(`${chatsPath(slug)}direct/`, {
+    token, method: "POST", body: JSON.stringify({ recipient_id: recipient }),
+  });
+}
+export function getChatMessages(token: string, slug: string, conversation: string, page = 1, signal?: AbortSignal) {
+  return apiFetch<ChatMessagePage>(`${chatsPath(slug, conversation)}?page=${page}`, { token, signal });
+}
+export function sendChatMessage(token: string, slug: string, conversation: string, content: string, reply: string | null, files: File[]) {
+  const body = new FormData();
+  body.set("content", content);
+  if (reply) body.set("reply_to", reply);
+  for (const file of files) body.append("attachments", file);
+  return apiFetch<ChatMessage>(chatsPath(slug, conversation), { token, method: "POST", body });
+}
+export function editChatMessage(token: string, slug: string, conversation: string, message: string, content: string) {
+  return apiFetch<ChatMessage>(`${chatsPath(slug, conversation)}${encodeURIComponent(message)}/`, {
+    token, method: "PATCH", body: JSON.stringify({ content }),
+  });
+}
+export function deleteChatMessage(token: string, slug: string, conversation: string, message: string) {
+  return apiFetch<void>(`${chatsPath(slug, conversation)}${encodeURIComponent(message)}/`, { token, method: "DELETE" });
+}
+export function downloadChatAttachment(token: string, slug: string, conversation: string, message: string, attachment: string) {
+  return apiFetch<Blob>(`${chatsPath(slug, conversation)}${encodeURIComponent(message)}/attachments/${encodeURIComponent(attachment)}/`, {
+    token, responseType: "blob",
+  });
+}
+export function chatWebSocketUrl(slug: string, conversation: string) {
+  const url = new URL(API_URL);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = `/ws/chats/${encodeURIComponent(slug)}/${encodeURIComponent(conversation)}/`;
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}

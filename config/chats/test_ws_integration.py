@@ -136,7 +136,7 @@ class ChatWebSocketIntegrationTests(TransactionTestCase):
         if connected:
             # The JWT must never be echoed as the
             # negotiated WebSocket subprotocol.
-            self.assertIsNone(subprotocol)
+            self.assertEqual(subprotocol, "jwt")
             await communicator.disconnect()
 
     def test_valid_jwt_connects_to_own_direct_chat(self):
