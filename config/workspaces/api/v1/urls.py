@@ -19,6 +19,7 @@ from calendars.api.v1.views import (
     WorkspaceCalendarTimelineView,
     ProjectCalendarTimelineView,
 )
+from chats.api.v1.views import ProjectChatView
 
 
 app_name = "workspaces_api_v1"
@@ -117,5 +118,14 @@ urlpatterns = [
         "<slug:slug>/projects/<uuid:project_id>/calendar/timeline/",
         ProjectCalendarTimelineView.as_view(),
         name="project-calendar-timeline",
+    ),
+    path(
+        "<slug:slug>/chats/",
+        include("chats.api.v1.urls"),
+    ),
+    path(
+        "<slug:slug>/projects/<uuid:project_id>/chat/",
+        ProjectChatView.as_view(),
+        name="project-chat",
     ),
 ]

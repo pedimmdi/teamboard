@@ -716,6 +716,249 @@ paths:
               schema:
                 $ref: '#/components/schemas/CalendarTimelineResponse'
           description: ''
+  /api/v1/workspaces/{slug}/chats/{conversation_id}/messages/:
+    get:
+      operationId: v1_workspaces_chats_messages_list
+      summary: List conversation messages
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedChatMessageList'
+          description: ''
+    post:
+      operationId: v1_workspaces_chats_messages_create
+      summary: Send a message with optional attachments
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatMessageCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatMessageCreateRequest'
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+          description: ''
+  /api/v1/workspaces/{slug}/chats/{conversation_id}/messages/{message_id}/:
+    patch:
+      operationId: v1_workspaces_chats_messages_partial_update
+      summary: Edit own message
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: message_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChatMessageUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedChatMessageUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedChatMessageUpdateRequest'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+          description: ''
+    delete:
+      operationId: v1_workspaces_chats_messages_destroy
+      summary: Soft-delete own message
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: message_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/workspaces/{slug}/chats/{conversation_id}/messages/{message_id}/attachments/{attachment_id}/:
+    get:
+      operationId: v1_workspaces_chats_messages_attachments_retrieve
+      summary: Download a private chat attachment
+      parameters:
+      - in: path
+        name: attachment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: message_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/workspaces/{slug}/chats/direct/:
+    get:
+      operationId: v1_workspaces_chats_direct_list
+      summary: List own direct conversations
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+          description: ''
+    post:
+      operationId: v1_workspaces_chats_direct_create
+      summary: Start or retrieve a direct conversation
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DirectCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DirectCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DirectCreateRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+          description: ''
   /api/v1/workspaces/{slug}/invitations/:
     get:
       operationId: v1_workspaces_invitations_list
@@ -1388,6 +1631,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CalendarTimelineResponse'
+          description: ''
+  /api/v1/workspaces/{slug}/projects/{project_id}/chat/:
+    get:
+      operationId: v1_workspaces_projects_chat_retrieve
+      summary: Get or initialize a project chat
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
           description: ''
   /api/v1/workspaces/{slug}/projects/{project_id}/leave/:
     post:
@@ -2972,6 +3242,92 @@ components:
           type: string
       required:
       - detail
+    ChatAttachmentMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        filename:
+          type: string
+          readOnly: true
+        size:
+          type: integer
+          readOnly: true
+      required:
+      - filename
+      - id
+      - size
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        conversation:
+          type: string
+          format: uuid
+          readOnly: true
+        sender_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        content:
+          type: string
+          readOnly: true
+        reply_to:
+          type: string
+          format: uuid
+          readOnly: true
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatAttachmentMetadata'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        edited_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - attachments
+      - content
+      - conversation
+      - created_at
+      - deleted_at
+      - edited_at
+      - id
+      - reply_to
+      - sender_id
+    ChatMessageCreateRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          default: ''
+          maxLength: 5000
+        reply_to:
+          type: string
+          format: uuid
+          nullable: true
+        attachments:
+          type: array
+          items:
+            type: string
+            format: binary
+          writeOnly: true
+          maxItems: 5
     Comment:
       type: object
       properties:
@@ -3048,6 +3404,51 @@ components:
         attachment:
           type: string
           format: binary
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        workspace:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        direct_user_low:
+          type: integer
+          readOnly: true
+          nullable: true
+        direct_user_high:
+          type: integer
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - direct_user_high
+      - direct_user_low
+      - id
+      - project
+      - type
+      - updated_at
+      - workspace
     CurrentUser:
       type: object
       properties:
@@ -3080,6 +3481,14 @@ components:
       - email
       - id
       - is_email_verified
+    DirectCreateRequest:
+      type: object
+      properties:
+        recipient_id:
+          type: integer
+          minimum: 1
+      required:
+      - recipient_id
     EmailVerificationRequest:
       type: object
       properties:
@@ -3321,6 +3730,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CalendarEvent'
+    PaginatedChatMessageList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
     PaginatedCommentList:
       type: object
       required:
@@ -3588,6 +4020,12 @@ components:
           format: date-time
         all_day:
           type: boolean
+    PatchedChatMessageUpdateRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          maxLength: 5000
     PatchedCommentUpdateRequest:
       type: object
       properties:
@@ -4173,6 +4611,14 @@ components:
         * `in_progress` - In Progress
         * `in_review` - In Review
         * `done` - Done
+    TypeEnum:
+      enum:
+      - project
+      - direct
+      type: string
+      description: |-
+        * `project` - Project
+        * `direct` - Direct
     UserSession:
       type: object
       properties:

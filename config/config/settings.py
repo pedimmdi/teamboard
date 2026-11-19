@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "notifications.apps.NotificationsConfig",
     "calendars.apps.CalendarsConfig",
     "reports.apps.ReportsConfig",
+    "chats.apps.ChatsConfig",
 ]
 
 MIDDLEWARE = [
@@ -147,6 +148,11 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 COMMENT_ATTACHMENT_ROOT = env('COMMENT_ATTACHMENT_ROOT', default=str(BASE_DIR / 'private_attachments'))
 
+CHAT_ATTACHMENT_ROOT = env(
+    "CHAT_ATTACHMENT_ROOT",
+    default=str(BASE_DIR / "private_chat_attachments"),
+)
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -180,6 +186,8 @@ REST_FRAMEWORK = {
         "avatar_upload": "10/hour",
         "task_create": "60/hour",
         "comment_create": "30/min",
+        "chat_message_create": "60/min",
+        "chat_direct_create": "30/min",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
