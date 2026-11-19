@@ -1333,3 +1333,56 @@ export function saveCalendarEvent(token: string, slug: string, projectId: string
 export function deleteCalendarEvent(token: string, slug: string, projectId: string, id: string) {
   return apiFetch<void>(`${calendarPath(slug, projectId)}${encodeURIComponent(id)}/`, { token, method: "DELETE" });
 }
+
+export type ReportFilters = {
+  start_date?: string;
+  end_date?: string;
+  assignee?: string;
+  status?: string;
+  priority?: string;
+};
+export type ReportSummary = {
+  total_tasks: number; completed_tasks: number; active_tasks: number;
+  overdue_tasks: number; unassigned_tasks: number; completion_rate: number;
+};
+export type ReportOverview = {
+  summary: ReportSummary;
+  status_distribution: Record<TaskStatus, number>;
+  priority_distribution: Record<TaskPriority, number>;
+  as_of: string;
+  member_workload?: { user_id: number; user_email: string }[];
+};
+export type ReportBucket = { date: string; start_date: string; end_date: string; created: number; completed: number };
+export type ReportHistory = {
+  start_date: string; end_date: string; completion_tracking_since: string | null;
+  results: ReportBucket[]; previous_results: ReportBucket[];
+};
+export type ReportWorkload = {
+  assignee: number | null; total_tasks: number; active_tasks: number; completed_tasks: number;
+  overdue_tasks: number; due_soon_tasks: number; completion_rate: number;
+};
+export type ReportProject = { project_id: string; project_name: string; total_tasks: number; completed_tasks: number; overdue_tasks: number; completion_rate: number };
+export type ReportRanking = { count: number; next: string | null; previous: string | null; results: ReportProject[] };
+
+function reportPath(slug: string, projectId?: string) {
+  const base = `/api/v1/workspaces/${encodeURIComponent(slug)}`;
+  return projectId ? `${base}/projects/${encodeURIComponent(projectId)}/reports/` : `${base}/reports/`;
+}
+function reportQuery(filters: Record<string, string | undefined>) {
+  return new URLSearchParams(Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1]))).toString();
+}
+export function getReportOverview(token: string, slug: string, projectId?: string, signal?: AbortSignal) {
+  return apiFetch<ReportOverview>(reportPath(slug, projectId), { token, signal });
+}
+export function getReportHistory(token: string, slug: string, filters: ReportFilters & { granularity: string }, projectId?: string, signal?: AbortSignal) {
+  return apiFetch<ReportHistory>(`${reportPath(slug, projectId)}history/?${reportQuery(filters)}`, { token, signal });
+}
+export function getReportWorkload(token: string, slug: string, filters: ReportFilters, projectId?: string, signal?: AbortSignal) {
+  return apiFetch<ReportWorkload[]>(`${reportPath(slug, projectId)}workload/?${reportQuery(filters)}`, { token, signal });
+}
+export function getReportRanking(token: string, slug: string, filters: ReportFilters, page: number, ordering: string, signal?: AbortSignal) {
+  return apiFetch<ReportRanking>(`${reportPath(slug)}projects/?${reportQuery({ ...filters, page: String(page), ordering })}`, { token, signal });
+}
+export function exportReport(token: string, slug: string, filters: ReportFilters, projectId?: string) {
+  return apiFetch<Blob>(`${reportPath(slug, projectId)}export/?${reportQuery(filters)}`, { token, responseType: "blob" });
+}

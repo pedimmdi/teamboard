@@ -9,7 +9,7 @@ test("signed-out visitors are redirected from protected pages and can reach acco
 });
 
 test("sign in, create workspace, project and task, then discuss the task", async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   const suffix = Date.now();
   const workspace = `E2E workspace ${suffix}`;
   const project = `E2E project ${suffix}`;
@@ -146,4 +146,33 @@ test("sign in, create workspace, project and task, then discuss the task", async
     .getByRole("button", { name: "Delete event" }).click();
   await expect(agenda.getByRole("button", { name: "Updated calendar review" })).toHaveCount(0);
   await expect(agenda.getByRole("link", { name: "Browser test task" })).toBeVisible();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const historyEndpoint = /\/reports\/history\/\?/;
+  await page.route(historyEndpoint, (route) => route.abort());
+  await page.getByRole("navigation", { name: "Project navigation" })
+    .getByRole("link", { name: "Reports" }).click();
+  const reports = page.getByRole("region", { name: "Reports", exact: true });
+  await expect(reports.getByRole("alert")).toBeVisible();
+  await page.unroute(historyEndpoint);
+  await reports.getByRole("button", { name: "Try again", exact: true }).click();
+  await expect(reports.getByRole("region", { name: "Current overview" })).toBeVisible();
+  await expect(reports.getByRole("region", { name: "Member workload" }).getByText("Unassigned")).toBeVisible();
+  await reports.getByLabel("Group by").selectOption("week");
+  await expect(reports.getByRole("img", { name: "Created and completed tasks by date" })).toBeVisible();
+  const downloaded = page.waitForEvent("download");
+  await reports.getByRole("button", { name: "Export CSV" }).click();
+  expect((await downloaded).suggestedFilename()).toBe("task-report.csv");
+  const reportFilters = reports.getByRole("region", { name: "Report filters" });
+  await reportFilters.getByRole("combobox", { name: "Assignee", exact: true }).selectOption("me");
+  await reportFilters.getByRole("button", { name: "Apply filters" }).click();
+  await expect(reports.getByText("No tasks match these filters.")).toBeVisible();
+  await reportFilters.getByLabel("Start date").fill("2026-12-31");
+  await reportFilters.getByLabel("End date").fill("2026-01-01");
+  await reportFilters.getByRole("button", { name: "Apply filters" }).click();
+  await expect(reportFilters.getByRole("alert")).toContainText("ordered date range");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("navigation", { name: "Dashboard" }).getByRole("link", { name: "Reports" }).click();
+  await expect(reports.getByRole("region", { name: "Project comparison" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

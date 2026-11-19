@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ReportIcon from "@/components/reports/report-icon";
 import CalendarIcon from "@/components/calendar/calendar-icon";
 import Avatar from "@/components/ui/Avatar";
 import DesignIcon from "@/components/ui/DesignIcon";
@@ -171,6 +172,12 @@ function WorkspaceNavigation({
         label="Calendar"
         active={pathname === `${workspaceBase}/calendar`}
         icon={<CalendarIcon />}
+      />
+      <NavItem
+        href={workspaceBase ? `${workspaceBase}/reports` : null}
+        label="Reports"
+        active={pathname === `${workspaceBase}/reports`}
+        icon={<ReportIcon />}
       />
       <NavItem
         href={workspaceBase ? `${workspaceBase}/members` : null}

@@ -12,6 +12,8 @@ TeamBoard is a workspace for planning projects, tracking tasks on a Kanban board
 - **Notifications** with an account-wide inbox, unread badge, read filters and links to the related project or task. Workspace invitations are accepted using their email link.
 - **Calendars** with month, week, and day views for workspaces and projects, a day agenda for events and task due dates, and project event management. Calendar dates and event entry use UTC. The agenda can display timed events in the browser’s local timezone. The timeline includes events and full-day task due dates that overlap the requested range. The range end is exclusive.
 
+- **Reports** for projects and workspaces with current task statistics, historical activity, date and task filters, workload, paginated project comparisons, and CSV export.
+
 ## Stack and layout
 
 | Path | Purpose |
