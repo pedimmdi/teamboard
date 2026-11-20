@@ -10,6 +10,14 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
+      redis:
+        image: redis:7.4-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
       postgres:
         image: postgres:17-alpine
         env:
@@ -49,6 +57,9 @@ jobs:
           POSTGRES_PORT: "5432"
           EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
           FRONTEND_URL: http://localhost:3000
+          RUN_REDIS_TESTS: "1"
+          REDIS_URL: redis://127.0.0.1:6379/0
+          REDIS_CACHE_URL: redis://127.0.0.1:6379/1
         run: |
           python manage.py check
           python manage.py makemigrations --check --dry-run
@@ -90,6 +101,14 @@ jobs:
   browser:
     runs-on: ubuntu-latest
     services:
+      redis:
+        image: redis:7.4-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
       postgres:
         image: postgres:17-alpine
         env:

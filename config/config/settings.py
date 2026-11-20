@@ -96,14 +96,33 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 ASGI_APPLICATION = "config.asgi.application"
 
-# Development only: messages are shared within one process.
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": (
-            "channels.layers.InMemoryChannelLayer"
-        ),
-    },
-}
+# Production services always use Redis. Isolated tests override these backends.
+REDIS_URL = env("REDIS_URL", default="redis://127.0.0.1:6379/0")
+if not REDIS_URL:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("REDIS_URL must be configured.")
+CHANNEL_LAYERS = {"default": {
+    "BACKEND": "channels_redis.core.RedisChannelLayer",
+    "CONFIG": {"hosts": [REDIS_URL], "capacity": 1000, "expiry": 60, "group_expiry": 86400},
+}}
+CACHES = {"default": {
+    "BACKEND": "django.core.cache.backends.redis.RedisCache",
+    "LOCATION": env("REDIS_CACHE_URL", default="redis://127.0.0.1:6379/1"),
+    "KEY_PREFIX": env("CACHE_KEY_PREFIX", default="teamboard:v1:throttle"),
+    "TIMEOUT": 300,
+    "OPTIONS": {"socket_connect_timeout": 2, "socket_timeout": 2},
+}}
+
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/2")
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_TASK_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_SOFT_TIME_LIMIT = 120
+CELERY_TASK_TIME_LIMIT = 150
+CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 600}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -315,3 +334,16 @@ SPECTACULAR_SETTINGS = {
         ],
     },
 }
+
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=15)
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_BROKER_CONNECTION_TIMEOUT = 2
+CELERY_TASK_PUBLISH_RETRY = False
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 500
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+
+if CELERY_BROKER_URL.startswith("rediss://"):
+    import ssl
+    CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": ssl.CERT_REQUIRED}
