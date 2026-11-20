@@ -47,7 +47,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Validate backend production deployment
-        run: docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.production.yml config --quiet
+        run: APP_ENV_FILE=.env.example docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.production.yml config --quiet
 
       - name: Build non-root backend image
         run: |

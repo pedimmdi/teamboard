@@ -24,7 +24,7 @@ Only one Beat instance should run. If Redis is unavailable, Beat cannot enqueue 
 
 Required processes: PostgreSQL, Redis, ASGI backend, Celery Worker and one Celery Beat. The worker and backend must share the same private attachment storage and matching access permissions. Default image UID/GID is 10001. The image excludes all private uploads and local logs/build/test artifacts.
 
-For the backend production overlay (Compose 2.24.4+):
+For the backend production overlay (Compose 2.24.4+), create the private `.env` first. To use another environment file, set `APP_ENV_FILE` and pass that same file with `--env-file`; CI validates with the committed `.env.example` rather than relying on a private `.env`:
 
 ```sh
 docker compose -f docker-compose.yml -f docker-compose.production.yml build backend worker beat
