@@ -42,3 +42,10 @@ pnpm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Private chat uploads and local verification artifacts must never enter images.
+config/private_chat_attachments/
+**/*.log
+client/test-results/
+client/playwright-report/
+read-benchmark-*.json

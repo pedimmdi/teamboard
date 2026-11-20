@@ -46,6 +46,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
+      - name: Validate backend production deployment
+        run: docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.production.yml config --quiet
+
+      - name: Build non-root backend image
+        run: |
+          docker build -f docker/backend.Dockerfile -t teamboard-ci .
+          docker run --rm --entrypoint python teamboard-ci -c "import os; assert os.getuid() == 10001"
+
       - name: Run backend tests
         working-directory: config
         env:

@@ -310,11 +310,8 @@ def delete_chat_message(
         update_fields=["content", "deleted_at"]
     )
 
-    transaction.on_commit(
-        lambda: cleanup_deleted_message_attachments(
-            message.pk
-        )
-    )
+    from background.services import enqueue_chat_attachments
+    enqueue_chat_attachments(message.pk)
 
     schedule_chat_event(
         conversation_id=message.conversation_id,

@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "calendars.apps.CalendarsConfig",
     "reports.apps.ReportsConfig",
     "chats.apps.ChatsConfig",
+    "background.apps.BackgroundConfig",
 ]
 
 MIDDLEWARE = [
@@ -103,7 +104,7 @@ if not REDIS_URL:
     raise ImproperlyConfigured("REDIS_URL must be configured.")
 CHANNEL_LAYERS = {"default": {
     "BACKEND": "channels_redis.core.RedisChannelLayer",
-    "CONFIG": {"hosts": [REDIS_URL], "capacity": 1000, "expiry": 60, "group_expiry": 86400},
+    "CONFIG": {"hosts": [REDIS_URL], "prefix": env("CHANNEL_REDIS_PREFIX", default="teamboard:v1:channels"), "capacity": 1000, "expiry": 60, "group_expiry": 86400},
 }}
 CACHES = {"default": {
     "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -122,7 +123,7 @@ CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_SOFT_TIME_LIMIT = 120
 CELERY_TASK_TIME_LIMIT = 150
-CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 600}
+CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 600, "socket_connect_timeout": 2, "socket_timeout": 2, "retry_on_timeout": False}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -347,3 +348,19 @@ CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 if CELERY_BROKER_URL.startswith("rediss://"):
     import ssl
     CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": ssl.CERT_REQUIRED}
+
+CELERY_BEAT_SCHEDULE = {
+    "recover-durable-background-work": {
+        "task": "background.tasks.recover_pending_jobs", "schedule": 30.0,
+    },
+}
+
+# SMTP settings are consumed only by workers. Prefer a provider with delivery
+# idempotency support for stronger guarantees than standard SMTP can offer.
+EMAIL_HOST = env("EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", default=25)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+EMAIL_FILE_PATH = env("EMAIL_FILE_PATH", default="/tmp/teamboard-test-mail")

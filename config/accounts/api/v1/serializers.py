@@ -10,7 +10,7 @@ from django.contrib.auth.tokens import (
     default_token_generator,
 )
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.core.mail import send_mail
+from background.services import enqueue_email as send_mail
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
@@ -52,6 +52,7 @@ def send_verification_email(user):
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
         fail_silently=False,
+        guard={"kind": "verification", "user_id": user.pk, "token": token},
     )
 
 
@@ -95,10 +96,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             with transaction.atomic():
                 user = User.objects.create_user(**validated_data)
 
-                transaction.on_commit(
-                    lambda: send_verification_email(user),
-                    robust=True,
-                )
+                send_verification_email(user)
         except IntegrityError:
             raise serializers.ValidationError({
                 "email": "A user with this email already exists."
@@ -403,15 +401,13 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             "If you did not request this, you can ignore this email."
         )
 
-        transaction.on_commit(
-            lambda: send_mail(
-                subject="Reset your TeamBoard password",
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
-            ),
-            robust=True,
+        send_mail(
+            subject="Reset your TeamBoard password",
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+            guard={"kind": "password_reset", "user_id": user.pk, "token": token},
         )
 
 
@@ -536,10 +532,7 @@ class ResendVerificationEmailSerializer(serializers.Serializer):
         if user is None:
             return
 
-        transaction.on_commit(
-            lambda: send_verification_email(user),
-            robust=True,
-        )
+        send_verification_email(user)
 
 
 class UserSessionSerializer(serializers.ModelSerializer):

@@ -1,0 +1,39 @@
+# Backend infrastructure deployment overlay. Use an external TLS reverse proxy.
+# Apply migrations as a release step before starting backend/worker/beat.
+services:
+  redis:
+    ports: !reset []
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "${REDIS_MAXMEMORY:-256mb}", "--maxmemory-policy", "noeviction"]
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  backend:
+    command: ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
+    ports: !reset []
+    expose: ["8000"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    volumes: !override
+      - media_data:/app/media
+      - private_comments:/app/private_attachments
+      - private_chats:/app/private_chat_attachments
+
+  worker:
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    volumes: !override
+      - media_data:/app/media
+      - private_comments:/app/private_attachments
+      - private_chats:/app/private_chat_attachments
+
+  beat:
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    volumes: !reset []
+
+volumes:
+  media_data:
+  private_comments:
+  private_chats:

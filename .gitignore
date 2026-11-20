@@ -226,3 +226,6 @@ client/test-results/
 client/playwright-report/
 
 config/private_chat_attachments/
+
+# Local disposable read benchmark output
+read-benchmark-*.json

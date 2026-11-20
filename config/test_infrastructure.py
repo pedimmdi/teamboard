@@ -74,3 +74,10 @@ print(Probe().allow_request(SimpleNamespace(user=SimpleNamespace(is_authenticate
         assert result.stdout.strip() == "False"
     finally:
         store.delete(probe.get_cache_key(request, None))
+
+
+def test_redis_cache_outage_does_not_silently_bypass_throttles():
+    from redis.exceptions import ConnectionError
+    cache = RedisCache("redis://127.0.0.1:1/0", {"OPTIONS": {"socket_connect_timeout": 0.2, "socket_timeout": 0.2}})
+    with pytest.raises(ConnectionError):
+        cache.get("unreachable")

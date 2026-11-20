@@ -3,7 +3,7 @@ import secrets
 from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from django.core.mail import send_mail
+from background.services import enqueue_email as send_mail
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -24,6 +24,8 @@ def send_workspace_invitation_email(
     email,
     workspace_name,
     invitation_url,
+    invitation_id=None,
+    token_hash=None,
 ):
     message = (
         f"You have been invited to join {workspace_name} "
@@ -41,6 +43,7 @@ def send_workspace_invitation_email(
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[email],
         fail_silently=False,
+        guard={"kind": "invitation", "invitation_id": str(invitation_id), "token_hash": token_hash} if invitation_id else None,
     )
 
 
@@ -120,13 +123,12 @@ def create_workspace_invitation(
                 f"?token={raw_token}"
             )
 
-            transaction.on_commit(
-                lambda: send_workspace_invitation_email(
-                    email=email,
-                    workspace_name=workspace.name,
-                    invitation_url=invitation_url,
-                ),
-                robust=True,
+            send_workspace_invitation_email(
+                email=email,
+                workspace_name=workspace.name,
+                invitation_url=invitation_url,
+                invitation_id=invitation.pk,
+                token_hash=invitation.token_hash,
             )
 
             return invitation
@@ -322,13 +324,12 @@ def resend_workspace_invitation(
         f"?token={raw_token}"
     )
 
-    transaction.on_commit(
-        lambda: send_workspace_invitation_email(
-            email=invitation.email,
-            workspace_name=workspace.name,
-            invitation_url=invitation_url,
-        ),
-        robust=True,
+    send_workspace_invitation_email(
+        email=invitation.email,
+        workspace_name=workspace.name,
+        invitation_url=invitation_url,
+        invitation_id=invitation.pk,
+        token_hash=invitation.token_hash,
     )
 
     return invitation

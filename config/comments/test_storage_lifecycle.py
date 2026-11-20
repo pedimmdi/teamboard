@@ -51,14 +51,28 @@ class AttachmentCleanupTests(CommentAPIFixture):
         comment = self.upload()
         key = comment.attachment.storage_key
         self.age(key)
-        with patch("comments.signals.attachment_storage", return_value=self.storage):
+        with patch("comments.storage.attachment_storage", return_value=self.storage):
             with patch.object(self.storage, "delete", side_effect=PermissionError):
-                with self.assertLogs("comments.signals", level="ERROR"):
+                with self.assertLogs("background.execution", level="WARNING"):
                     with self.captureOnCommitCallbacks(execute=True):
                         comment.delete()
         self.assertTrue(self.storage.exists(key))
         call_command("cleanup_comment_attachments", apply=True)
         self.assertFalse(self.storage.exists(key))
+
+    def test_rolled_back_comment_delete_keeps_file_and_discards_cleanup_job(self):
+        from background.models import BackgroundJob
+        comment = self.upload()
+        key = comment.attachment.storage_key
+        before = BackgroundJob.objects.count()
+        with self.captureOnCommitCallbacks(execute=True):
+            with transaction.atomic():
+                comment.delete()
+                self.assertEqual(BackgroundJob.objects.count(), before + 1)
+                transaction.set_rollback(True)
+        self.assertEqual(BackgroundJob.objects.count(), before)
+        self.assertTrue(CommentAttachment.objects.filter(storage_key=key).exists())
+        self.assertTrue(self.storage.exists(key))
 
 
 class LegacyAttachmentMigrationTests(TransactionTestCase):
