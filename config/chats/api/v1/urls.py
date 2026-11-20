@@ -3,6 +3,8 @@ from django.urls import path
 
 from .views import (
     ProjectChatView,
+    ChatReadView,
+    ChatUnreadView,
     DirectChatListCreateView,
     ChatMessageListCreateView,
     ChatMessageDetailView,
@@ -12,6 +14,8 @@ from .views import (
 app_name = "chats_api_v1"
 
 urlpatterns = [
+    path("unread/", ChatUnreadView.as_view(), name="unread"),
+    path("<uuid:conversation_id>/read/", ChatReadView.as_view(), name="read"),
     path(
         "direct/",
         DirectChatListCreateView.as_view(),

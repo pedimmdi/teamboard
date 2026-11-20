@@ -21,9 +21,9 @@ test("direct messages update in two browsers and support private attachments on 
     await expect(sender.getByText("Start a conversation", {exact: true})).toHaveCount(0);
     await sender.getByRole("button", { name: "browser-chat-teammate@example.com", exact: true }).click();
     await expect(sender.getByRole("button", { name: /Conversations/ })).toBeHidden();
-    await recipient.getByRole("button", { name: "browser-test@example.com", exact: true }).last().click();
+    await recipient.getByRole("button", { name: /browser-test@example\.com/ }).last().click();
     const outgoing = sender.getByRole("region", { name: "browser-chat-teammate@example.com", exact: true });
-    const incoming = recipient.getByRole("region", { name: "browser-test@example.com", exact: true });
+    const incoming = recipient.getByRole("region", { name: /browser-test@example\.com/ });
     await expect(outgoing.getByText("Live", { exact: true })).toBeVisible();
     await expect(incoming.getByText("Live", { exact: true })).toBeVisible();
     const text = "Realtime chat " + Date.now();

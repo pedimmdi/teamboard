@@ -54,3 +54,21 @@ test("chat client authenticates REST, sends replies and attachments, and keeps J
   for (const [, options] of calls) assert.equal(options.headers.Authorization, "Bearer token");
   assert.equal(api.chatWebSocketUrl("work", "conversation"), "wss://api.example.com/ws/chats/work/conversation/");
 });
+
+
+test("unread and parent retrieval APIs keep workspace/conversation boundaries and read cursor payload", async () => {
+  const calls = [];
+  const api = load("../src/lib/api.ts", {
+    process: {env: {NEXT_PUBLIC_API_URL: "https://api.example.com"}}, URLSearchParams, FormData,
+    fetch: async (url, options) => {calls.push([url, options]); return new Response("{}", {headers: {"Content-Type": "application/json"}});},
+  });
+  await api.getUnreadChats("token", "a/b");
+  await api.markChatRead("token", "a/b", "conversation", "message");
+  await api.getChatMessage("token", "a/b", "conversation", "parent");
+  assert.match(calls[0][0], /workspaces\/a%2Fb\/chats\/unread\/$/);
+  assert.match(calls[1][0], /chats\/conversation\/read\/$/);
+  assert.equal(calls[1][1].method, "POST");
+  assert.deepEqual(JSON.parse(calls[1][1].body), {message_id: "message"});
+  assert.match(calls[2][0], /chats\/conversation\/messages\/parent\/$/);
+  for (const [, options] of calls) assert.equal(options.headers.Authorization, "Bearer token");
+});

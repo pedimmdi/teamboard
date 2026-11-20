@@ -1078,3 +1078,9 @@
   top: -6px;
   right: -6px;
 }
+
+.chatBadge { margin-left: auto; }
+@media (max-width: 767px) {
+  .mobileTabBar .navItem { position: relative; }
+  .mobileTabBar .chatBadge { position: absolute; top: 0; right: 6px; margin: 0; }
+}

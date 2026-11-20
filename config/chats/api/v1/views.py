@@ -22,6 +22,8 @@ from chats.services import (
     get_chat_messages,
 )
 from chats.storage import chat_attachment_storage
+from chats.unread import get_unread_chats, mark_chat_read
+from .serializers import ChatReadSerializer, ChatUnreadSerializer
 from workspaces.models import WorkspaceMembership
 from .pagination import ChatMessagePagination
 from .serializers import (
@@ -214,6 +216,10 @@ class ChatMessageDetailView(generics.GenericAPIView):
             conversation=conversation,
         )
 
+    @extend_schema(tags=["Chats"], summary="Retrieve a message, including an older reply target", responses={200: ChatMessageSerializer})
+    def get(self, request, *args, **kwargs):
+        return Response(ChatMessageSerializer(self.get_message()).data)
+
     @extend_schema(
         tags=["Chats"],
         summary="Edit own message",
@@ -294,3 +300,24 @@ class ChatAttachmentDownloadView(generics.GenericAPIView):
         response["Cache-Control"] = "private, no-store"
         response["X-Content-Type-Options"] = "nosniff"
         return response
+
+
+class ChatUnreadView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ChatUnreadSerializer
+
+    @extend_schema(tags=["Chats"], summary="Unread message totals for accessible workspace conversations", responses={200: ChatUnreadSerializer})
+    def get(self, request, *args, **kwargs):
+        return Response(ChatUnreadSerializer(get_unread_chats(workspace_slug=kwargs["slug"], actor=request.user)).data)
+
+
+class ChatReadView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ChatReadSerializer
+
+    @extend_schema(tags=["Chats"], summary="Acknowledge displayed messages up to an ordered message cursor", request=ChatReadSerializer, responses={204: None})
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        mark_chat_read(workspace_slug=kwargs["slug"], conversation_id=kwargs["conversation_id"], actor=request.user, **serializer.validated_data)
+        return Response(status=status.HTTP_204_NO_CONTENT)

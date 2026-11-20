@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChatUnreadProvider, ChatUnreadBadge, useChatUnread } from "@/components/chats/chat-unread";
 import ChatIcon from "@/components/chats/chat-icon";
 import ReportIcon from "@/components/reports/report-icon";
 import CalendarIcon from "@/components/calendar/calendar-icon";
@@ -159,6 +160,7 @@ function WorkspaceNavigation({
   workspaceBase: string | null;
   pathname: string;
 }) {
+  const { summary } = useChatUnread();
   return (
     <>
       <NavItem
@@ -177,14 +179,14 @@ function WorkspaceNavigation({
         icon={<CalendarIcon />}
       />
       <NavItem href={workspaceBase ? `${workspaceBase}/chats` : null}
-        label="Chats" active={pathname === `${workspaceBase}/chats`} icon={<ChatIcon />} />
+        label="Chats" active={pathname === `${workspaceBase}/chats`} icon={<ChatIcon />} trailing={<span className={styles.chatBadge}><ChatUnreadBadge count={summary.unread_count} /></span>} />
       {!mobile && <NavItem
         href={workspaceBase ? `${workspaceBase}/reports` : null}
         label="Reports"
         active={pathname === `${workspaceBase}/reports`}
         icon={<ReportIcon />}
       />}
-      <NavItem
+      {!mobile && <NavItem
         href={workspaceBase ? `${workspaceBase}/members` : null}
         label="People"
         active={
@@ -192,7 +194,7 @@ function WorkspaceNavigation({
           pathname === `${workspaceBase}/invitations`
         }
         icon={<DesignIcon name="users" />}
-      />
+      />}
       {!mobile && <NavItem
         href={workspaceBase ? `${workspaceBase}/settings` : null}
         label="Settings"
@@ -287,6 +289,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
   };
 
   return (
+    <ChatUnreadProvider slug={slug}>
     <div className={styles.dashboard}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarTop}>
@@ -436,5 +439,6 @@ function DashboardShell({ children }: DashboardLayoutProps) {
         />
       </nav>
     </div>
+    </ChatUnreadProvider>
   );
 }

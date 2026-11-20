@@ -793,6 +793,38 @@ paths:
                 $ref: '#/components/schemas/ChatMessage'
           description: ''
   /api/v1/workspaces/{slug}/chats/{conversation_id}/messages/{message_id}/:
+    get:
+      operationId: v1_workspaces_chats_messages_retrieve
+      summary: Retrieve a message, including an older reply target
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: message_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+          description: ''
     patch:
       operationId: v1_workspaces_chats_messages_partial_update
       summary: Edit own message
@@ -904,6 +936,41 @@ paths:
                 type: string
                 format: binary
           description: ''
+  /api/v1/workspaces/{slug}/chats/{conversation_id}/read/:
+    post:
+      operationId: v1_workspaces_chats_read_create
+      summary: Acknowledge displayed messages up to an ordered message cursor
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatReadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatReadRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatReadRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/workspaces/{slug}/chats/direct/:
     get:
       operationId: v1_workspaces_chats_direct_list
@@ -958,6 +1025,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Conversation'
+          description: ''
+  /api/v1/workspaces/{slug}/chats/unread/:
+    get:
+      operationId: v1_workspaces_chats_unread_retrieve
+      summary: Unread message totals for accessible workspace conversations
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Chats
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatUnread'
           description: ''
   /api/v1/workspaces/{slug}/invitations/:
     get:
@@ -3275,6 +3363,7 @@ components:
           type: string
           format: uuid
           readOnly: true
+          nullable: true
         attachments:
           type: array
           items:
@@ -3322,6 +3411,48 @@ components:
             format: binary
           writeOnly: true
           maxItems: 5
+    ChatReadRequest:
+      type: object
+      properties:
+        message_id:
+          type: string
+          format: uuid
+      required:
+      - message_id
+    ChatUnread:
+      type: object
+      properties:
+        unread_count:
+          type: integer
+          minimum: 0
+        conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatUnreadConversation'
+      required:
+      - conversations
+      - unread_count
+    ChatUnreadConversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        project:
+          type: string
+          format: uuid
+          nullable: true
+        recipient_id:
+          type: integer
+          nullable: true
+        unread_count:
+          type: integer
+          minimum: 0
+      required:
+      - id
+      - project
+      - recipient_id
+      - unread_count
     Comment:
       type: object
       properties:

@@ -55,4 +55,30 @@ WorkspaceMembership.objects.get_or_create(
     workspace=chat_workspace, user=teammate, defaults={"role": "member"},
 )
 
+# Dedicated fixtures for inbox counts and reply navigation across message pages.
+from django.db import transaction
+from projects.models import Project, ProjectMembership
+from chats.models import ChatMessage, ConversationParticipant
+from chats.services import get_or_create_direct_chat, get_or_create_project_chat
+unread_workspace, _ = Workspace.objects.get_or_create(slug="chatunread", defaults={"name": "Chat unread tests"})
+for person, role in ((user, "owner"), (teammate, "member")):
+    WorkspaceMembership.objects.get_or_create(workspace=unread_workspace, user=person, defaults={"role": role})
+for project_name in ("Unread project", "Long history"):
+    with transaction.atomic():
+        project, _ = Project.objects.get_or_create(workspace=unread_workspace, name=project_name, defaults={"created_by": user})
+        ProjectMembership.objects.get_or_create(project=project, user=user, defaults={"role": "manager"})
+        ProjectMembership.objects.get_or_create(project=project, user=teammate, defaults={"role": "member"})
+    room = get_or_create_project_chat(workspace_slug=unread_workspace.slug, project_id=project.pk, actor=user)
+    ChatMessage.objects.filter(conversation=room).delete()
+    if project_name == "Unread project":
+        ChatMessage.objects.bulk_create([ChatMessage(conversation=room, sender=teammate, content=f"Group update {i}") for i in range(5)])
+    else:
+        parent = ChatMessage.objects.create(conversation=room, sender=user, content="Original message outside first page")
+        ChatMessage.objects.bulk_create([ChatMessage(conversation=room, sender=user, content=f"History {i}") for i in range(32)])
+        ChatMessage.objects.create(conversation=room, sender=user, content="Reply across pages", reply_to=parent)
+room = get_or_create_direct_chat(workspace_slug=unread_workspace.slug, actor=user, recipient=teammate)
+ChatMessage.objects.filter(conversation=room).delete()
+ChatMessage.objects.bulk_create([ChatMessage(conversation=room, sender=teammate, content=f"Direct update {i}") for i in range(2)])
+ConversationParticipant.objects.filter(conversation__workspace=unread_workspace).update(last_read_message=None, last_read_at=None, last_read_key=None)
+
 call_command("runserver", "127.0.0.1:" + os.environ.get("E2E_BACKEND_PORT", "8100"), use_reloader=False)

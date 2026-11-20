@@ -1442,3 +1442,20 @@ export function chatWebSocketUrl(slug: string, conversation: string) {
   url.hash = "";
   return url.toString();
 }
+
+
+export type ChatUnreadSummary = {
+  unread_count: number;
+  conversations: { id: string; project: string | null; recipient_id: number | null; unread_count: number }[];
+};
+export function getUnreadChats(token: string, slug: string, signal?: AbortSignal) {
+  return apiFetch<ChatUnreadSummary>(`${chatsPath(slug)}unread/`, {token, signal});
+}
+export function markChatRead(token: string, slug: string, conversation: string, message: string) {
+  return apiFetch<void>(`${chatsPath(slug)}${encodeURIComponent(conversation)}/read/`, {
+    token, method: "POST", body: JSON.stringify({message_id: message}),
+  });
+}
+export function getChatMessage(token: string, slug: string, conversation: string, message: string) {
+  return apiFetch<ChatMessage>(`${chatsPath(slug, conversation)}${encodeURIComponent(message)}/`, {token});
+}

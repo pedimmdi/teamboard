@@ -111,6 +111,10 @@ class ConversationParticipant(models.Model):
         blank=True,
         related_name="+",
     )
+    # Durable ordered cursor, retained even if an administrator hard-deletes
+    # last_read_message. Normal message deletion is a soft delete.
+    last_read_at = models.DateTimeField(null=True, blank=True)
+    last_read_key = models.UUIDField(null=True, blank=True)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

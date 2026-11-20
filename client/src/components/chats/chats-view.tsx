@@ -6,12 +6,14 @@ import {
   type ChatConversation, type Project, type WorkspaceMember,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { ChatUnreadBadge, useChatUnread } from "./chat-unread";
 import ChatThread from "./chat-thread";
 import ChatIcon from "./chat-icon";
 import styles from "./chats.module.css";
 
 export default function ChatsView({ slug, projectId }: { slug: string; projectId?: string }) {
   const { accessToken, user } = useAuth();
+  const {summary, failed, refresh} = useChatUnread();
   const [result, setResult] = useState<{ key: string; projects: Project[]; members: WorkspaceMember[]; direct: ChatConversation[]; projectChat?: ChatConversation }>();
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
@@ -80,6 +82,7 @@ export default function ChatsView({ slug, projectId }: { slug: string; projectId
   return (
     <section className={styles.chats} aria-label="Chats">
       <header className={styles.heading}><span className={styles.icon}><ChatIcon /></span><div><h2>Chats</h2><p>Conversations with your team</p></div></header>
+      {failed && <p className={styles.error} role="alert">Unable to refresh unread counts. <button onClick={refresh}>Retry unread counts</button></p>}
       {error && <div role="alert" className={styles.error}><p>{error}</p><button onClick={() => setRevision((value) => value + 1)}>Try again</button></div>}
       {!data ? !error && <p role="status">Loading chats…</p> : (
         <div className={projectId ? undefined : styles.layout} data-selected={Boolean(thread)}>
@@ -89,7 +92,7 @@ export default function ChatsView({ slug, projectId }: { slug: string; projectId
             {!data.projects.length && <p>No accessible projects.</p>}
             {data.projects.filter((project) => project.name.toLowerCase().includes(query)).map((project) => <button
               key={project.id} disabled={opening} aria-pressed={thread?.conversation.project === project.id}
-              onClick={() => void openProject(project)}>{project.name}</button>)}
+              onClick={() => void openProject(project)}><span>{project.name}</span><ChatUnreadBadge count={summary.conversations.find((item) => item.project === project.id)?.unread_count ?? 0} /></button>)}
             <h3>Direct messages</h3>
             {data.members.filter((member) => member.user_id !== user?.id && member.user_email.toLowerCase().includes(query)).map((member) =>
               <button key={member.id} disabled={opening}
@@ -100,13 +103,13 @@ export default function ChatsView({ slug, projectId }: { slug: string; projectId
                     [conversation.direct_user_low, conversation.direct_user_high].includes(member.user_id));
                   if (existing) setSelected({ conversation: existing, title: member.user_email });
                   else void direct(member);
-                }}>{member.user_email}</button>)}
+                }}><span>{member.user_email}</span><ChatUnreadBadge count={summary.conversations.find((item) => item.recipient_id === member.user_id)?.unread_count ?? 0} /></button>)}
             {data.direct.filter((conversation) => {
               const recipient = conversation.direct_user_low === user?.id ? conversation.direct_user_high : conversation.direct_user_low;
               return !data.members.some((member) => member.user_id === recipient);
             }).filter(() => "former member".includes(query)).map((conversation) =>
               <button key={conversation.id} aria-pressed={thread?.conversation.id === conversation.id}
-                onClick={() => setSelected({conversation, title: "Former member"})}>Former member</button>)}
+                onClick={() => setSelected({conversation, title: "Former member"})}><span>Former member</span><ChatUnreadBadge count={summary.conversations.find((item) => item.id === conversation.id)?.unread_count ?? 0} /></button>)}
           </aside>}
           <div className={styles.threadArea}>
             {!projectId && thread && <button className={styles.back} onClick={() => setSelected(null)}>← Conversations</button>}

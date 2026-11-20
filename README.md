@@ -157,3 +157,11 @@ Every current task belongs to an active project member. Task creation through th
 Migration `tasks.0007` assigns existing unassigned tasks to the eligible project manager with the lowest user ID. Removing a project/workspace member transfers their tasks to the lowest-ID remaining eligible manager in the same transaction. Without a remaining manager, removal is rejected. Direct ORM/bulk inserts without an assignee use the same manager fallback; database checks prevent any task from remaining unassigned. Historical status snapshots are preserved, including genuine null assignments recorded before this rule. The legacy Reports `unassigned_tasks` response field remains for API compatibility and is zero for current tasks.
 
 Workspace information is available at the top of Settings. Chats lists project conversations and a single Direct messages section; the conversation back button is reserved for mobile.
+
+### Chat replies and unread messages
+
+Reply references are UUIDs. `GET /api/v1/workspaces/{slug}/chats/{conversation}/messages/{message}/` retrieves an authorized older message directly; selecting a reply scrolls to its source and highlights it for one second.
+
+`GET /api/v1/workspaces/{slug}/chats/unread/` returns the active workspace total and per-conversation unread counts. Only received, non-deleted messages in accessible project chats or the user's own direct conversations count. Workspace owners/admins can access project chats; ordinary members see only joined projects. `POST .../chats/{conversation}/read/` accepts `message_id` and advances a persistent `(created_at, UUID)` cursor without moving it backwards. It does not mark newer messages as read. The cursor survives deletion of its referenced message and is shared across devices. Migration `chats.0006` preserves existing read pointers.
+
+The navigation and conversation list display 1–10, then `+10`. Counts refresh every 15 seconds while visible, on focus, and after live events or read acknowledgements in the open chat. Errors retain the last known counts and offer retry. Mobile navigation has Projects, Calendar, Chats, and Account; People remains in desktop navigation and workspace tabs.

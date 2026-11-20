@@ -35,7 +35,7 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         read_only=True,
         allow_null=True,
     )
-    reply_to = serializers.UUIDField(read_only=True)
+    reply_to = serializers.UUIDField(source="reply_to_id", read_only=True, allow_null=True)
     attachments = serializers.SerializerMethodField()
 
     class Meta:
@@ -105,3 +105,19 @@ class ChatMessageUpdateSerializer(serializers.Serializer):
         trim_whitespace=True,
         allow_blank=True,
     )
+
+
+class ChatUnreadConversationSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    project = serializers.UUIDField(allow_null=True)
+    recipient_id = serializers.IntegerField(allow_null=True)
+    unread_count = serializers.IntegerField(min_value=0)
+
+
+class ChatUnreadSerializer(serializers.Serializer):
+    unread_count = serializers.IntegerField(min_value=0)
+    conversations = ChatUnreadConversationSerializer(many=True)
+
+
+class ChatReadSerializer(serializers.Serializer):
+    message_id = serializers.UUIDField()

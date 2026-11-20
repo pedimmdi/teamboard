@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ApiError, chatWebSocketUrl, deleteChatMessage, downloadChatAttachment, editChatMessage,
-  getChatMessages, sendChatMessage, type ChatMessage, type WorkspaceMember,
+  getChatMessage, getChatMessages, sendChatMessage, type ChatMessage, type WorkspaceMember,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useChatUnread } from "./chat-unread";
 import Avatar from "@/components/ui/Avatar";
 import ProjectDialog from "@/app/dashboard/workspaces/[slug]/projects/project-dialog";
 import { mergeChatMessages, validateChatFiles } from "./chat-utils";
@@ -21,6 +22,11 @@ export default function ChatThread({ slug, conversation, title, members }: {
   slug: string; conversation: string; title: string; members: WorkspaceMember[];
 }) {
   const { accessToken, user } = useAuth();
+  const {markRead, refresh: refreshUnread} = useChatUnread();
+  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
+  const [readRevision, setReadRevision] = useState(0);
+  const [readError, setReadError] = useState(false);
+  const lastAcknowledged = useRef<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [next, setNext] = useState(1);
@@ -86,6 +92,7 @@ export default function ChatThread({ slug, conversation, title, members }: {
           if (!["message.created", "message.updated", "message.deleted"].includes(payload.type)) return;
           const message = payload.message as ChatMessage;
           if (message.conversation !== conversation || typeof message.id !== "string") return;
+          if (payload.type !== "message.updated") refreshUnread();
           changes.current.set(message.id, message);
           setMessages((current) => mergeChatMessages(current, [message]));
         } catch {}
@@ -121,7 +128,7 @@ export default function ChatThread({ slug, conversation, title, members }: {
       clearTimeout(retry);
       socket?.close();
     };
-  }, [accessToken, slug, conversation, revision]);
+  }, [accessToken, slug, conversation, revision, refreshUnread]);
 
   useEffect(() => {
     if (scrollToLatest.current) bottom.current?.scrollIntoView({ block: "nearest" });
@@ -195,21 +202,57 @@ export default function ChatThread({ slug, conversation, title, members }: {
     } catch (error) { setActionError(messageError(error)); }
   }
 
-  function jumpTo(id: string) {
-    const target = document.getElementById("chat-" + id);
-    if (!target) { setActionError("Load earlier messages to view the original message."); return; }
-    target.scrollIntoView({ block: "center", behavior: "smooth" });
-    target.animate([{ background: "#e0e7ff" }, { background: "transparent" }], { duration: 1000 });
+  async function jumpTo(id: string) {
+    scrollToLatest.current = false;
+    setActionError("");
+    try {
+      if (!messages.some((message) => message.id === id)) {
+        if (!accessToken) return;
+        const message = await getChatMessage(accessToken, slug, conversation, id);
+        setMessages((current) => mergeChatMessages(current, [changes.current.get(id) ?? message]));
+      }
+      setJumpTarget(id);
+    } catch (error) { setActionError(messageError(error)); }
   }
+
+  useEffect(() => {
+    if (!jumpTarget) return;
+    const target = document.getElementById("chat-" + jumpTarget);
+    if (!target) return;
+    target.scrollIntoView({block: "center", behavior: "smooth"});
+    target.animate([{background: "#e0e7ff"}, {background: "transparent"}], {duration: 1000});
+    const frame = requestAnimationFrame(() => setJumpTarget(null));
+    return () => cancelAnimationFrame(frame);
+  }, [jumpTarget, messages]);
+
+  useEffect(() => {
+    const visible = () => {if (!document.hidden) setReadRevision((value) => value + 1);};
+    window.addEventListener("focus", visible);
+    document.addEventListener("visibilitychange", visible);
+    return () => {window.removeEventListener("focus", visible); document.removeEventListener("visibilitychange", visible);};
+  }, []);
+
+  useEffect(() => {
+    const latest = messages.at(-1);
+    if (!latest || document.hidden || !scrollToLatest.current || latest.id === lastAcknowledged.current) return;
+    const timer = window.setTimeout(() => {
+      void markRead(conversation, latest.id).then(() => {lastAcknowledged.current = latest.id; setReadError(false);})
+        .catch(() => setReadError(true));
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [messages, conversation, markRead, readRevision]);
 
   return (
     <section className={styles.thread} aria-label={title}>
       <header className={styles.threadHeader}><h3>{title}</h3><span>{connection}</span>
         {connection !== "Live" && <button onClick={() => setRevision((value) => value + 1)}>Reconnect</button>}
       </header>
+      {readError && <p className={styles.error} role="alert">Unable to mark messages as read. <button onClick={() => setReadRevision((value) => value + 1)}>Retry read status</button></p>}
       <div className={styles.messages} role="log" aria-label="Messages" aria-live="polite" onScroll={(event) => {
         const element = event.currentTarget;
-        scrollToLatest.current = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+        const atBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+        if (atBottom && !scrollToLatest.current) setReadRevision((value) => value + 1);
+        scrollToLatest.current = atBottom;
       }}>
         {loading ? <p role="status">Loading messages…</p> : error ? <div role="alert"><p>{error}</p>
           <button onClick={() => setRevision((value) => value + 1)}>Try again</button></div> : <>
@@ -226,7 +269,7 @@ export default function ChatThread({ slug, conversation, title, members }: {
                   <time dateTime={message.created_at}>{dateFormat.format(new Date(message.created_at))}</time>
                   {message.edited_at && !message.deleted_at && <span>Edited</span>}
                 </header>
-                {message.reply_to && <button className={styles.replyPreview} onClick={() => jumpTo(message.reply_to!)}>
+                {message.reply_to && <button className={styles.replyPreview} onClick={() => void jumpTo(message.reply_to!)}>
                   Reply to {parent?.deleted_at ? "deleted message" : parent?.content || "earlier message"}
                 </button>}
                 <p>{message.deleted_at ? "Message deleted" : message.content}</p>
