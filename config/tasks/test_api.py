@@ -131,7 +131,7 @@ class TaskAPITests(APITestCase):
 
                 create_response = self.client.post(
                     list_url,
-                    {"title": "Privileged Task"},
+                    {"assignee": self.member.pk, "title": "Privileged Task"},
                     format="json",
                 )
                 self.assertEqual(
@@ -237,7 +237,7 @@ class TaskAPITests(APITestCase):
 
                 task = Task.objects.create(
                     project=project,
-                    title="Unassigned Task",
+                    title="Manager assigned task",
                     created_by=self.member,
                     position=0,
                 )
@@ -258,7 +258,7 @@ class TaskAPITests(APITestCase):
                 )
 
                 task.refresh_from_db()
-                self.assertIsNone(task.assignee_id)
+                self.assertEqual(task.assignee_id, self.member.pk)
 
     def test_workspace_member_without_project_membership_cannot_manage_tasks(self):
         project = Project.objects.create(
@@ -286,7 +286,7 @@ class TaskAPITests(APITestCase):
 
         create_response = self.client.post(
             self.get_list_url(project),
-            {"title": "Forbidden Task"},
+            {"assignee": self.member.pk, "title": "Forbidden Task"},
             format="json",
         )
 
@@ -397,7 +397,7 @@ class TaskAPITests(APITestCase):
         self.assertEqual(responses[1], responses[2])
 
         task.refresh_from_db()
-        self.assertIsNone(task.assignee_id)
+        self.assertEqual(task.assignee_id, self.owner.pk)
 
     def test_create_and_update_accept_eligible_project_assignee(self):
         self.client.force_authenticate(user=self.owner)
@@ -428,12 +428,12 @@ class TaskAPITests(APITestCase):
 
         self.assertEqual(
             unassign_response.status_code,
-            status.HTTP_200_OK,
+            status.HTTP_400_BAD_REQUEST,
             unassign_response.data,
         )
 
         task.refresh_from_db()
-        self.assertIsNone(task.assignee_id)
+        self.assertEqual(task.assignee_id, self.member.pk)
 
         reassign_response = self.client.patch(
             self.get_detail_url(task),
@@ -473,14 +473,14 @@ class TaskAPITests(APITestCase):
         task.refresh_from_db()
         self.assertEqual(task.title, "Original Title")
         self.assertEqual(task.priority, Task.Priority.MEDIUM)
-        self.assertIsNone(task.assignee_id)
+        self.assertEqual(task.assignee_id, self.owner.pk)
 
     def test_created_task_has_initial_position(self):
         self.client.force_authenticate(user=self.member)
 
         response = self.client.post(
             self.list_url,
-            {"title": "First Kanban Task"},
+            {"assignee": self.member.pk, "title": "First Kanban Task"},
             format="json",
         )
 
@@ -500,17 +500,17 @@ class TaskAPITests(APITestCase):
 
         first_response = self.client.post(
             self.list_url,
-            {"title": "First Task"},
+            {"assignee": self.member.pk, "title": "First Task"},
             format="json",
         )
         second_response = self.client.post(
             self.list_url,
-            {"title": "Second Task"},
+            {"assignee": self.member.pk, "title": "Second Task"},
             format="json",
         )
         third_response = self.client.post(
             self.list_url,
-            {"title": "Third Task"},
+            {"assignee": self.member.pk, "title": "Third Task"},
             format="json",
         )
 
@@ -560,7 +560,7 @@ class TaskAPITests(APITestCase):
         for title, task_status in tasks:
             response = self.client.post(
                 self.list_url,
-                {
+                {"assignee": self.member.pk,
                     "title": title,
                     "status": task_status,
                 },
@@ -581,7 +581,7 @@ class TaskAPITests(APITestCase):
 
         first_response = self.client.post(
             self.list_url,
-            {"title": "Project One Task"},
+            {"assignee": self.member.pk, "title": "Project One Task"},
             format="json",
         )
 
@@ -610,7 +610,7 @@ class TaskAPITests(APITestCase):
 
         second_response = self.client.post(
             self.get_list_url(other_project),
-            {"title": "Project Two Task"},
+            {"assignee": self.member.pk, "title": "Project Two Task"},
             format="json",
         )
 
@@ -1502,7 +1502,7 @@ class TaskAPITests(APITestCase):
         for index in range(4):
             response = self.client.post(
                 self.list_url,
-                {"title": f"Kanban Task {index}"},
+                {"assignee": self.member.pk, "title": f"Kanban Task {index}"},
                 format="json",
             )
 
@@ -1613,7 +1613,7 @@ class TaskAPITests(APITestCase):
 
         response = self.client.post(
             self.list_url,
-            {"title": "Implement API"},
+            {"assignee": self.member.pk, "title": "Implement API"},
             format="json",
         )
 
@@ -1634,7 +1634,7 @@ class TaskAPITests(APITestCase):
 
         response = self.client.post(
             self.list_url,
-            {"title": "Admin Task"},
+            {"assignee": self.member.pk, "title": "Admin Task"},
             format="json",
         )
 
@@ -1660,7 +1660,7 @@ class TaskAPITests(APITestCase):
 
         response = self.client.post(
             self.list_url,
-            {"title": "Unauthorized"},
+            {"assignee": self.member.pk, "title": "Unauthorized"},
             format="json",
         )
 
@@ -1800,7 +1800,7 @@ class TaskAPITests(APITestCase):
         task.refresh_from_db()
         self.assertEqual(task.assignee, self.member)
 
-    def test_patch_null_assignee_clears_it(self):
+    def test_patch_null_assignee_is_rejected(self):
         task = self.create_task(assignee=self.member)
 
         self.client.force_authenticate(user=self.owner)
@@ -1811,10 +1811,10 @@ class TaskAPITests(APITestCase):
             format="json",
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
 
         task.refresh_from_db()
-        self.assertIsNone(task.assignee)
+        self.assertEqual(task.assignee, self.member)
 
     def test_invalid_assignee_is_rejected(self):
         self.client.force_authenticate(user=self.owner)
@@ -1836,7 +1836,7 @@ class TaskAPITests(APITestCase):
 
         response = self.client.post(
             self.list_url,
-            {
+            {"assignee": self.member.pk,
                 "title": "Invalid Status",
                 "status": "unknown",
             },
@@ -1851,7 +1851,7 @@ class TaskAPITests(APITestCase):
 
         response = self.client.post(
             self.list_url,
-            {
+            {"assignee": self.member.pk,
                 "title": "Invalid Priority",
                 "priority": "critical",
             },
@@ -1866,7 +1866,7 @@ class TaskAPITests(APITestCase):
 
         response = self.client.post(
             self.list_url,
-            {"title": "   "},
+            {"assignee": self.member.pk, "title": "   "},
             format="json",
         )
 
@@ -1968,7 +1968,7 @@ class TaskAPITests(APITestCase):
                 for index in range(2):
                     response = self.client.post(
                         self.list_url,
-                        {"title": f"Throttled Task {index}"},
+                        {"assignee": self.member.pk, "title": f"Throttled Task {index}"},
                         format="json",
                     )
                     self.assertEqual(
@@ -1978,7 +1978,7 @@ class TaskAPITests(APITestCase):
 
                 response = self.client.post(
                     self.list_url,
-                    {"title": "Third Task"},
+                    {"assignee": self.member.pk, "title": "Third Task"},
                     format="json",
                 )
 
@@ -2661,8 +2661,8 @@ class TaskAPITests(APITestCase):
             assignee=self.member,
         )
         self.create_task(
-            title="Unassigned task",
-            assignee=None,
+            title="Other member task",
+            assignee=self.member,
         )
 
         self.client.force_authenticate(user=self.owner)
@@ -2695,15 +2695,15 @@ class TaskAPITests(APITestCase):
             assignee=self.member,
         )
         self.create_task(
-            title="Unassigned task",
-            assignee=None,
+            title="Other member task",
+            assignee=self.member,
         )
 
         self.client.force_authenticate(user=self.owner)
 
         valid_cases = [
             (str(self.owner.pk), {"Owner task"}),
-            (str(self.member.pk), {"Member task"}),
+            (str(self.member.pk), {"Member task", "Other member task"}),
             ("me", {"Owner task"}),
         ]
 
@@ -2818,3 +2818,15 @@ class TaskAPITests(APITestCase):
                     response.data["results"][0]["title"],
                     expected_title,
                 )
+
+    def test_creation_requires_assignee_and_update_cannot_clear_it(self):
+        self.client.force_authenticate(user=self.owner)
+        for payload in ({"title": "Missing assignee"}, {"title": "Null assignee", "assignee": None}):
+            response = self.client.post(self.list_url, payload, format="json")
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("assignee", response.data)
+        task = self.create_task(assignee=self.member)
+        response = self.client.patch(self.get_detail_url(task), {"assignee": None}, format="json")
+        self.assertEqual(response.status_code, 400)
+        task.refresh_from_db()
+        self.assertEqual(task.assignee_id, self.member.pk)

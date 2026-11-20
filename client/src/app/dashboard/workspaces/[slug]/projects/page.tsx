@@ -179,7 +179,7 @@ export default function ProjectsPage() {
             </div>
             <div className={styles.mobileList}>
               {result.results.map((project) => (
-                <article className={styles.mobileCard} key={project.id}>
+                <article className={styles.mobileCard + " " + styles.clickableCard} key={project.id}>
                   <div className={styles.mobileTitle}>
                     <Link
                       className={styles.projectLink}

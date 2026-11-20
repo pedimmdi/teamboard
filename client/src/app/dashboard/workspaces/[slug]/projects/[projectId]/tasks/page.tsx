@@ -446,7 +446,7 @@ export default function TasksPage() {
   const assignee = (task: Task, email = false) => (
     <span
       className={styles.assignee}
-      title={task.assignee_email || "Unassigned"}
+      title={task.assignee_email || "Project member"}
     >
       {task.assignee !== null ? (
         <>
@@ -459,7 +459,7 @@ export default function TasksPage() {
           {email && <span>{task.assignee_email}</span>}
         </>
       ) : email ? (
-        <span className={styles.hint}>Unassigned</span>
+        <span className={styles.hint}>Project member</span>
       ) : null}
     </span>
   );
@@ -496,7 +496,7 @@ export default function TasksPage() {
     ...(filters.assignee
       ? [
           {
-            label: `Assignee: ${filters.assignee === "me" ? "Me" : filters.assignee === "unassigned" ? "Unassigned" : members.find((member) => String(member.user_id) === filters.assignee)?.user_email || "Member"}`,
+            label: `Assignee: ${filters.assignee === "me" ? "Me" : members.find((member) => String(member.user_id) === filters.assignee)?.user_email || "Member"}`,
             clear: () => applyFilters({ ...filters, assignee: "" }),
           },
         ]

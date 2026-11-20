@@ -76,3 +76,17 @@ class TaskHistoryTests(TransactionTestCase):
         task.refresh_from_db()
         completion = TaskStatusHistory.objects.get(task_id=task.pk, status="done")
         self.assertEqual(task.completed_at, completion.changed_at)
+
+    def test_assignment_migration_backfills_without_inventing_history(self):
+        previous = [("tasks", "0006_track_task_status")]
+        executor = MigrationExecutor(connection)
+        latest = executor.loader.graph.leaf_nodes()
+        try:
+            executor.migrate(previous)
+            old_task = executor.loader.project_state(previous).apps.get_model("tasks", "Task")
+            task_id = old_task.objects.create(project_id=self.project.pk, title="Legacy unassigned").pk
+            history = list(TaskStatusHistory.objects.filter(task_id=task_id).values())
+        finally:
+            MigrationExecutor(connection).migrate(latest)
+        self.assertEqual(Task.objects.get(pk=task_id).assignee_id, self.owner.pk)
+        self.assertEqual(list(TaskStatusHistory.objects.filter(task_id=task_id).values()), history)

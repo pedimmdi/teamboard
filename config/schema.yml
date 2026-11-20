@@ -1860,7 +1860,7 @@ paths:
         schema:
           type: string
           minLength: 1
-          pattern: ^(?:me|unassigned|[1-9][0-9]{0,18})$
+          pattern: ^(?:me|[1-9][0-9]{0,18})$
       - in: query
         name: end_date
         schema:
@@ -1933,7 +1933,7 @@ paths:
         schema:
           type: string
           minLength: 1
-          pattern: ^(?:me|unassigned|[1-9][0-9]{0,18})$
+          pattern: ^(?:me|[1-9][0-9]{0,18})$
       - in: query
         name: end_date
         schema:
@@ -2030,7 +2030,7 @@ paths:
         schema:
           type: string
           minLength: 1
-          pattern: ^(?:me|unassigned|[1-9][0-9]{0,18})$
+          pattern: ^(?:me|[1-9][0-9]{0,18})$
       - in: query
         name: end_date
         schema:
@@ -2104,9 +2104,9 @@ paths:
         name: assignee
         schema:
           type: string
-        description: Filter tasks by assignee. Accepts a valid user ID or the special
-          value 'me' to filter tasks assigned to the authenticated user. The value
-          'me' is case-sensitive. Cannot be combined with unassigned=true.
+        description: 'Filter tasks by assignee. Accepts a valid user ID or the special
+          value ''me'' to filter tasks assigned to the authenticated user. The value
+          ''me'' is case-sensitive. '
       - in: query
         name: due_before
         schema:
@@ -2177,12 +2177,6 @@ paths:
           type: string
         description: 'Filter tasks by one or more comma-separated statuses. Allowed
           values: todo, in_progress, in_review, done. Example: status=todo,done.'
-      - in: query
-        name: unassigned
-        schema:
-          type: boolean
-        description: Use true to return only unassigned tasks. Cannot be combined
-          with assignee.
       tags:
       - Tasks
       security:
@@ -2662,7 +2656,7 @@ paths:
         schema:
           type: string
           minLength: 1
-          pattern: ^(?:me|unassigned|[1-9][0-9]{0,18})$
+          pattern: ^(?:me|[1-9][0-9]{0,18})$
       - in: query
         name: end_date
         schema:
@@ -2729,7 +2723,7 @@ paths:
         schema:
           type: string
           minLength: 1
-          pattern: ^(?:me|unassigned|[1-9][0-9]{0,18})$
+          pattern: ^(?:me|[1-9][0-9]{0,18})$
       - in: query
         name: end_date
         schema:
@@ -2820,7 +2814,7 @@ paths:
         schema:
           type: string
           minLength: 1
-          pattern: ^(?:me|unassigned|[1-9][0-9]{0,18})$
+          pattern: ^(?:me|[1-9][0-9]{0,18})$
       - in: query
         name: end_date
         schema:
@@ -2922,7 +2916,7 @@ paths:
         schema:
           type: string
           minLength: 1
-          pattern: ^(?:me|unassigned|[1-9][0-9]{0,18})$
+          pattern: ^(?:me|[1-9][0-9]{0,18})$
       - in: query
         name: end_date
         schema:
@@ -4080,7 +4074,6 @@ components:
           $ref: '#/components/schemas/TaskPriorityEnum'
         assignee:
           type: integer
-          nullable: true
         due_date:
           type: string
           format: date
@@ -4523,12 +4516,12 @@ components:
           default: medium
         assignee:
           type: integer
-          nullable: true
         due_date:
           type: string
           format: date
           nullable: true
       required:
+      - assignee
       - title
     TaskMoveRequest:
       type: object

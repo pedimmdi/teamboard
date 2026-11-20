@@ -110,7 +110,7 @@ class ProjectReportServiceTests(TestCase):
         self.assertEqual(summary["completed_tasks"], 1)
         self.assertEqual(summary["active_tasks"], 2)
         self.assertEqual(summary["overdue_tasks"], 1)
-        self.assertEqual(summary["unassigned_tasks"], 1)
+        self.assertEqual(summary["unassigned_tasks"], 0)
         self.assertAlmostEqual(
             summary["completion_rate"], 33.33
         )

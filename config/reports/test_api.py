@@ -198,11 +198,11 @@ class ProjectReportAPITests(TestCase):
         )
         Task.objects.create(project=self.project, title="Other", priority="low")
         self.client.force_authenticate(user=self.owner)
-        query = {"priority": "urgent", "assignee": "unassigned"}
+        query = {"priority": "urgent", "assignee": "me"}
         result = self.client.get(self.url + "workload/", query)
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.data[0]["due_soon_tasks"], 1)
-        self.assertIsNone(result.data[0]["assignee"])
+        self.assertEqual(result.data[0]["assignee"], self.owner.pk)
         result = self.client.get(self.url + "export/", query)
         self.assertEqual(result.status_code, 200)
         self.assertTrue(result.content.startswith(b"\xef\xbb\xbfsep=,\r\n"))

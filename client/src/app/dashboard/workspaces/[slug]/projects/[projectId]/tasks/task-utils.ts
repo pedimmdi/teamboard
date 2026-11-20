@@ -84,9 +84,7 @@ export function readTaskFilters(
       ? (priority as TaskPriority)
       : "",
     assignee:
-      params.get("unassigned") === "true"
-        ? "unassigned"
-        : assignee === "me" || /^[1-9]\d*$/.test(assignee)
+      assignee === "me" || /^[1-9]\d*$/.test(assignee)
           ? assignee
           : "",
     ordering: taskOrderings.includes(ordering as (typeof taskOrderings)[number])
@@ -114,7 +112,6 @@ export function taskFilterQuery(filters: TaskFilters): TaskQuery {
         : /^[1-9]\d*$/.test(filters.assignee)
           ? Number(filters.assignee)
           : undefined,
-    unassigned: filters.assignee === "unassigned" ? true : undefined,
     ordering: filters.ordering,
     overdue: filters.overdue || undefined,
     due_before: filters.dueBefore || undefined,

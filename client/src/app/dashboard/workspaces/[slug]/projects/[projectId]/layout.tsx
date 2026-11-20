@@ -100,8 +100,8 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
               {[
                 { title: "Tasks", href: `${base}/tasks` },
                 { title: "Calendar", href: `${base}/calendar` },
-                { title: "Reports", href: `${base}/reports` },
                 { title: "Chat", href: `${base}/chat` },
+                { title: "Reports", href: `${base}/reports` },
                 { title: "Members", href: `${base}/members` },
                 ...(permissions.canManage || permissions.canLeave
                   ? [{ title: "Settings", href: `${base}/settings` }]

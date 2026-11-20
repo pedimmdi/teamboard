@@ -212,7 +212,7 @@ test("filter URLs reject malformed values and preserve valid multi-status and me
 test("changing filters resets the page while retaining the open task and view", () => {
   const filters = {
     ...utils.emptyTaskFilters,
-    assignee: "unassigned",
+    assignee: "me",
     statuses: ["in_progress"],
     search: "refresh",
     overdue: true,
@@ -222,8 +222,8 @@ test("changing filters resets the page while retaining the open task and view", 
     new URLSearchParams("page=3&view=list&task=abc&assignee=me"),
   );
   assert.equal(url.has("page"), false);
-  assert.equal(url.has("assignee"), false);
-  assert.equal(url.get("unassigned"), "true");
+  assert.equal(url.get("assignee"), "me");
+  assert.equal(url.has("unassigned"), false);
   assert.equal(url.get("task"), "abc");
   assert.equal(url.get("view"), "list");
   assert.equal(

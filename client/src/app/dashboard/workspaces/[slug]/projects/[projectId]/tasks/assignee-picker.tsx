@@ -39,7 +39,6 @@ export default function AssigneePicker({
           { value: "me", label: "Me", avatar: me?.avatar },
         ]
       : []),
-    { value: filter ? "unassigned" : "", label: "Unassigned", avatar: null },
     ...(!filter && me
       ? [
           {
@@ -50,7 +49,7 @@ export default function AssigneePicker({
         ]
       : []),
     ...members
-      .filter((member) => filter || !member.is_current_user)
+      .filter((member) => !member.is_current_user)
       .map((member) => ({
         value: String(member.user_id),
         label: member.user_email,
@@ -60,7 +59,7 @@ export default function AssigneePicker({
   const selected = options.find((option) => option.value === value);
   const label =
     selected?.label ??
-    (value ? "Current assignee" : filter ? "Anyone" : "Unassigned");
+    (value ? "Current assignee" : filter ? "Anyone" : "Select a member");
   useEffect(() => {
     if (!open) return;
     const button = trigger.current;
@@ -190,6 +189,7 @@ export default function AssigneePicker({
                   <button
                     key={option.value || "any"}
                     type="button"
+                    aria-label={option.label}
                     aria-pressed={value === option.value}
                     onClick={() => {
                       onChange(option.value);

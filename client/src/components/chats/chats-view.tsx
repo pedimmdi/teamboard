@@ -91,15 +91,22 @@ export default function ChatsView({ slug, projectId }: { slug: string; projectId
               key={project.id} disabled={opening} aria-pressed={thread?.conversation.project === project.id}
               onClick={() => void openProject(project)}>{project.name}</button>)}
             <h3>Direct messages</h3>
-            {data.direct.map((conversation) => {
-              const recipient = conversation.direct_user_low === user?.id ? conversation.direct_user_high : conversation.direct_user_low;
-              const title = data.members.find((member) => member.user_id === recipient)?.user_email ?? "Former member";
-              return title.toLowerCase().includes(query) && <button key={conversation.id} aria-pressed={thread?.conversation.id === conversation.id}
-                onClick={() => setSelected({ conversation, title })}>{title}</button>;
-            })}
-            <h3>Start a conversation</h3>
             {data.members.filter((member) => member.user_id !== user?.id && member.user_email.toLowerCase().includes(query)).map((member) =>
-              <button key={member.id} disabled={opening} onClick={() => void direct(member)}>{member.user_email}</button>)}
+              <button key={member.id} disabled={opening}
+                aria-pressed={Boolean(thread?.conversation.type === "direct" &&
+                  [thread.conversation.direct_user_low, thread.conversation.direct_user_high].includes(member.user_id))}
+                onClick={() => {
+                  const existing = data.direct.find((conversation) =>
+                    [conversation.direct_user_low, conversation.direct_user_high].includes(member.user_id));
+                  if (existing) setSelected({ conversation: existing, title: member.user_email });
+                  else void direct(member);
+                }}>{member.user_email}</button>)}
+            {data.direct.filter((conversation) => {
+              const recipient = conversation.direct_user_low === user?.id ? conversation.direct_user_high : conversation.direct_user_low;
+              return !data.members.some((member) => member.user_id === recipient);
+            }).filter(() => "former member".includes(query)).map((conversation) =>
+              <button key={conversation.id} aria-pressed={thread?.conversation.id === conversation.id}
+                onClick={() => setSelected({conversation, title: "Former member"})}>Former member</button>)}
           </aside>}
           <div className={styles.threadArea}>
             {!projectId && thread && <button className={styles.back} onClick={() => setSelected(null)}>← Conversations</button>}

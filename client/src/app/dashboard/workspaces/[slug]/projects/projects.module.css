@@ -783,3 +783,6 @@
 .projectBoardCard .mobileFooter {
   margin-top: auto;
 }
+
+.clickableCard { position: relative; }
+.clickableCard .projectLink::after { content: ""; position: absolute; inset: 0; }

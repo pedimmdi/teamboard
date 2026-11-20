@@ -89,6 +89,7 @@ class Task(models.Model):
         ordering = ["-created_at"]
 
         constraints = [
+            models.CheckConstraint(condition=Q(assignee__isnull=False), name="task_assignee_required"),
             models.CheckConstraint(
                 condition=Q(
                     status__in=[

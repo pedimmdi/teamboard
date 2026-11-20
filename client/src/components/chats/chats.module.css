@@ -52,3 +52,7 @@ button.primary:hover:not(:disabled) { background: #4338ca; }
   .messages { padding: 12px; }
   .composerActions small { width: 100%; flex: auto; order: 3; }
 }
+
+.avatar { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; background: #eef2ff; color: #4338ca; font-size: 12px; }
+.back { display: none; }
+@media (max-width: 767px) { .back { display: inline-flex; } }

@@ -1,5 +1,7 @@
 "use client";
 
+import WorkspaceOverview from "../workspace-overview";
+
 import { useTransientMessage } from "@/hooks/use-transient-message";
 
 import { useState, type FormEvent } from "react";
@@ -148,6 +150,8 @@ export default function SettingsPage() {
         <h2>Settings</h2>
         <p>Manage your workspace settings.</p>
       </div>
+
+      <WorkspaceOverview />
 
       <div className={styles.card}>
         <h3>General</h3>

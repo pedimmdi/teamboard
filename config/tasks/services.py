@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import Max
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -51,7 +51,7 @@ def _validate_assignee(*, project, assignee):
     and its workspace.
     """
     if assignee is None:
-        return
+        raise ValidationError({"assignee": "Assignee is required."})
 
     is_project_member = ProjectMembership.objects.filter(
         project=project,
@@ -187,6 +187,13 @@ def create_task(
         status=status,
         priority=priority,
     )
+
+    if assignee is None:
+        membership = (ProjectMembership.objects.filter(
+            project=project, role=ProjectMembership.Role.MANAGER,
+            project__workspace__memberships__user_id=models.F("user_id"),
+        ).select_related("user").order_by("user_id").first())
+        assignee = membership.user if membership else None
 
     _validate_assignee(
         project=project,

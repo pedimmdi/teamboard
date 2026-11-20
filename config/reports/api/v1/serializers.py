@@ -71,7 +71,7 @@ class WorkspaceReportSerializer(serializers.Serializer):
 class AdvancedReportFilters(serializers.Serializer):
     start_date = serializers.DateField(required=False)
     end_date = serializers.DateField(required=False)
-    assignee = serializers.RegexField(r"^(?:me|unassigned|[1-9][0-9]{0,18})\Z", required=False)
+    assignee = serializers.RegexField(r"^(?:me|[1-9][0-9]{0,18})\Z", required=False)
     status = serializers.ChoiceField(choices=Task.Status.values, required=False)
     priority = serializers.ChoiceField(choices=Task.Priority.values, required=False)
 

@@ -277,16 +277,17 @@ class TaskServiceTests(TestCase):
     def test_update_clear_assignee_does_not_notify(self):
         task = self.make_task(assignee=self.member)
 
-        update_task(
-            task=task,
-            actor=self.owner,
-            assignee=None,
-            update_assignee=True,
-        )
+        with self.assertRaises(ValidationError):
+            update_task(
+                task=task,
+                actor=self.owner,
+                assignee=None,
+                update_assignee=True,
+            )
 
         task.refresh_from_db()
 
-        self.assertIsNone(task.assignee_id)
+        self.assertEqual(task.assignee_id, self.member.pk)
         self.assertEqual(Notification.objects.count(), 1)
 
     def test_update_other_fields_does_not_notify_again(self):
@@ -358,7 +359,7 @@ class TaskServiceTests(TestCase):
         task.refresh_from_db()
 
         self.assertEqual(task.title, original_title)
-        self.assertIsNone(task.assignee_id)
+        self.assertEqual(task.assignee_id, self.owner.pk)
         self.assertFalse(Notification.objects.exists())
 
     def test_update_title_notifies_assignee(self):
@@ -624,15 +625,16 @@ class TaskServiceTests(TestCase):
             assignee=self.member,
         )
 
-        update_task(
-            task=task,
-            actor=self.owner,
-            assignee=None,
-            update_assignee=True,
-        )
+        with self.assertRaises(ValidationError):
+            update_task(
+                task=task,
+                actor=self.owner,
+                assignee=None,
+                update_assignee=True,
+            )
 
         task.refresh_from_db()
-        self.assertIsNone(task.assignee)
+        self.assertEqual(task.assignee, self.member)
 
     def test_update_can_clear_due_date(self):
         task = self.make_task(
@@ -676,7 +678,7 @@ class TaskServiceTests(TestCase):
             )
 
         task.refresh_from_db()
-        self.assertIsNone(task.assignee)
+        self.assertEqual(task.assignee, self.owner)
 
     def test_project_member_can_update_task(self):
         task = self.make_task()

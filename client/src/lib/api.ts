@@ -983,7 +983,6 @@ export type TaskQuery = {
   status?: TaskStatus[];
   priority?: TaskPriority;
   assignee?: number | "me";
-  unassigned?: boolean;
   search?: string;
   ordering?: TaskOrdering | `-${TaskOrdering}`;
   due_before?: string;

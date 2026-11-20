@@ -51,6 +51,10 @@ export default function TaskForm({
       setFields({ title: "Task title cannot be empty." });
       return;
     }
+    if (!input.assignee) {
+      setFields({ assignee: "Select a project member. Assignee is required." });
+      return;
+    }
     setBusy(true);
     onBusyChange(true);
     setError("");
@@ -163,7 +167,7 @@ export default function TaskForm({
           {fieldError("priority")}
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>Assignee</span>
+          <span className={styles.fieldLabel}>Assignee (required)</span>
           <AssigneePicker
             members={members}
             value={input.assignee === null ? "" : String(input.assignee)}

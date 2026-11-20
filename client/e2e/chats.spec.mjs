@@ -17,7 +17,10 @@ test("direct messages update in two browsers and support private attachments on 
   try {
     await login(sender, "browser-test@example.com");
     await login(recipient, "browser-chat-teammate@example.com");
-    await sender.getByRole("button", { name: "browser-chat-teammate@example.com", exact: true }).last().click();
+    await expect(sender.getByRole("button", { name: "browser-chat-teammate@example.com", exact: true })).toHaveCount(1);
+    await expect(sender.getByText("Start a conversation", {exact: true})).toHaveCount(0);
+    await sender.getByRole("button", { name: "browser-chat-teammate@example.com", exact: true }).click();
+    await expect(sender.getByRole("button", { name: /Conversations/ })).toBeHidden();
     await recipient.getByRole("button", { name: "browser-test@example.com", exact: true }).last().click();
     const outgoing = sender.getByRole("region", { name: "browser-chat-teammate@example.com", exact: true });
     const incoming = recipient.getByRole("region", { name: "browser-test@example.com", exact: true });
@@ -30,6 +33,10 @@ test("direct messages update in two browsers and support private attachments on 
     });
     await outgoing.getByRole("button", { name: "Send message", exact: true }).click();
     await expect(incoming.getByText(text, { exact: true })).toBeVisible({ timeout: 10_000 });
+    const avatar = incoming.getByRole("article").filter({hasText: text}).locator(":scope > span").first();
+    await expect(avatar).toHaveCSS("width", "30px");
+    await expect(avatar).toHaveCSS("height", "30px");
+    await expect(recipient.getByRole("button", {name: /Conversations/})).toBeVisible();
     const download = recipient.waitForEvent("download");
     await incoming.getByRole("button", { name: /chat-notes.txt/ }).last().click();
     expect((await download).suggestedFilename()).toBe("chat-notes.txt");

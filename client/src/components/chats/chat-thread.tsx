@@ -220,7 +220,7 @@ export default function ChatThread({ slug, conversation, title, members }: {
             const member = members.find((member) => member.user_id === message.sender_id);
             const parent = messages.find((parent) => parent.id === message.reply_to);
             return <article key={message.id} id={"chat-" + message.id} className={styles.message} data-own={message.sender_id === user?.id}>
-              <Avatar src={member?.avatar ?? null} fallback={(member?.user_email ?? "?").charAt(0).toUpperCase()} size={30} />
+              <Avatar className={styles.avatar} src={member?.avatar ?? null} fallback={(member?.user_email ?? "?").charAt(0).toUpperCase()} size={30} />
               <div className={styles.messageBody}>
                 <header><strong>{member?.user_email ?? (message.sender_id === null ? "Deleted user" : "Former member")}</strong>
                   <time dateTime={message.created_at}>{dateFormat.format(new Date(message.created_at))}</time>

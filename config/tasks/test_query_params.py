@@ -149,26 +149,11 @@ class TaskQueryParameterTests(APITestCase):
             ],
         )
 
-    def test_filter_unassigned_true(self):
-        response = self.client.get(
-            self.url,
-            {"unassigned": "true"},
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            self.titles(response),
-            ["Write Backend Tests"],
-        )
-
-    def test_filter_unassigned_false_keeps_all_tasks(self):
-        response = self.client.get(
-            self.url,
-            {"unassigned": "false"},
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["count"], 3)
+    def test_removed_unassigned_filter_is_rejected(self):
+        for value in ("true", "false"):
+            response = self.client.get(self.url, {"unassigned": value})
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("unassigned", response.data)
 
     def test_combined_filters(self):
         response = self.client.get(

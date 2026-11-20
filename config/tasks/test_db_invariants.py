@@ -132,7 +132,7 @@ class TaskDatabaseInvariantTests(TransactionTestCase):
         task.refresh_from_db()
         self.assertEqual(task.assignee_id, self.member.pk)
 
-    def test_removing_project_member_clears_assignee(self):
+    def test_removing_project_member_reassigns_to_manager(self):
         task = self.make_task(assignee=self.member)
 
         with transaction.atomic():
@@ -141,7 +141,7 @@ class TaskDatabaseInvariantTests(TransactionTestCase):
             ).delete()
 
         task.refresh_from_db()
-        self.assertIsNone(task.assignee_id)
+        self.assertEqual(task.assignee_id, self.owner.pk)
 
     def test_changing_membership_user_clears_old_assignee(self):
         task = self.make_task(assignee=self.member)
@@ -168,3 +168,39 @@ class TaskDatabaseInvariantTests(TransactionTestCase):
 
         task.refresh_from_db()
         self.assertEqual(task.assignee_id, self.member.pk)
+
+    def test_deleting_assigned_user_reassigns_tasks(self):
+        task = self.make_task(assignee=self.member)
+        self.member.delete()
+        task.refresh_from_db()
+        self.assertEqual(task.assignee_id, self.owner.pk)
+
+    def test_bulk_insert_uses_manager_and_history_snapshot(self):
+        from tasks.models import TaskStatusHistory
+        tasks = Task.objects.bulk_create([Task(project=self.project, title="Bulk A"), Task(project=self.project, title="Bulk B")])
+        for task in tasks:
+            task.refresh_from_db()
+            self.assertEqual(task.assignee_id, self.owner.pk)
+            self.assertEqual(TaskStatusHistory.objects.get(task_id=task.pk).assignee_id, self.owner.pk)
+
+    def test_removal_rollback_restores_original_assignment(self):
+        task = self.make_task(assignee=self.member)
+        try:
+            with transaction.atomic():
+                self.member_membership.delete()
+                raise RuntimeError("Rollback")
+        except RuntimeError:
+            pass
+        task.refresh_from_db()
+        self.assertEqual(task.assignee_id, self.member.pk)
+
+    def test_workspace_cascade_deletes_tasks_without_reassignment(self):
+        self.make_task(assignee=self.owner)
+        self.make_task(assignee=self.member)
+        self.workspace.delete()
+        self.assertFalse(Task.objects.exists())
+
+    def test_project_cascade_deletes_assigned_tasks(self):
+        self.make_task(assignee=self.owner)
+        self.project.delete()
+        self.assertFalse(Task.objects.filter(project_id=self.project.pk).exists())

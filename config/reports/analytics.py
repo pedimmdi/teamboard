@@ -12,7 +12,7 @@ def report_filters(filters, user, *, assignee_field="assignee_id"):
     assignee = filters.get("assignee")
     if assignee is not None:
         conditions[assignee_field] = (
-            None if assignee == "unassigned" else user.pk if assignee == "me" else int(assignee)
+            user.pk if assignee == "me" else int(assignee)
         )
     return conditions
 

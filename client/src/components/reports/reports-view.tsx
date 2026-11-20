@@ -134,7 +134,7 @@ export default function ReportsView({ slug, projectId, workspaceRole }: { slug: 
           <label>Start date<input name="start" type="date" required defaultValue={filters.start_date} /></label>
           <label>End date<input name="end" type="date" required defaultValue={filters.end_date} /></label>
           <label>Assignee<select name="assignee" defaultValue={filters.assignee ?? ""}>
-            <option value="">Anyone</option><option value="me">Me</option><option value="unassigned">Unassigned</option>
+            <option value="">Anyone</option><option value="me">Me</option>
             {memberOptions.map((member) => <option key={member.user_id} value={member.user_id}>{member.user_email}</option>)}
           </select></label>
           <label>Status<select name="status" defaultValue={filters.status ?? ""}><option value="">All statuses</option>
@@ -158,7 +158,7 @@ export default function ReportsView({ slug, projectId, workspaceRole }: { slug: 
         <section aria-label="Current overview">
           <h3>Current overview <small>All dates · as of {data.overview.as_of}</small></h3>
           <div className={styles.metrics}>
-            {(["total_tasks", "active_tasks", "completed_tasks", "overdue_tasks", "unassigned_tasks", "completion_rate"] as const).map((field) =>
+            {(["total_tasks", "active_tasks", "completed_tasks", "overdue_tasks", "completion_rate"] as const).map((field) =>
               <article key={field}><span>{field.replaceAll("_", " ")}</span><strong>{data.overview.summary[field]}{field === "completion_rate" ? "%" : ""}</strong></article>)}
           </div>
         </section>
@@ -209,7 +209,7 @@ export default function ReportsView({ slug, projectId, workspaceRole }: { slug: 
           {data.workload.length ? <div className={styles.scroll}><table><thead><tr>
             <th>Assignee</th><th>Active</th><th>Completed</th><th>Overdue</th><th>Due soon</th><th>Completion</th>
           </tr></thead><tbody>{data.workload.map((row) => <tr key={row.assignee ?? "unassigned"}>
-            <td>{row.assignee === null ? "Unassigned" : memberOptions.find((member) => member.user_id === row.assignee)?.user_email ?? `User #${row.assignee}`}</td>
+            <td>{row.assignee === null ? "Former member" : memberOptions.find((member) => member.user_id === row.assignee)?.user_email ?? `User #${row.assignee}`}</td>
             <td>{row.active_tasks}</td><td>{row.completed_tasks}</td><td>{row.overdue_tasks}</td><td>{row.due_soon_tasks}</td><td>{row.completion_rate}%</td>
           </tr>)}</tbody></table></div> : <p>No tasks match these filters.</p>}
         </section>

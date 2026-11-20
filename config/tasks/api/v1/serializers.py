@@ -122,8 +122,8 @@ class TaskCreateSerializer(serializers.Serializer):
     )
 
     assignee = ProjectAssigneeField(
-        required=False,
-        allow_null=True,
+        required=True,
+        allow_null=False,
     )
 
     due_date = serializers.DateField(
@@ -159,7 +159,7 @@ class TaskUpdateSerializer(serializers.Serializer):
 
     assignee = ProjectAssigneeField(
         required=False,
-        allow_null=True,
+        allow_null=False,
     )
 
     due_date = serializers.DateField(

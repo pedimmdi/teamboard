@@ -38,6 +38,15 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await taskDialog.getByRole("textbox").first().fill("Browser test task");
   await taskDialog.getByLabel("Due date").fill(new Date().toISOString().slice(0, 10));
   await taskDialog.getByRole("button", { name: "Create task" }).click();
+  await expect(taskDialog.getByRole("alert")).toContainText("Assignee is required");
+  await taskDialog.getByRole("button", { name: /^Assignee:/ }).click();
+  await taskDialog.getByRole("button", { name: /Assign to me/ }).click();
+  await taskDialog.getByRole("button", { name: "Create task" }).click();
+  await page.getByRole("button", {name: /^Filter by assignee:/}).click();
+  const assigneeFilter = page.getByRole("dialog", {name: "Assignee", exact: true});
+  await expect(assigneeFilter.getByRole("button", {name: "Me", exact: true})).toHaveCount(1);
+  await expect(assigneeFilter.getByRole("button", {name: /browser-test@example.com|Unassigned/})).toHaveCount(0);
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Browser test task", exact: true }).click();
   const drawer = page.getByRole("dialog", { name: "Task", exact: true });
   await expect(drawer.getByRole("button", { name: "Comments (0)" })).toHaveAttribute("aria-pressed", "true");
@@ -157,7 +166,7 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await page.unroute(historyEndpoint);
   await reports.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(reports.getByRole("region", { name: "Current overview" })).toBeVisible();
-  await expect(reports.getByRole("region", { name: "Member workload" }).getByText("Unassigned")).toBeVisible();
+  await expect(reports.getByRole("region", { name: "Member workload" }).getByText("Unassigned")).toHaveCount(0);
   await reports.getByLabel("Group by").selectOption("week");
   await expect(reports.getByRole("group", { name: "Created and completed tasks by date" })).toBeVisible();
   const downloaded = page.waitForEvent("download");
@@ -165,6 +174,7 @@ test("sign in, create workspace, project and task, then discuss the task", async
   expect((await downloaded).suggestedFilename()).toBe("task-report.csv");
   const reportFilters = reports.getByRole("region", { name: "Report filters" });
   await reportFilters.getByRole("combobox", { name: "Assignee", exact: true }).selectOption("me");
+  await reportFilters.getByRole("combobox", { name: "Status", exact: true }).selectOption("done");
   await reportFilters.getByRole("button", { name: "Apply filters" }).click();
   await expect(reports.getByText("No tasks match these filters.")).toBeVisible();
   await reportFilters.getByLabel("Start date").fill("2026-12-31");
@@ -205,5 +215,22 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("navigation", { name: "Dashboard", exact: true }).getByRole("link", { name: "Chats" }).click();
   await page.getByRole("complementary", { name: "Conversations" }).getByRole("button", { name: project, exact: true }).click();
+
   await expect(page.getByRole("region", { name: project, exact: true }).getByText("Browser chat reply", { exact: true })).toBeVisible();
+  await page.screenshot({path: "test-results/chats-mobile.png", fullPage: true});
+  await page.setViewportSize({width: 1440, height: 900});
+  await page.screenshot({path: "test-results/chats-desktop.png", fullPage: true});
+  const workspaceNav = page.getByRole("navigation", {name: "Workspace navigation"});
+  await expect(workspaceNav.getByRole("link", {name: "Overview", exact: true})).toHaveCount(0);
+  await workspaceNav.getByRole("link", {name: "Settings", exact: true}).click();
+  await expect(page.getByRole("heading", {name: "Workspace overview"})).toBeVisible();
+  await page.goto(`/dashboard/workspaces/${createdWorkspace.slug}/projects`);
+  await page.getByRole("button", {name: "List", exact: true}).click();
+  await page.setViewportSize({width: 390, height: 844});
+  const projectCard = page.getByRole("article").filter({hasText: project});
+  await expect(projectCard).toBeVisible();
+  const cardBox = await projectCard.boundingBox();
+  await page.mouse.click(cardBox.x + 20, cardBox.y + cardBox.height - 12);
+  await expect(page).toHaveURL(/\/tasks$/);
+
 });

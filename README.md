@@ -96,11 +96,11 @@ A comment request accepts `body` and optional `reply_to`. Send multipart form da
 The existing project and workspace overview endpoints return current statistics. Under either reports URL, use:
 
 - `history/` for UTC daily or Monday-based weekly creation and completion counts, and an equally long preceding period. Use `period=7d|30d|90d` (default 30 days) or inclusive `start_date` and `end_date`. A completion is a transition into Done, including creation directly in Done. A reopened and later completed task counts again. Historical status, priority, and assignee filters use the snapshot at the transition. Creation of surviving pre-migration tasks uses its recorded creation date and current fields. Completion data before `completion_tracking_since` is unavailable.
-- `workload/` for current per-assignee totals, active and completed tasks, overdue tasks, tasks due in the next seven days (including today and day seven), and completion rates. A null assignee is the unassigned group.
+- `workload/` for current per-assignee totals, active and completed tasks, overdue tasks, tasks due in the next seven days (including today and day seven), and completion rates. Every task has an assignee.
 - `export/` for the current filtered task snapshot as CSV, capped at 5,000 rows.
 - Workspace `projects/` for paginated project comparisons. Use `ordering` with `name`, `total_tasks`, `completed_tasks`, or `overdue_tasks` and an optional minus prefix.
 
-Each endpoint accepts `assignee` (user ID, `me`, or `unassigned`), `status`, and `priority`. Outside historical analytics, date filters apply to task creation. Supply both dates together and use a maximum range of 366 days. Reports and exports include only accessible projects.
+Each endpoint accepts `assignee` (user ID or `me`), `status`, and `priority`. Outside historical analytics, date filters apply to task creation. Supply both dates together and use a maximum range of 366 days. Reports and exports include only accessible projects.
 
 ## Persistent data and deployment
 
@@ -149,3 +149,11 @@ When updating a running Docker frontend, run `docker compose exec frontend npm c
 If Windows reserves port 8000, set `BACKEND_PORT=8001` in `.env` and set any explicit `NEXT_PUBLIC_API_URL` to `http://localhost:8001`. Run `docker compose up -d --force-recreate backend frontend`.
 
 Report CSV downloads start with a UTF-8 BOM and an Excel `sep=,` directive so Persian text and comma-separated columns open correctly regardless of the system list separator. General CSV parsers should skip the directive line.
+
+### Task assignment invariant
+
+Every current task belongs to an active project member. Task creation through the API requires a non-null `assignee`; PATCH may omit this field but cannot clear it. Task and Reports filters no longer offer `unassigned` (legacy task query parameters are rejected).
+
+Migration `tasks.0007` assigns existing unassigned tasks to the eligible project manager with the lowest user ID. Removing a project/workspace member transfers their tasks to the lowest-ID remaining eligible manager in the same transaction. Without a remaining manager, removal is rejected. Direct ORM/bulk inserts without an assignee use the same manager fallback; database checks prevent any task from remaining unassigned. Historical status snapshots are preserved, including genuine null assignments recorded before this rule. The legacy Reports `unassigned_tasks` response field remains for API compatibility and is zero for current tasks.
+
+Workspace information is available at the top of Settings. Chats lists project conversations and a single Direct messages section; the conversation back button is reserved for mobile.

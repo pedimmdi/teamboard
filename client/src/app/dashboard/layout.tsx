@@ -176,14 +176,14 @@ function WorkspaceNavigation({
         active={pathname === `${workspaceBase}/calendar`}
         icon={<CalendarIcon />}
       />
+      <NavItem href={workspaceBase ? `${workspaceBase}/chats` : null}
+        label="Chats" active={pathname === `${workspaceBase}/chats`} icon={<ChatIcon />} />
       {!mobile && <NavItem
         href={workspaceBase ? `${workspaceBase}/reports` : null}
         label="Reports"
         active={pathname === `${workspaceBase}/reports`}
         icon={<ReportIcon />}
       />}
-      <NavItem href={workspaceBase ? `${workspaceBase}/chats` : null}
-        label="Chats" active={pathname === `${workspaceBase}/chats`} icon={<ChatIcon />} />
       <NavItem
         href={workspaceBase ? `${workspaceBase}/members` : null}
         label="People"

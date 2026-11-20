@@ -94,16 +94,6 @@ from .pagination import TaskPageNumberPagination
                     "'me' to filter tasks assigned to the "
                     "authenticated user. "
                     "The value 'me' is case-sensitive. "
-                    "Cannot be combined with unassigned=true."
-                ),
-            ),
-            OpenApiParameter(
-                name="unassigned",
-                type=OpenApiTypes.BOOL,
-                location=OpenApiParameter.QUERY,
-                description=(
-                    "Use true to return only unassigned tasks. "
-                    "Cannot be combined with assignee."
                 ),
             ),
             OpenApiParameter(
@@ -177,7 +167,8 @@ class TaskListCreateView(generics.GenericAPIView):
         task_status = request.query_params.get("status")
         priority = request.query_params.get("priority")
         assignee = request.query_params.get("assignee")
-        unassigned = request.query_params.get("unassigned")
+        if "unassigned" in request.query_params:
+            raise ValidationError({"unassigned": "This filter is no longer supported. Every task has an assignee."})
         due_before = request.query_params.get("due_before")
         overdue = request.query_params.get("overdue")
 
@@ -230,25 +221,6 @@ class TaskListCreateView(generics.GenericAPIView):
             queryset = queryset.filter(
                 assignee_id=assignee_id,
             )
-
-        if unassigned is not None:
-            if unassigned not in ("true", "false"):
-                raise ValidationError({
-                    "unassigned": "Must be true or false."
-                })
-
-            if unassigned == "true":
-                queryset = queryset.filter(
-                    assignee__isnull=True,
-                )
-
-        if assignee is not None and unassigned == "true":
-            raise ValidationError({
-                "unassigned": (
-                    "Cannot combine assignee with "
-                    "unassigned=true."
-                )
-            })
 
         if due_before is not None:
             date_field = serializers.DateField()
