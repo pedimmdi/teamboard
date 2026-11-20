@@ -51,7 +51,7 @@ export default function TaskDrawer({
 }) {
   const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
-  const [showComments, setShowComments] = useState(true);
+  const [section, setSection] = useState<"comments" | "reminders" | "details">("comments");
   const [commentCount, setCommentCount] = useState<number | null>(null);
   const updateCommentCount = useCallback((count: number) => {
     setCommentCount(count);
@@ -160,14 +160,17 @@ export default function TaskDrawer({
               </div>
             </div>
             <div className={commentStyles.tabs} role="group" aria-label="Task sections">
-              <button type="button" aria-pressed={showComments} disabled={busy || commentBusy || reminderBusy} onClick={() => setShowComments(true)}>
+              <button type="button" aria-pressed={section === "comments"} disabled={busy || commentBusy || reminderBusy} onClick={() => setSection("comments")}>
                 Comments{commentCount !== null && ` (${commentCount})`}
               </button>
-              <button type="button" aria-pressed={!showComments} disabled={busy || commentBusy || reminderBusy} onClick={() => setShowComments(false)}>
+              <button type="button" aria-pressed={section === "reminders"} disabled={busy || commentBusy || reminderBusy} onClick={() => setSection("reminders")}>
+                Reminders
+              </button>
+              <button type="button" aria-pressed={section === "details"} disabled={busy || commentBusy || reminderBusy} onClick={() => setSection("details")}>
                 Details
               </button>
             </div>
-            <div hidden={showComments} inert={reminderBusy}>
+            <div hidden={section !== "details"} inert={reminderBusy}>
                 <TaskForm
                   key={task.updated_at}
                   initial={taskInput(task)}
@@ -215,7 +218,6 @@ export default function TaskDrawer({
                 />
             </div>
             {user && (
-              <div inert={reminderBusy}>
               <TaskComments
                 token={token}
                 slug={slug}
@@ -224,13 +226,12 @@ export default function TaskDrawer({
                 user={user}
                 members={members}
                 canModerate={canDelete}
-                active={showComments}
+                active={section === "comments"}
                 onCountChange={updateCommentCount}
                 onBusyChange={setCommentBusy}
               />
-              </div>
             )}
-            <div inert={busy || commentBusy}>
+            <div hidden={section !== "reminders"} inert={busy || commentBusy}>
               <TaskReminders key={task.updated_at} token={token} slug={slug} projectId={projectId} task={task} onBusyChange={setReminderBusy} />
             </div>
           </>

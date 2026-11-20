@@ -395,9 +395,10 @@ export default function TaskComments({
             <Image src="/icons/comments/send.svg" alt="" width={20} height={20} />
           </button>
           <div className={styles.attachmentControls}>
-            <label className={styles.attachment}>
-              Attach file
-              <input type="file" accept=".png,.jpg,.jpeg,.txt" disabled={pending === "post"} onChange={(event) => {
+            <label className={`${styles.attachment} ${styles.attachButton}`}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m21 11-8.5 8.5a6 6 0 0 1-8.5-8.5l9-9a4 4 0 0 1 5.7 5.7l-9 9a2 2 0 0 1-2.9-2.9l8.5-8.5"/></svg>
+              <span className={styles.attachText}>Attach file</span>
+              <input type="file" aria-label="Attach file" accept=".png,.jpg,.jpeg,.txt" disabled={pending === "post"} onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
                 if (!file) return;
@@ -410,7 +411,7 @@ export default function TaskComments({
               }} />
             </label>
             {attachment && (
-              <button type="button" className={styles.attachment} onClick={() => setAttachment(undefined)} disabled={pending === "post"}>
+              <button type="button" className={`${styles.attachment} ${styles.selectedAttachment}`} onClick={() => setAttachment(undefined)} disabled={pending === "post"}>
                 Remove {attachment.name}
               </button>
             )}

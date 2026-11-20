@@ -50,7 +50,7 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
   const Drawer = component("task-drawer", {
     react: React, "@/lib/api": api, "@/lib/auth": { useAuth: () => ({ user }) },
     "./task-dialog": ({ children }) => React.createElement("section", null, children),
-    "./task-comments": Comments, "./task-reminders": Stub, "./task-form": () => React.createElement("p", null, "Task details"),
+    "./task-comments": Comments, "./task-reminders": () => React.createElement("p", null, "Private reminders"), "./task-form": () => React.createElement("p", null, "Task details"),
     "./task-icons": Stub,
     "./task-utils": { taskInput: () => ({}), taskStatuses: [] },
   });
@@ -62,15 +62,26 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
     const buttons = () => [...container.querySelectorAll("button")];
     const commentsTab = buttons().find((button) => button.textContent.includes("Comments (2)"));
     const detailsTab = buttons().find((button) => button.textContent.trim() === "Details");
-    assert.ok(commentsTab.compareDocumentPosition(detailsTab) & 4);
+    const remindersTab = buttons().find((button) => button.textContent.trim() === "Reminders");
+    assert.ok(commentsTab.compareDocumentPosition(remindersTab) & 4);
+    assert.ok(remindersTab.compareDocumentPosition(detailsTab) & 4);
     assert.equal(commentsTab.getAttribute("aria-pressed"), "true");
     assert.equal(container.querySelector("#comment-reply").className, "reply");
     await act(async () => buttons().find((button) => button.textContent.includes("Reply to Alex")).click());
     assert.equal(container.querySelector("#comment-parent").hasAttribute("tabindex"), false);
     assert.deepEqual(calls, ["comment-parent", 1000]);
+    const reminderPanel = [...container.querySelectorAll("p")].find((p) => p.textContent === "Private reminders").parentElement;
+    assert.equal(reminderPanel.hidden, true);
+    await act(async () => remindersTab.click());
+    assert.equal(reminderPanel.hidden, false);
+    assert.equal(container.querySelector("[data-comment-thread]").hidden, true);
+    await act(async () => commentsTab.click());
+    assert.equal(reminderPanel.hidden, true);
+    assert.equal(container.querySelector("[data-comment-thread]").hidden, false);
     await act(async () => detailsTab.click());
     assert.equal(detailsTab.getAttribute("aria-pressed"), "true");
     assert.equal(container.querySelector("[data-comment-thread]").hidden, true);
+    assert.equal(reminderPanel.hidden, true);
   } finally {
     await act(async () => root.unmount());
     dom.window.close();

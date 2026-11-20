@@ -87,7 +87,7 @@ export default function TaskReminders({token, slug, projectId, task, onBusyChang
       </div>}
     </li>)}</ul>
     {hasMore && <button type="button" disabled={busy} onClick={() => setPage((value) => value + 1)}>Load more reminders</button>}
-    {!form && <button type="button" disabled={busy || loading || active >= 3 || task.status === "done"} onClick={() => open()}>New reminder</button>}
+    {!form && <button type="button" className={styles.newReminder} disabled={busy || loading || active >= 3 || task.status === "done"} onClick={() => open()}>New reminder</button>}
     {task.status === "done" && <p>Reopen this task to schedule a new reminder.</p>}
     {form && <form onSubmit={submit} className={styles.form}>
       <label htmlFor={id+"kind"}>Reminder type</label><select id={id+"kind"} disabled={busy} value={kind} onChange={(event) => setKind(event.target.value as "absolute" | "relative")}><option value="absolute">Fixed date and time</option><option value="relative" disabled={!task.due_date}>Relative to due date</option></select>

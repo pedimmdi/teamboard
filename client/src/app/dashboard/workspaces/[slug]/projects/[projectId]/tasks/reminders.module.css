@@ -1,6 +1,8 @@
-.section {border-top:1px solid #e2e8f0;padding-top:18px;margin-top:20px;color:#334155;font-size:14px;min-width:0}
+.section {padding-top:20px;color:#334155;font-size:14px;min-width:0}
 .section header {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}.section h3 {margin:0;color:#0f172a}.section header span,.section small {color:#64748b;font-size:12px}
 .section ul {list-style:none;padding:0;display:grid;gap:10px}.section li {padding:12px;border:1px solid #e2e8f0;border-radius:10px;display:grid;gap:6px;overflow-wrap:anywhere}
 .section button {border:1px solid #cbd5e1;border-radius:7px;padding:8px 12px;background:white;color:#4338ca;cursor:pointer;font:inherit}.section button:disabled {opacity:.5;cursor:default}.actions {display:flex;flex-wrap:wrap;gap:8px}
 .form {display:grid;gap:8px;padding:14px;background:#f8fafc;border-radius:10px;margin-top:12px}.form input,.form select {width:100%;min-width:0;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:7px;padding:9px;font:inherit;background:white}.section [role=alert] {color:#b91c1c}.section [role=status] {color:#047857}
 @media(max-width:767px){.actions button{flex:1}.form{padding:10px}}
+.section .newReminder {display:block;margin-top:20px;min-height:44px;background:#4f46e5;border-color:#4f46e5;color:white}
+.section .newReminder:hover:enabled {background:#4338ca}
