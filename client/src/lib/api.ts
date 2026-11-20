@@ -1205,6 +1205,7 @@ export function updateResourceAvatar(
 export type NotificationEvent =
   | "task_assigned"
   | "task_updated"
+  | "task_reminder"
   | "comment_mentioned"
   | "comment_replied"
   | "workspace_invited"
@@ -1458,4 +1459,25 @@ export function markChatRead(token: string, slug: string, conversation: string, 
 }
 export function getChatMessage(token: string, slug: string, conversation: string, message: string) {
   return apiFetch<ChatMessage>(`${chatsPath(slug, conversation)}${encodeURIComponent(message)}/`, {token});
+}
+
+
+export type TaskReminder = {
+  id: string; kind: "absolute" | "relative"; timezone: string; run_at: string | null;
+  days_before: number | null; local_time: string | null;
+  status: "pending" | "disabled" | "invalid" | "sent" | "cancelled" | "failed";
+  sent_at: string | null; last_error: string; attempts: number;
+};
+export type ReminderInput = {kind: "absolute" | "relative"; timezone: string; run_at?: string; days_before?: number; local_time?: string};
+function reminderPath(slug: string, project: string, task: string, reminder?: string) {
+  return `${projectsPath(slug, project)}tasks/${encodeURIComponent(task)}/reminders/${reminder ? encodeURIComponent(reminder) + "/" : ""}`;
+}
+export function getTaskReminders(token: string, slug: string, project: string, task: string, page = 1, signal?: AbortSignal) {
+  return apiFetch<{results: TaskReminder[]; count: number; next: string | null}>(`${reminderPath(slug, project, task)}?page=${page}`, {token, signal});
+}
+export function saveTaskReminder(token: string, slug: string, project: string, task: string, input: ReminderInput, reminder?: string) {
+  return apiFetch<TaskReminder>(reminderPath(slug, project, task, reminder), {token, method: reminder ? "PATCH" : "POST", body: JSON.stringify(input)});
+}
+export function cancelTaskReminder(token: string, slug: string, project: string, task: string, reminder: string) {
+  return apiFetch<void>(reminderPath(slug, project, task, reminder), {token, method: "DELETE"});
 }

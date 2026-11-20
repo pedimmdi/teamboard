@@ -8,6 +8,7 @@ TeamBoard is a workspace for planning projects, tracking tasks on a Kanban board
 - **Workspaces** with invitations, ownership transfer, member management, and workspace images. Owner, Admin, and Member badges use green, purple, and blue respectively.
 - **Projects** with membership, project images, and Board and List views. Board is the default and the browser remembers the selected view.
 - **Tasks** with four Kanban columns, drag-and-drop, assignees, priorities, due dates, and filters. Open a card to see its discussion and details.
+- **Private task reminders** with up to three active reminders per user/task, fixed times or due-date presets, IANA timezones, and automatic rescheduling. Reminders arrive in the existing notification inbox; manage them from the task drawer on desktop or mobile.
 - **Comments** with replies, project-member mentions, editing, moderation, attachment downloads, and counts on task cards.
 - **Notifications** with an account-wide inbox, unread badge, read filters and links to the related project or task. Workspace invitations are accepted using their email link.
 - **Calendars** with month, week, and day views for workspaces and projects, a day agenda for events and task due dates, and project event management. Calendar dates and event entry use UTC. The agenda can display timed events in the browser’s local timezone. The timeline includes events and full-day task due dates that overlap the requested range. The range end is exclusive.
@@ -86,10 +87,13 @@ API routes are under `/api/v1/`. The frontend uses bearer access tokens and a re
 | Projects | `workspaces/<slug>/projects/` |
 | Tasks | `workspaces/<slug>/projects/<project_id>/tasks/` |
 | Task comments | `workspaces/<slug>/projects/<project_id>/tasks/<task_id>/comments/` |
+| Private task reminders | `workspaces/<slug>/projects/<project_id>/tasks/<task_id>/reminders/` |
 
 Workspace Owners and Admins can manage project access across the workspace. Project Managers can manage the projects they belong to. Project Members can work on tasks and participate in discussions within projects they can access.
 
 A comment request accepts `body` and optional `reply_to`. Send multipart form data to include one `attachment`. Use `@` in the composer to select a project member. Authors can edit their own comments. Managers and workspace administrators can moderate comments. Download an attachment through the authenticated `<comment_id>/attachment/` endpoint.
+
+Task reminders use PostgreSQL as their scheduling ledger, with the existing Celery worker and Beat checking every 60 seconds. Each user manages only their own reminders, subject to live task access. Due dates have no deadline hour: relative reminders default to 09:00 in the selected timezone. Delivery resumes after service outages without creating duplicate notifications. See [reminder API, scheduling and recovery](docs/task-reminders.md) for states, DST rules, limits and operational checks.
 
 ### Advanced Reports API
 

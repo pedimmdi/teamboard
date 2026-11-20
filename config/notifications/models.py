@@ -9,6 +9,7 @@ from django.db.models import Q
 class Notification(models.Model):
     class EventType(models.TextChoices):
         TASK_ASSIGNED = "task_assigned", "Task Assigned"
+        TASK_REMINDER = "task_reminder", "Task Reminder"
         TASK_UPDATED = "task_updated", "Task Updated"
         COMMENT_MENTIONED = "comment_mentioned", "Comment Mentioned"
         COMMENT_REPLIED = "comment_replied", "Comment Replied"
@@ -117,6 +118,7 @@ class Notification(models.Model):
                 condition=Q(event_type__in=[
                     "task_assigned",
                     "task_updated",
+                    "task_reminder",
                     "comment_mentioned",
                     "comment_replied",
                     "workspace_invited",

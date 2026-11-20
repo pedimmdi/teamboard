@@ -81,4 +81,24 @@ ChatMessage.objects.filter(conversation=room).delete()
 ChatMessage.objects.bulk_create([ChatMessage(conversation=room, sender=teammate, content=f"Direct update {i}") for i in range(2)])
 ConversationParticipant.objects.filter(conversation__workspace=unread_workspace).update(last_read_message=None, last_read_at=None, last_read_key=None)
 
+# Reminder fixture uses a separate account so existing notification totals stay stable.
+from datetime import timedelta
+from django.utils import timezone
+from tasks.models import Task, TaskReminder
+from tasks.reminders import process_reminder
+reminder_user, _ = User.objects.get_or_create(email="browser-reminder@example.com", defaults={"is_email_verified": True})
+reminder_user.set_password(password)
+reminder_user.save(update_fields=["password"])
+reminder_workspace, _ = Workspace.objects.get_or_create(slug="reminders", defaults={"name": "Reminder browser tests"})
+WorkspaceMembership.objects.get_or_create(workspace=reminder_workspace, user=reminder_user, defaults={"role":"owner"})
+with transaction.atomic():
+    reminder_project, _ = Project.objects.get_or_create(workspace=reminder_workspace, name="Reminder project", defaults={"created_by":reminder_user})
+    ProjectMembership.objects.get_or_create(project=reminder_project, user=reminder_user, defaults={"role":"manager"})
+reminder_task, _ = Task.objects.get_or_create(project=reminder_project, title="Reminder browser task", defaults={"assignee":reminder_user})
+TaskReminder.objects.filter(task=reminder_task).delete()
+Notification.objects.filter(recipient=reminder_user).delete()
+Task.objects.filter(pk=reminder_task.pk).update(status="todo",due_date=timezone.now().date()+timedelta(days=10))
+seed_reminder = TaskReminder.objects.create(task=reminder_task,recipient=reminder_user,kind="absolute",timezone="UTC",run_at=timezone.now()-timedelta(minutes=2))
+process_reminder(seed_reminder.pk)
+
 call_command("runserver", "127.0.0.1:" + os.environ.get("E2E_BACKEND_PORT", "8100"), use_reloader=False)

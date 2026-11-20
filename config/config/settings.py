@@ -204,6 +204,8 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_THROTTLE_RATES": {
+        "reminder_read": "120/min",
+        "reminder_write": "30/min",
         "login": "10/min",
         "token_refresh": "30/min",
         "register": "10/min",
@@ -350,6 +352,7 @@ if CELERY_BROKER_URL.startswith("rediss://"):
     CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": ssl.CERT_REQUIRED}
 
 CELERY_BEAT_SCHEDULE = {
+    "due-task-reminders": {"task": "tasks.reminder_jobs.dispatch_due_reminders", "schedule": 60.0},
     "recover-durable-background-work": {
         "task": "background.tasks.recover_pending_jobs", "schedule": 30.0,
     },

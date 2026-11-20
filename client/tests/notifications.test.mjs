@@ -65,3 +65,13 @@ test("task notifications open the task drawer and invitations use the email flow
   assert.equal(invitation.href, null);
   assert.equal(invitation.description, "Core");
 });
+
+
+test("task reminder notifications link directly to the existing task drawer", () => {
+  const source = readFileSync(new URL("../src/app/dashboard/notifications/notification-content.ts", import.meta.url), "utf8");
+  const exports = {};
+  runInNewContext(ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.CommonJS}}).outputText, {exports});
+  const content = exports.notificationContent({event_type:"task_reminder",workspace_slug:"team",project:"project",task:"task",payload:{},task_title:"Reminder task"});
+  assert.equal(content.title,"Task reminder");
+  assert.equal(content.href,"/dashboard/workspaces/team/projects/project/tasks?task=task");
+});

@@ -50,7 +50,7 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
   const Drawer = component("task-drawer", {
     react: React, "@/lib/api": api, "@/lib/auth": { useAuth: () => ({ user }) },
     "./task-dialog": ({ children }) => React.createElement("section", null, children),
-    "./task-comments": Comments, "./task-form": () => React.createElement("p", null, "Task details"),
+    "./task-comments": Comments, "./task-reminders": Stub, "./task-form": () => React.createElement("p", null, "Task details"),
     "./task-icons": Stub,
     "./task-utils": { taskInput: () => ({}), taskStatuses: [] },
   });

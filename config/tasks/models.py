@@ -155,3 +155,47 @@ class TaskStatusHistory(models.Model):
         indexes = [
             models.Index(fields=["project", "status", "changed_at"], name="task_history_report_idx"),
         ]
+
+
+class TaskReminder(models.Model):
+    class Kind(models.TextChoices):
+        ABSOLUTE = "absolute", "Absolute"
+        RELATIVE = "relative", "Relative to due date"
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        DISABLED = "disabled", "No due date"
+        INVALID = "invalid", "Needs rescheduling"
+        SENT = "sent", "Sent"
+        CANCELLED = "cancelled", "Cancelled"
+        FAILED = "failed", "Failed; retry scheduled"
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="reminders")
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="task_reminders")
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    timezone = models.CharField(max_length=64, default="UTC")
+    run_at = models.DateTimeField(null=True, blank=True)
+    days_before = models.PositiveSmallIntegerField(null=True, blank=True)
+    local_time = models.TimeField(null=True, blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    notification = models.OneToOneField("notifications.Notification", on_delete=models.SET_NULL, null=True, blank=True, related_name="reminder")
+    needs_recalculation = models.BooleanField(default=False)
+    attempts = models.PositiveIntegerField(default=0)
+    retry_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering = ["-created_at", "id"]
+        indexes = [
+            models.Index(fields=["run_at", "id"], condition=Q(status="pending"), name="reminder_due_idx"),
+            models.Index(fields=["retry_at", "id"], condition=Q(status="failed"), name="reminder_retry_idx"),
+            models.Index(fields=["task", "recipient"], name="reminder_owner_idx"),
+            models.Index(fields=["id"], condition=Q(needs_recalculation=True), name="reminder_recalc_idx"),
+        ]
+        constraints = [
+            models.CheckConstraint(condition=Q(kind="absolute", run_at__isnull=False, days_before__isnull=True, local_time__isnull=True) | Q(kind="relative", days_before__isnull=False, local_time__isnull=False, days_before__lte=365), name="reminder_valid_kind"),
+            models.CheckConstraint(condition=Q(status__in=["pending", "disabled", "invalid", "sent", "cancelled", "failed"]), name="reminder_valid_status"),
+            models.CheckConstraint(condition=~Q(status="sent") | Q(sent_at__isnull=False), name="reminder_sent_timestamp"),
+            models.UniqueConstraint(fields=["task", "recipient", "run_at"], condition=Q(status="pending"), name="reminder_unique_active_time"),
+        ]

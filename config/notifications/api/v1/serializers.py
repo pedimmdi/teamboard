@@ -9,6 +9,7 @@ from notifications.models import Notification
 
 PUBLIC_PAYLOAD_FIELDS = {
     Notification.EventType.TASK_ASSIGNED: {},
+    Notification.EventType.TASK_REMINDER: {"reminder_id": "uuid"},
     Notification.EventType.TASK_UPDATED: {
         "changed_fields": "changed_fields",
     },

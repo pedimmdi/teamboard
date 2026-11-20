@@ -2,6 +2,7 @@ import type { InboxNotification } from "@/lib/api";
 
 const events = {
   task_assigned: ["You were assigned to a task", "✓", "task"],
+  task_reminder: ["Task reminder", "◷", "task"],
   task_updated: ["A task assigned to you was updated", "↻", "task"],
   comment_mentioned: ["You were mentioned in a comment", "@", "comment"],
   comment_replied: ["Someone replied to your comment", "↪", "comment"],

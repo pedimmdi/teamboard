@@ -17,6 +17,7 @@ PROJECT_EVENTS = frozenset({
 TASK_EVENTS = frozenset({
     Notification.EventType.TASK_ASSIGNED,
     Notification.EventType.TASK_UPDATED,
+    Notification.EventType.TASK_REMINDER,
     Notification.EventType.COMMENT_MENTIONED,
     Notification.EventType.COMMENT_REPLIED,
 })

@@ -2712,6 +2712,173 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
           description: ''
+  /api/v1/workspaces/{slug}/projects/{project_id}/tasks/{task_id}/reminders/:
+    get:
+      operationId: v1_workspaces_projects_tasks_reminders_list
+      summary: List only your own task reminders
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReminderList'
+          description: ''
+    post:
+      operationId: v1_workspaces_projects_tasks_reminders_create
+      summary: Create a private reminder for yourself (maximum three active)
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReminderWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReminderWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReminderWriteRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reminder'
+          description: ''
+  /api/v1/workspaces/{slug}/projects/{project_id}/tasks/{task_id}/reminders/{reminder_id}/:
+    patch:
+      operationId: v1_workspaces_projects_tasks_reminders_partial_update
+      summary: Reschedule your own unsent reminder
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: reminder_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedReminderWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedReminderWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedReminderWriteRequest'
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reminder'
+          description: ''
+    delete:
+      operationId: v1_workspaces_projects_tasks_reminders_destroy
+      summary: Cancel your own reminder
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: reminder_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      security:
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/workspaces/{slug}/reports/:
     get:
       operationId: reports_workspace_overview
@@ -3666,6 +3833,14 @@ components:
       description: |-
         * `event` - event
         * `task` - task
+    KindEnum:
+      enum:
+      - absolute
+      - relative
+      type: string
+      description: |-
+        * `absolute` - Absolute
+        * `relative` - Relative to due date
     LoginRequest:
       type: object
       properties:
@@ -3803,6 +3978,7 @@ components:
     NotificationEventTypeEnum:
       enum:
       - task_assigned
+      - task_reminder
       - task_updated
       - comment_mentioned
       - comment_replied
@@ -3813,6 +3989,7 @@ components:
       type: string
       description: |-
         * `task_assigned` - Task Assigned
+        * `task_reminder` - Task Reminder
         * `task_updated` - Task Updated
         * `comment_mentioned` - Comment Mentioned
         * `comment_replied` - Comment Replied
@@ -3968,6 +4145,29 @@ components:
       - next
       - previous
       - results
+    PaginatedReminderList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reminder'
     PaginatedTaskList:
       type: object
       required:
@@ -4189,6 +4389,26 @@ components:
         description:
           type: string
           maxLength: 5000
+    PatchedReminderWriteRequest:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        timezone:
+          type: string
+          minLength: 1
+          default: UTC
+          maxLength: 64
+        run_at:
+          type: string
+          format: date-time
+        days_before:
+          type: integer
+          maximum: 365
+          minimum: 0
+        local_time:
+          type: string
+          format: time
     PatchedTaskUpdateRequest:
       type: object
       properties:
@@ -4424,6 +4644,108 @@ components:
       - email
       - password
       - password_confirm
+    Reminder:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        run_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        days_before:
+          type: integer
+          readOnly: true
+          nullable: true
+        local_time:
+          type: string
+          format: time
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ReminderStatusEnum'
+          readOnly: true
+        sent_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_error:
+          type: string
+          readOnly: true
+        attempts:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - attempts
+      - created_at
+      - days_before
+      - id
+      - kind
+      - last_error
+      - local_time
+      - run_at
+      - sent_at
+      - status
+      - timezone
+      - updated_at
+    ReminderStatusEnum:
+      enum:
+      - pending
+      - disabled
+      - invalid
+      - sent
+      - cancelled
+      - failed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `disabled` - No due date
+        * `invalid` - Needs rescheduling
+        * `sent` - Sent
+        * `cancelled` - Cancelled
+        * `failed` - Failed; retry scheduled
+    ReminderWriteRequest:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        timezone:
+          type: string
+          minLength: 1
+          default: UTC
+          maxLength: 64
+        run_at:
+          type: string
+          format: date-time
+        days_before:
+          type: integer
+          maximum: 365
+          minimum: 0
+        local_time:
+          type: string
+          format: time
+      required:
+      - kind
     ReportHistory:
       type: object
       properties:

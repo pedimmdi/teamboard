@@ -337,6 +337,8 @@ def update_task(
         task.due_date = validated_due_date
 
     task.save()
+    from tasks.reminders import sync_task_reminders
+    sync_task_reminders(task)
 
     if status_changed:
         _compact_task_positions(

@@ -9,6 +9,7 @@ import {
   type Task,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import TaskReminders from "./task-reminders";
 import TaskComments from "./task-comments";
 import TaskDialog from "./task-dialog";
 import TaskForm from "./task-form";
@@ -57,6 +58,7 @@ export default function TaskDrawer({
     onCommentCountChange(taskId, count);
   }, [onCommentCountChange, taskId]);
   const [commentBusy, setCommentBusy] = useState(false);
+  const [reminderBusy, setReminderBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -95,7 +97,7 @@ export default function TaskDrawer({
       <button
         type="button"
         className={styles.dangerOutline}
-        disabled={busy}
+        disabled={busy || commentBusy || reminderBusy}
         onClick={() => onDelete(task)}
       >
         Delete task
@@ -110,7 +112,7 @@ export default function TaskDrawer({
       title="Task"
       drawer
       onClose={onClose}
-      busy={busy || commentBusy}
+      busy={busy || commentBusy || reminderBusy}
       headerAction={
         task &&
         canDelete && (
@@ -118,7 +120,7 @@ export default function TaskDrawer({
             type="button"
             className={`${styles.iconButton} ${styles.mobileDelete}`}
             aria-label="Delete task"
-            disabled={busy || commentBusy}
+            disabled={busy || commentBusy || reminderBusy}
             onClick={() => onDelete(task)}
           >
             <TaskIcon name="trash" />
@@ -158,14 +160,14 @@ export default function TaskDrawer({
               </div>
             </div>
             <div className={commentStyles.tabs} role="group" aria-label="Task sections">
-              <button type="button" aria-pressed={showComments} disabled={busy || commentBusy} onClick={() => setShowComments(true)}>
+              <button type="button" aria-pressed={showComments} disabled={busy || commentBusy || reminderBusy} onClick={() => setShowComments(true)}>
                 Comments{commentCount !== null && ` (${commentCount})`}
               </button>
-              <button type="button" aria-pressed={!showComments} disabled={busy || commentBusy} onClick={() => setShowComments(false)}>
+              <button type="button" aria-pressed={!showComments} disabled={busy || commentBusy || reminderBusy} onClick={() => setShowComments(false)}>
                 Details
               </button>
             </div>
-            <div hidden={showComments}>
+            <div hidden={showComments} inert={reminderBusy}>
                 <TaskForm
                   key={task.updated_at}
                   initial={taskInput(task)}
@@ -213,6 +215,7 @@ export default function TaskDrawer({
                 />
             </div>
             {user && (
+              <div inert={reminderBusy}>
               <TaskComments
                 token={token}
                 slug={slug}
@@ -225,7 +228,11 @@ export default function TaskDrawer({
                 onCountChange={updateCommentCount}
                 onBusyChange={setCommentBusy}
               />
+              </div>
             )}
+            <div inert={busy || commentBusy}>
+              <TaskReminders key={task.updated_at} token={token} slug={slug} projectId={projectId} task={task} onBusyChange={setReminderBusy} />
+            </div>
           </>
         )
       )}

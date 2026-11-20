@@ -7,9 +7,13 @@ from .views import (
 )
 
 
+from .reminders import TaskReminderListView, TaskReminderDetailView
+
 app_name = "tasks_api_v1"
 
 urlpatterns = [
+    path("<uuid:task_id>/reminders/", TaskReminderListView.as_view(), name="reminder-list"),
+    path("<uuid:task_id>/reminders/<uuid:reminder_id>/", TaskReminderDetailView.as_view(), name="reminder-detail"),
     path(
         "",
         TaskListCreateView.as_view(),
