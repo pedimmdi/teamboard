@@ -145,6 +145,12 @@ class WorkspaceDashboardTests(TestCase):
             kwargs={"slug": self.second_workspace.slug},
         )
 
+    def test_today_task_count(self):
+        Task.objects.create(project=self.project, assignee=self.member, title="Due today", due_date=timezone.localdate())
+        expected_today = Task.objects.filter(project=self.project, assignee=self.member, due_date=timezone.localdate()).exclude(status="done").count()
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["today_tasks_count"], expected_today)
+
     def test_my_tasks_and_follow_up_are_correct(self):
         response = self.client.get(self.url)
 

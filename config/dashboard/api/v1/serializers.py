@@ -119,6 +119,7 @@ class DashboardNotificationSectionSerializer(serializers.Serializer):
 
 
 class WorkspaceDashboardSerializer(serializers.Serializer):
+    today_tasks_count = serializers.IntegerField(min_value=0)
     workspace_id = serializers.UUIDField()
     workspace_name = serializers.CharField()
 

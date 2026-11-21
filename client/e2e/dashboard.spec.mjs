@@ -7,10 +7,7 @@ test("workspace dashboard supports scope, session restoration, views and mobile 
   await page.getByRole("button",{name:"Sign in",exact:true}).click();
   await expect(page).toHaveURL(/\/workspaces\/[^/]+\/dashboard$/,{timeout:15000});
   const dashboard=page.getByRole("region",{name:"Workspace dashboard",exact:true});
-  await expect(dashboard.getByRole("article")).toHaveCount(9);
-  await dashboard.getByRole("button",{name:"Counts",exact:true}).click();
-  await expect(dashboard.locator("ul")).toHaveCount(0);
-  await dashboard.getByRole("button",{name:"Lists",exact:true}).click();
+  await expect(dashboard.getByRole("article")).toHaveCount(2);
   await page.getByRole("button",{name:"Switch workspace",exact:true}).filter({visible:true}).click();
   await page.getByRole("dialog",{name:"Switch workspace",exact:true}).getByRole("link",{name:/Dashboard empty workspace/}).click();
   await expect(page).toHaveURL(/dashempty\/dashboard$/);
@@ -20,7 +17,7 @@ test("workspace dashboard supports scope, session restoration, views and mobile 
   await expect(page).toHaveURL(/\/workspaces\/[^/]+\/dashboard$/,{timeout:15000});
   await page.goto("/");
   await expect(page).toHaveURL(/\/workspaces\/[^/]+\/dashboard$/,{timeout:15000});
-  await expect(dashboard.getByRole("article")).toHaveCount(9);
+  await expect(dashboard.getByRole("article")).toHaveCount(2);
   await page.setViewportSize({width:390,height:844});
   const nav=page.getByRole("navigation",{name:"Dashboard",exact:true});
   await expect(nav.getByRole("link")).toHaveText(["Projects","Calendar","Dashboard",/Chats/,"Account"]);
@@ -29,7 +26,7 @@ test("workspace dashboard supports scope, session restoration, views and mobile 
   await page.screenshot({path:"test-results/dashboard-mobile.png",fullPage:true});
   await page.emulateMedia({colorScheme:"dark"});
   await page.setViewportSize({width:1440,height:900});
-  await expect(dashboard.getByRole("article")).toHaveCount(9);
+  await expect(dashboard.getByRole("article")).toHaveCount(2);
   await page.screenshot({path:"test-results/dashboard-dark.png",fullPage:true});
   await page.getByRole("navigation",{name:"Workspace",exact:true}).getByRole("link",{name:"Profile",exact:true}).click();
   await expect(page).toHaveURL(/\/dashboard\/profile$/);

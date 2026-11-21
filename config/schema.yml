@@ -5388,6 +5388,9 @@ components:
     WorkspaceDashboard:
       type: object
       properties:
+        today_tasks_count:
+          type: integer
+          minimum: 0
         workspace_id:
           type: string
           format: uuid
@@ -5430,6 +5433,7 @@ components:
       - overdue_tasks
       - projects
       - recent_notifications
+      - today_tasks_count
       - upcoming_events
       - upcoming_reminders
       - upcoming_until

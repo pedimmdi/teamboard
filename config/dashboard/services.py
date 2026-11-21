@@ -205,6 +205,7 @@ def get_workspace_dashboard(*, workspace, user):
 
     # Calculate task counters in one aggregation query.
     stats = visible_tasks.aggregate(
+        today_tasks=Count("pk", filter=Q(assignee_id=user.pk, status__in=ACTIVE_STATUSES, due_date=today)),
         my_tasks=Count(
             "pk",
             filter=Q(
@@ -249,6 +250,7 @@ def get_workspace_dashboard(*, workspace, user):
     )
 
     return {
+        "today_tasks_count": stats["today_tasks"],
         "workspace_id": workspace.pk,
         "workspace_name": workspace.name,
         "as_of": today,
