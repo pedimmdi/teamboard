@@ -35,7 +35,7 @@ test("chat badges total project and direct messages and older reply targets open
   await page.screenshot({path: "test-results/chat-reply-desktop.png", fullPage: true});
   await page.setViewportSize({width: 390, height: 844});
   const footer = page.getByRole("navigation", {name: "Dashboard", exact: true});
-  await expect(footer.getByRole("link")).toHaveCount(4);
+  await expect(footer.getByRole("link")).toHaveCount(5);
   await expect(footer.getByRole("link", {name: "People", exact: true})).toHaveCount(0);
   await page.getByRole("button", {name: /Conversations/}).click();
   await list.getByRole("button", {name: "Long history", exact: true}).click();

@@ -185,7 +185,7 @@ test("sign in, create workspace, project and task, then discuss the task", async
   await page.getByRole("navigation", { name: "Project navigation" }).getByRole("link", { name: "Reports" }).click();
   await page.goto(`/dashboard/workspaces/${createdWorkspace.slug}/reports`);
   await expect(reports.getByRole("region", { name: "Project comparison" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Dashboard", exact: true }).getByRole("link")).toHaveCount(4);
+  await expect(page.getByRole("navigation", { name: "Dashboard", exact: true }).getByRole("link")).toHaveCount(5);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 
   await page.setViewportSize({ width: 1440, height: 900 });

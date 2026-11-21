@@ -1,7 +1,7 @@
 
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -27,8 +27,15 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { setTokens } = useAuth();
+  const { setTokens, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      const next = getSafeInvitationReturn(new URLSearchParams(window.location.search).get("next")) ?? readInvitationReturn();
+      router.replace(next ?? "/dashboard");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,6 +81,8 @@ export default function LoginPage() {
 
     return getInvitationAuthUrl("/register", returnPath);
   }
+
+  if (isLoading || isAuthenticated) return <p role="status">Restoring your session…</p>;
 
   return (
     <AuthShell>

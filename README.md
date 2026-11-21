@@ -4,6 +4,8 @@ TeamBoard is a workspace for planning projects, tracking tasks on a Kanban board
 
 ## Features
 
+- **Workspace Dashboard** is the signed-in landing page, with nine private workspace-scoped summaries, count/list views and up to five preview items. Switch workspaces to change the overview; the last valid workspace is restored on return. Account details now live at `/dashboard/profile`. Mobile navigation places Dashboard between Calendar and Chats.
+
 - **Accounts** with email verification, password reset, profile images, and session management.
 - **Workspaces** with invitations, ownership transfer, member management, and workspace images. Owner, Admin, and Member badges use green, purple, and blue respectively.
 - **Projects** with membership, project images, and Board and List views. Board is the default and the browser remembers the selected view.

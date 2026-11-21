@@ -178,6 +178,8 @@ function WorkspaceNavigation({
         active={pathname === `${workspaceBase}/calendar`}
         icon={<CalendarIcon />}
       />
+      <NavItem href={workspaceBase ? `${workspaceBase}/dashboard` : "/dashboard"}
+        label="Dashboard" active={pathname === `${workspaceBase}/dashboard`} icon={<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3zM12 12h5v5h-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>} />
       <NavItem href={workspaceBase ? `${workspaceBase}/chats` : null}
         label="Chats" active={pathname === `${workspaceBase}/chats`} icon={<ChatIcon />} trailing={<span className={styles.chatBadge}><ChatUnreadBadge count={summary.unread_count} /></span>} />
       {!mobile && <NavItem
@@ -250,15 +252,15 @@ function DashboardShell({ children }: DashboardLayoutProps) {
     const key = dashboardWorkspaceKey(userId);
     let savedSlug: string | null = null;
     try {
-      savedSlug = sessionStorage.getItem(key);
+      savedSlug = localStorage.getItem(key) || sessionStorage.getItem(key);
     } catch {}
     loadDashboardWorkspace(accessToken, routeSlug, savedSlug)
       .then((workspace) => {
         if (cancelled) return;
         setActiveWorkspace(workspace ? { userId, slug: workspace.slug } : null);
         try {
-          if (workspace) sessionStorage.setItem(key, workspace.slug);
-          else sessionStorage.removeItem(key);
+          if (workspace) {sessionStorage.setItem(key, workspace.slug); localStorage.setItem(key, workspace.slug);}
+          else {sessionStorage.removeItem(key); localStorage.removeItem(key);}
         } catch {}
       })
       .catch(() => {});
@@ -277,9 +279,11 @@ function DashboardShell({ children }: DashboardLayoutProps) {
     return null;
   }
 
+  if (pathname === "/dashboard") return <main>{children}</main>;
+
   const initials = getInitials(user.first_name, user.last_name);
 
-  const isProfile = pathname === "/dashboard";
+  const isProfile = pathname === "/dashboard/profile";
   const isSecurity = pathname === "/dashboard/security";
   const isSessions = pathname === "/dashboard/sessions";
 
@@ -317,7 +321,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
             <div className={styles.sectionLabel}>ACCOUNT</div>
 
             <NavItem
-              href="/dashboard"
+              href="/dashboard/profile"
               label="Profile"
               active={isProfile}
               icon={<UserIcon />}
@@ -382,7 +386,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
           </Link>
           <Link
             className={styles.mobileLogoutButton}
-            href="/dashboard"
+            href="/dashboard/profile"
             aria-label="Account"
           >
             <UserIcon />
@@ -397,7 +401,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
             aria-label="Account navigation"
           >
             <NavItem
-              href="/dashboard"
+              href="/dashboard/profile"
               label="Profile"
               active={isProfile}
               icon={<UserIcon />}
@@ -432,7 +436,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
           pathname={pathname}
         />
         <NavItem
-          href="/dashboard"
+          href="/dashboard/profile"
           label="Account"
           active={isProfile || isSecurity || isSessions}
           icon={<UserIcon />}

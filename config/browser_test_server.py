@@ -101,4 +101,6 @@ Task.objects.filter(pk=reminder_task.pk).update(status="todo",due_date=timezone.
 seed_reminder = TaskReminder.objects.create(task=reminder_task,recipient=reminder_user,kind="absolute",timezone="UTC",run_at=timezone.now()-timedelta(minutes=2))
 process_reminder(seed_reminder.pk)
 
+dashboard_empty, _ = Workspace.objects.get_or_create(slug="dashempty", defaults={"name":"Dashboard empty workspace"})
+WorkspaceMembership.objects.get_or_create(workspace=dashboard_empty, user=reminder_user, defaults={"role":"owner"})
 call_command("runserver", "127.0.0.1:" + os.environ.get("E2E_BACKEND_PORT", "8100"), use_reloader=False)

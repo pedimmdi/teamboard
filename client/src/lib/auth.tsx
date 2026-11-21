@@ -15,6 +15,16 @@ import {
   refreshToken,
 } from "@/lib/api";
 
+let restoration: Promise<{tokens: Awaited<ReturnType<typeof refreshToken>>; currentUser: CurrentUser}> | null = null;
+function restoreAuthSession() {
+  if (!restoration) {
+    const request = refreshToken().then(async tokens => ({tokens,currentUser:await getCurrentUser(tokens.access)}));
+    restoration=request;
+    void request.finally(()=>{if(restoration===request)restoration=null;}).catch(()=>{});
+  }
+  return restoration;
+}
+
 type AuthContextValue = {
   accessToken: string | null;
   user: CurrentUser | null;
@@ -76,11 +86,7 @@ export function AuthProvider({
         * We therefore ask the backend for a fresh access token.
         * The browser automatically includes the refresh cookie.
         */
-        const tokens = await refreshToken();
-
-        const currentUser = await getCurrentUser(
-          tokens.access,
-        );
+        const {tokens,currentUser} = await restoreAuthSession();
 
         setAccessToken(tokens.access);
         setUser(currentUser);

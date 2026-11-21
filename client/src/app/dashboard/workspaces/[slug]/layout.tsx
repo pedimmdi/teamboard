@@ -19,7 +19,7 @@ type Props = {
 export default function WorkspaceLayout({ children }: Props) {
   const { slug } = useParams<{ slug: string }>();
   const pathname = usePathname();
-  const isProjects = pathname.startsWith(
+  const isProjects = pathname === `/dashboard/workspaces/${encodeURIComponent(slug)}/dashboard` || pathname.startsWith(
     `/dashboard/workspaces/${encodeURIComponent(slug)}/projects`,
   );
   const { accessToken } = useAuth();

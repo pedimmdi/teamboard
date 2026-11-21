@@ -186,7 +186,7 @@ export default function WorkspaceSwitcher({
                   <Link
                     key={workspace.id}
                     className={`${styles.item} ${workspace.slug === slug ? styles.selected : ""}`}
-                    href={`/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/projects`}
+                    href={`/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/dashboard`}
                     aria-current={workspace.slug === slug ? "true" : undefined}
                     onClick={() => setOpen(false)}
                   >
@@ -230,7 +230,7 @@ export default function WorkspaceSwitcher({
           onCreated={(workspace) => {
             setCreating(false);
             router.push(
-              `/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/projects`,
+              `/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/dashboard`,
             );
           }}
         />
