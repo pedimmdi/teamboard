@@ -161,8 +161,11 @@ function WorkspaceNavigation({
   pathname: string;
 }) {
   const { summary } = useChatUnread();
+  const dashboardItem = (<NavItem href={workspaceBase ? `${workspaceBase}/dashboard` : "/dashboard"}
+        label="Dashboard" active={pathname === `${workspaceBase}/dashboard`} icon={<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3zM12 12h5v5h-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>} />);
   return (
     <>
+      {!mobile && dashboardItem}
       <NavItem
         href={workspaceBase ? `${workspaceBase}/projects` : null}
         label="Projects"
@@ -178,8 +181,7 @@ function WorkspaceNavigation({
         active={pathname === `${workspaceBase}/calendar`}
         icon={<CalendarIcon />}
       />
-      <NavItem href={workspaceBase ? `${workspaceBase}/dashboard` : "/dashboard"}
-        label="Dashboard" active={pathname === `${workspaceBase}/dashboard`} icon={<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3zM12 12h5v5h-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>} />
+      {mobile && dashboardItem}
       <NavItem href={workspaceBase ? `${workspaceBase}/chats` : null}
         label="Chats" active={pathname === `${workspaceBase}/chats`} icon={<ChatIcon />} trailing={<span className={styles.chatBadge}><ChatUnreadBadge count={summary.unread_count} /></span>} />
       {!mobile && <NavItem

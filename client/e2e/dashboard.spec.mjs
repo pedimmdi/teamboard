@@ -8,6 +8,14 @@ test("workspace dashboard supports scope, session restoration, views and mobile 
   await expect(page).toHaveURL(/\/workspaces\/[^/]+\/dashboard$/,{timeout:15000});
   const dashboard=page.getByRole("region",{name:"Workspace dashboard",exact:true});
   await expect(dashboard.getByRole("article")).toHaveCount(2);
+  await expect(dashboard.getByText("Browse projects",{exact:false})).toHaveCount(0);
+  await expect(dashboard.getByText("Due in 7 days",{exact:true})).toBeVisible();
+  await expect(page.getByRole("navigation",{name:"Workspace",exact:true}).getByRole("link").first()).toHaveText("Dashboard");
+  await page.goto("/dashboard/workspaces/dashempty");
+  await expect(page).toHaveURL(/dashempty\/dashboard$/);
+  await page.goto("/dashboard/workspaces");
+  await page.getByRole("link",{name:/Dashboard empty workspace/}).click();
+  await expect(page).toHaveURL(/dashempty\/dashboard$/);
   await page.getByRole("button",{name:"Switch workspace",exact:true}).filter({visible:true}).click();
   await page.getByRole("dialog",{name:"Switch workspace",exact:true}).getByRole("link",{name:/Dashboard empty workspace/}).click();
   await expect(page).toHaveURL(/dashempty\/dashboard$/);

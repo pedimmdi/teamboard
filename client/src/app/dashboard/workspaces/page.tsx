@@ -208,7 +208,7 @@ export default function WorkspacesPage() {
                   key={workspace.id}
                   href={`/dashboard/workspaces/${encodeURIComponent(
                     workspace.slug,
-                  )}/projects`}
+                  )}/dashboard`}
                   className={styles.workspaceCard}
                 >
                   <Avatar className={styles.workspaceIcon} src={workspace.avatar} fallback={getWorkspaceInitial(workspace.name)} />
