@@ -1047,6 +1047,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChatUnread'
           description: ''
+  /api/v1/workspaces/{slug}/dashboard/:
+    get:
+      operationId: dashboard_workspace_overview
+      description: Returns active assigned tasks and active tasks created by the user
+        but assigned to someone else. Only projects accessible within the requested
+        workspace are included.
+      summary: Get the current user's workspace dashboard
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Dashboard
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceDashboard'
+          description: ''
   /api/v1/workspaces/{slug}/invitations/:
     get:
       operationId: v1_workspaces_invitations_list
@@ -3773,6 +3797,223 @@ components:
       - email
       - id
       - is_email_verified
+    DashboardCalendarEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        project_name:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/CalendarEventTypeEnum'
+          readOnly: true
+        starts_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ends_at:
+          type: string
+          format: date-time
+          readOnly: true
+        all_day:
+          type: boolean
+          readOnly: true
+      required:
+      - all_day
+      - ends_at
+      - event_type
+      - id
+      - project
+      - project_name
+      - starts_at
+      - title
+    DashboardCalendarSection:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardCalendarEvent'
+      required:
+      - count
+      - items
+    DashboardNotificationSection:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        unread_count:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+      required:
+      - count
+      - items
+      - unread_count
+    DashboardProject:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+      - id
+      - name
+    DashboardProjectSection:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardProject'
+      required:
+      - count
+      - items
+    DashboardReminder:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        task:
+          type: string
+          format: uuid
+          readOnly: true
+        task_title:
+          type: string
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        project_name:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+        run_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        timezone:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - kind
+      - project
+      - project_name
+      - run_at
+      - task
+      - task_title
+      - timezone
+    DashboardReminderSection:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardReminder'
+      required:
+      - count
+      - items
+    DashboardTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        project:
+          type: string
+          format: uuid
+          readOnly: true
+        project_name:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TaskStatusEnum'
+          readOnly: true
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/TaskPriorityEnum'
+          readOnly: true
+        assignee:
+          type: integer
+          readOnly: true
+          nullable: true
+        assignee_email:
+          type: string
+          format: email
+          readOnly: true
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - assignee
+      - assignee_email
+      - created_at
+      - due_date
+      - id
+      - priority
+      - project
+      - project_name
+      - status
+      - title
+    DashboardTaskSection:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardTask'
+      required:
+      - count
+      - items
     DirectCreateRequest:
       type: object
       properties:
@@ -5144,6 +5385,56 @@ components:
       - role
       - slug
       - updated_at
+    WorkspaceDashboard:
+      type: object
+      properties:
+        workspace_id:
+          type: string
+          format: uuid
+        workspace_name:
+          type: string
+        as_of:
+          type: string
+          format: date
+        due_soon_until:
+          type: string
+          format: date
+        upcoming_until:
+          type: string
+          format: date-time
+        my_tasks:
+          $ref: '#/components/schemas/DashboardTaskSection'
+        follow_up:
+          $ref: '#/components/schemas/DashboardTaskSection'
+        overdue_tasks:
+          $ref: '#/components/schemas/DashboardTaskSection'
+        due_soon_tasks:
+          $ref: '#/components/schemas/DashboardTaskSection'
+        completed_tasks:
+          $ref: '#/components/schemas/DashboardTaskSection'
+        projects:
+          $ref: '#/components/schemas/DashboardProjectSection'
+        upcoming_reminders:
+          $ref: '#/components/schemas/DashboardReminderSection'
+        upcoming_events:
+          $ref: '#/components/schemas/DashboardCalendarSection'
+        recent_notifications:
+          $ref: '#/components/schemas/DashboardNotificationSection'
+      required:
+      - as_of
+      - completed_tasks
+      - due_soon_tasks
+      - due_soon_until
+      - follow_up
+      - my_tasks
+      - overdue_tasks
+      - projects
+      - recent_notifications
+      - upcoming_events
+      - upcoming_reminders
+      - upcoming_until
+      - workspace_id
+      - workspace_name
     WorkspaceInvitation:
       type: object
       properties:

@@ -89,6 +89,10 @@ urlpatterns = [
         include("tasks.api.v1.urls"),
     ),
     path(
+        "<slug:slug>/dashboard/",
+        include("dashboard.api.v1.urls"),
+    ),
+    path(
         "<slug:slug>/reports/",
         include("reports.api.v1.urls"),
     ),

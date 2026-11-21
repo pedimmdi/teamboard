@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "notifications.apps.NotificationsConfig",
     "calendars.apps.CalendarsConfig",
     "reports.apps.ReportsConfig",
+    "dashboard.apps.DashboardConfig",
     "chats.apps.ChatsConfig",
     "background.apps.BackgroundConfig",
 ]
