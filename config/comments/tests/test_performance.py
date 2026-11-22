@@ -3,7 +3,7 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
 from .test_api import CommentAPIFixture
-from .models import Comment
+from ..models import Comment
 
 
 class CommentPerformanceTests(CommentAPIFixture):

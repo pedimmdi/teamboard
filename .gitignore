@@ -229,3 +229,7 @@ config/private_chat_attachments/
 
 # Local disposable read benchmark output
 read-benchmark-*.json
+
+# Local measurements and run output
+artifacts/**
+!artifacts/.gitkeep

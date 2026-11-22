@@ -14,7 +14,7 @@ from django.test import TransactionTestCase
 from django.utils import timezone
 from kombu.exceptions import OperationalError
 
-from background.test_delivery import real_delivery
+from background.tests.test_delivery import real_delivery
 from config.celery import app
 from notifications.models import Notification
 from projects.models import Project, ProjectMembership

@@ -4,7 +4,7 @@ from django.core.cache import cache
 from rest_framework.throttling import ScopedRateThrottle
 
 from .test_api import CommentAPIFixture
-from .models import Comment
+from ..models import Comment
 from projects.models import ProjectMembership
 
 

@@ -11,9 +11,9 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
-from .models import CommentAttachment
-from .services import create_comment
-from .storage import attachment_storage
+from ..models import CommentAttachment
+from ..services import create_comment
+from ..storage import attachment_storage
 from .test_api import CommentAPIFixture
 
 

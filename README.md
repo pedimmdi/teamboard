@@ -182,10 +182,14 @@ Compose runs Redis 7.4 with AOF persistence and `noeviction`, plus a dedicated C
 
 Only unit tests override Redis with isolated in-memory backends. Application startup does not silently switch to in-memory transport on a Redis outage. DRF throttles keep their existing approximate concurrency semantics; they now share counters between processes. They are not a strict distributed quota or a replacement for upstream abuse protection. Redis cache connection errors remain visible rather than silently bypassing throttles.
 
-`RUN_REDIS_TESTS=1 python -m pytest test_infrastructure.py` verifies real cross-process Channels and cache delivery without flushing a shared Redis database. All test keys/groups have unique prefixes and expiry. No JWT, session, membership, permission, message, task, or API response is cached by this change.
+`RUN_REDIS_TESTS=1 python -m pytest tests/test_infrastructure.py` verifies real cross-process Channels and cache delivery without flushing a shared Redis database. All test keys/groups have unique prefixes and expiry. No JWT, session, membership, permission, message, task, or API response is cached by this change.
 
 ### Durable background work
 
 Accounts verification/reset/resend and Workspace invitations now create PostgreSQL outbox jobs; Celery workers deliver email after commit. Chat and Comment attachment deletion also use durable, retryable jobs. A single Beat recovers pending work. Existing orphan cleanup remains conservative and available for maintenance. No tasks, notifications, permissions, memberships, JWTs, sessions or chat messages were moved into a cache.
 
 Read the [infrastructure deployment and recovery guide](docs/infrastructure.md) for worker/Beat commands, SMTP limitations, payload retention, non-root production overlay, shared storage, failure recovery and benchmark results. The 10000-task uncached benchmark does not justify application response caching; only shared throttle history currently uses Django's Redis cache.
+
+### Test layout and local measurements
+
+Each Django app keeps tests in its own `tests/` package. Cross-app infrastructure tests live in `config/tests/`; frontend tests remain in `client/tests/` and `client/e2e/`. Local run logs and benchmark JSON belong in ignored `artifacts/logs/` and `artifacts/benchmarks/`. Never commit private test logs or uploaded files. See [performance measurements](docs/performance.md).

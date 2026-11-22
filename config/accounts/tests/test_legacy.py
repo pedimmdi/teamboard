@@ -16,7 +16,7 @@ from rest_framework import response, status
 from rest_framework.test import APITestCase, APIClient
 from urllib.parse import parse_qs, urlparse
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-from .models import Profile, UserSession
+from ..models import Profile, UserSession
 
 User = get_user_model()
 

@@ -49,3 +49,5 @@ config/private_chat_attachments/
 client/test-results/
 client/playwright-report/
 read-benchmark-*.json
+
+artifacts/
