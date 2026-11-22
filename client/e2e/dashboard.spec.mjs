@@ -26,6 +26,14 @@ test("workspace dashboard supports scope, session restoration, views and mobile 
   await page.goto("/");
   await expect(page).toHaveURL(/\/workspaces\/[^/]+\/dashboard$/,{timeout:15000});
   await expect(dashboard.getByRole("article")).toHaveCount(2);
+  const workspaceReads=[];
+  const recordWorkspace=request=>{if(/\/api\/v1\/workspaces\/[^/]+\/$/.test(new URL(request.url()).pathname))workspaceReads.push(request.url());};
+  page.on("request",recordWorkspace);
+  await page.goto("/dashboard/workspaces/dashempty/dashboard");
+  await expect(dashboard.getByRole("article")).toHaveCount(2);
+  page.off("request",recordWorkspace);
+  expect(workspaceReads).toHaveLength(1);
+  console.log("workspace_metadata_requests",workspaceReads.length);
   await page.setViewportSize({width:390,height:844});
   const nav=page.getByRole("navigation",{name:"Dashboard",exact:true});
   await expect(nav.getByRole("link")).toHaveText(["Projects","Calendar","Dashboard",/Chats/,"Account"]);

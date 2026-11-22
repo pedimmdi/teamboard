@@ -198,7 +198,8 @@ class ProfileAvatarTests(APITestCase):
         self.user.profile.avatar = image_file("unused.png")
         self.user.profile.first_name = "Alex"
         with self.captureOnCommitCallbacks(execute=True):
-            self.user.profile.save(update_fields=["first_name"])
+            with self.assertNumQueries(1):
+                self.user.profile.save(update_fields=["first_name"])
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.avatar.name, current_name)
         self.assertTrue(storage.exists(current_name))

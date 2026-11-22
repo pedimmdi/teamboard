@@ -43,3 +43,41 @@ docker compose up -d --no-deps frontend
 ```
 
 `WEBSITE_API_URL` is server-reachable (`http://backend:8000` inside Compose); `NEXT_PUBLIC_API_URL` is browser-reachable. Do not use the browser's localhost endpoint as the server-side Docker address.
+
+## Selected avatar encoder
+
+The actual UI renders avatars at 30–64 CSS pixels. New uploads are capped at 512 pixels on their longest side, keeping substantial high-DPI headroom without changing layout. The existing 5 MiB / 4096-pixel input checks still run first. EXIF orientation is applied, metadata removed, RGB photos encoded as quality-90 WebP, and transparent images encoded losslessly. Existing files are not migrated; replacement/deletion still uses the existing committed-file lifecycle. Attachments never enter this encoder.
+
+Paired three-run medians, identical input bytes in one process (three existing local avatars; no private filenames or contents recorded in this document):
+
+| Sample | Previous stored bytes | New bytes | Previous processing ms | New processing ms |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 742,427 | 29,010 | 110.53 | 74.32 |
+| 2 | 315,720 | 19,326 | 72.12 | 69.03 |
+| 3, transparent | 1,698,481 | 286,704 | 529.74 | 115.86 |
+
+These samples show 83–96% lower stored/transfer bytes. This is a small local sample, not a universal compression ratio. The earlier 1024-pixel/method-4 candidate increased upload CPU; it was replaced by the measured 512-pixel/method-0 variant. Alpha values remain preserved. A corrupt PNG checksum was also found to escape the raw validator as `SyntaxError`; it now becomes the normal validation error, with a regression test.
+
+Targeted non-avatar model saves previously issued an unnecessary avatar lookup. Moving the existing `update_fields` guard before that lookup reduced a measured profile-name save from **two queries to one**, with unchanged file cleanup behavior and a query-count test.
+
+## Frontend and extended API review
+
+Controlled direct dashboard navigation made **four** identical workspace metadata requests before, and **one** after in-flight sharing. Keys include both token and workspace; entries disappear on success or failure. No result, JWT or permission cache is retained. Unit tests check isolation and fresh subsequent requests; Playwright asserts the observed one-request result.
+
+`benchmark_reads --tasks 10000 --projects 10 --repeats 5 --explain --extended` additionally creates 100 temporary comments/messages/notifications and three private reminders, all rolled back:
+
+| Endpoint | Median ms | Queries |
+| --- | ---: | ---: |
+| Task list | 15.56 | 4 |
+| Dashboard, existing complete API response | 67.54 | 16 |
+| Comments | 16.97 | 6 |
+| Chat messages | 19.96 | 8 |
+| Chat unread | 9.97 | 3 |
+| Notifications | 20.81 | 2 |
+| Notification unread count | 9.24 | 1 |
+
+No individual SELECT exceeded the benchmark's 50 ms plan threshold. These owner-scoped fixtures are not a replacement for production concurrency monitoring. No response cache, new Redis keys, index changes or worker concurrency changes were justified. The bundle inventory was 42 build chunks, 1,024,361 raw bytes / 324,255 gzip bytes across **all routes**, not one page. Browser tests print a lab-only landing LCP/CLS/navigation snapshot; no field INP or production p75 claim is made, and no user tracking was added.
+
+The shared browser fixture server now lives at `config/tests/browser_server.py`; Playwright invokes the updated path. Test output remains inside ignored `artifacts/`, `client/test-results/` and `client/playwright-report/`.
+
+Final verification: 970 backend tests and 182 subtests passed in 100.37 seconds with real Redis enabled; 66 frontend tests and all eight desktop/mobile browser scenarios passed. Django checks, migration drift check, OpenAPI validation and Compose validation passed. The final local landing snapshot recorded LCP 268 ms, CLS 0 and 157,273 transferred JavaScript bytes; this single local lab run is not a before/after or field performance claim.

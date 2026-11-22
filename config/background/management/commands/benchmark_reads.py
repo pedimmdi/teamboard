@@ -22,6 +22,7 @@ class Command(BaseCommand):
     help = "Benchmark unchanged authenticated read endpoints using temporary PostgreSQL fixtures; all fixture rows roll back."
     def add_arguments(self, parser):
         parser.add_argument("--explain", action="store_true")
+        parser.add_argument("--extended", action="store_true", help="Include tasks, dashboard, comments, chat and notification reads.")
         parser.add_argument("--tasks", type=int, default=1000)
         parser.add_argument("--projects", type=int, default=10)
         parser.add_argument("--repeats", type=int, default=5)
@@ -55,6 +56,29 @@ class Command(BaseCommand):
             client = APIClient()
             client.force_authenticate(actor)
             base = f"/api/v1/workspaces/{workspace.slug}/"
+            extended_paths = {}
+            if options.get("extended"):
+                from comments.models import Comment
+                from chats.models import ChatMessage
+                from chats.services import get_or_create_project_chat
+                from notifications.models import Notification
+                from tasks.models import TaskReminder
+                task = Task.objects.filter(project=projects[0]).first()
+                Comment.objects.bulk_create([Comment(task=task, author=actor, body=f"Benchmark comment {index}") for index in range(100)])
+                room = get_or_create_project_chat(workspace_slug=workspace.slug, project_id=projects[0].pk, actor=actor)
+                ChatMessage.objects.bulk_create([ChatMessage(conversation=room, sender=actor, content=f"Benchmark message {index}") for index in range(100)])
+                Notification.objects.bulk_create([Notification(recipient=actor, event_type="task_updated", workspace=workspace, project=projects[0], task=task, deduplication_key=f"benchmark:{uuid4().hex}") for _ in range(100)])
+                TaskReminder.objects.bulk_create([TaskReminder(task=task, recipient=actor, kind="absolute", run_at=timezone.now()+timedelta(days=index+1)) for index in range(3)])
+                task_path = base + f"projects/{projects[0].pk}/tasks/"
+                extended_paths = {
+                    "task_list": (task_path, {}),
+                    "dashboard": (base + "dashboard/", {}),
+                    "comments": (task_path + f"{task.pk}/comments/", {}),
+                    "chat_messages": (base + f"chats/{room.pk}/messages/", {}),
+                    "chat_unread": (base + "chats/unread/", {}),
+                    "notifications": ("/api/v1/notifications/", {}),
+                    "notification_count": ("/api/v1/notifications/unread-count/", {}),
+                }
             start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
             paths = {
                 "projects": (base + "projects/", {}),
@@ -63,6 +87,7 @@ class Command(BaseCommand):
                 "project_ranking": (base + "reports/projects/", {}),
                 "calendar_timeline_7d": (base + "calendar/timeline/", {"start": start.isoformat(), "end": (start + timedelta(days=7)).isoformat()}),
             }
+            paths.update(extended_paths)
             result = {"fixture_tasks": count, "fixture_projects": project_count, "repeats": repeats, "cache": "disabled", "endpoints": {}}
             for name, (path, query) in paths.items():
                 timings, queries = [], []

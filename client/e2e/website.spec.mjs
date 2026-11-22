@@ -1,10 +1,16 @@
 import {test,expect} from "@playwright/test";
 test("public website is accessible, searchable and supports safe articles and contact recovery",async({page,request})=>{
  test.setTimeout(120000);
+ await page.addInitScript(()=>{
+   window.websiteMetrics={lcp:null,cls:0};
+   try {new PerformanceObserver(list=>{for(const entry of list.getEntries())window.websiteMetrics.lcp=entry.startTime;}).observe({type:"largest-contentful-paint",buffered:true});
+   new PerformanceObserver(list=>{for(const entry of list.getEntries())if(!entry.hadRecentInput)window.websiteMetrics.cls+=entry.value;}).observe({type:"layout-shift",buffered:true});} catch {}
+ });
  await page.goto("/");
  await expect(page.getByRole("heading",{level:1})).toContainText("Ship together");
  await expect(page.getByRole("navigation",{name:"Main navigation"})).toBeVisible();
  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content",/TeamBoard/);
+ console.log("landing_lab_metrics",await page.evaluate(()=>({paint:window.websiteMetrics,dom_ready_ms:performance.getEntriesByType("navigation")[0]?.domContentLoadedEventEnd,js_transfer_bytes:performance.getEntriesByType("resource").filter(r=>r.name.includes(".js")).reduce((sum,r)=>sum+r.encodedBodySize,0)})));
  await page.setViewportSize({width:390,height:844});
  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:"test-results/website-home-mobile.png",fullPage:true});

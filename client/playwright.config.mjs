@@ -15,8 +15,8 @@ export default defineConfig({
   }],
   webServer: [{
     command: process.env.E2E_PYTHON
-      ? `"${process.env.E2E_PYTHON}" browser_test_server.py`
-      : "python browser_test_server.py",
+      ? `"${process.env.E2E_PYTHON}" tests/browser_server.py`
+      : "python tests/browser_server.py",
     cwd: "../config",
     env: { FRONTEND_URL: frontendUrl },
     url: `http://127.0.0.1:${apiPort}/api/schema/`,

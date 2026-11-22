@@ -22,12 +22,12 @@ def create_user_profile(sender, instance, created, **kwargs):
 def remember_previous_avatar(sender, instance, using, **kwargs):
     if kwargs.get("raw"):
         return
-    previous = sender.objects.using(using).filter(pk=instance.pk).first() if instance.pk else None
-    instance._previous_avatar = previous.avatar if previous else None
     update_fields = kwargs.get("update_fields")
     if update_fields is not None and "avatar" not in update_fields:
         instance._previous_avatar = None
         return
+    previous = sender.objects.using(using).filter(pk=instance.pk).first() if instance.pk else None
+    instance._previous_avatar = previous.avatar if previous else None
     if instance.avatar and not instance.avatar._committed:
         instance.avatar = normalize_avatar(instance.avatar)
 

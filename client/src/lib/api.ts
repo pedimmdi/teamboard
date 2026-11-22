@@ -551,17 +551,25 @@ export function getWorkspaces(
   );
 }
 
+// Share concurrent identical reads only. Never retain responses or permissions.
+const workspaceRequests = new Map<string, Promise<Workspace>>();
 export function getWorkspace(
   token: string,
   slug: string,
 ) {
-  return apiFetch<Workspace>(
+  const key = JSON.stringify([token, slug]);
+  const pending = workspaceRequests.get(key);
+  if (pending) return pending;
+  const request = apiFetch<Workspace>(
     `/api/v1/workspaces/${encodeURIComponent(slug)}/`,
     {
       method: "GET",
       token,
     },
   );
+  workspaceRequests.set(key, request);
+  void request.finally(() => workspaceRequests.delete(key)).catch(() => {});
+  return request;
 }
 
 export type CreateWorkspaceInput = {

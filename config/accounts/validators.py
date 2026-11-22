@@ -17,7 +17,7 @@ def validate_avatar(value):
             if image.width > 4096 or image.height > 4096:
                 raise ValidationError('Profile images must be 4096 × 4096 pixels or smaller.')
             image.verify()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+    except (UnidentifiedImageError, OSError, SyntaxError, Image.DecompressionBombError) as exc:
         raise ValidationError('Upload a valid JPEG, PNG, or WebP image.') from exc
     finally:
         value.seek(0)
