@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "calendars.apps.CalendarsConfig",
     "reports.apps.ReportsConfig",
     "dashboard.apps.DashboardConfig",
+    "website.apps.WebsiteConfig",
     "chats.apps.ChatsConfig",
     "background.apps.BackgroundConfig",
 ]
@@ -225,6 +226,7 @@ REST_FRAMEWORK = {
         "comment_create": "30/min",
         "chat_message_create": "60/min",
         "chat_direct_create": "30/min",
+        "website_contact": "5/hour",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -253,6 +255,20 @@ FRONTEND_URL = env(
     "FRONTEND_URL",
     default="http://localhost:3000",
 )
+
+# Public website contact message retention.
+WEBSITE_CONTACT_RETENTION_DAYS = env.int(
+    "WEBSITE_CONTACT_RETENTION_DAYS",
+    default=180,
+)
+
+if not 1 <= WEBSITE_CONTACT_RETENTION_DAYS <= 3650:
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        "WEBSITE_CONTACT_RETENTION_DAYS must be "
+        "between 1 and 3650."
+    )
 
 # Authentication cookie settings
 
@@ -353,9 +369,17 @@ if CELERY_BROKER_URL.startswith("rediss://"):
     CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": ssl.CERT_REQUIRED}
 
 CELERY_BEAT_SCHEDULE = {
-    "due-task-reminders": {"task": "tasks.reminder_jobs.dispatch_due_reminders", "schedule": 60.0},
+    "due-task-reminders": {
+        "task": "tasks.reminder_jobs.dispatch_due_reminders",
+        "schedule": 60.0,
+    },
     "recover-durable-background-work": {
-        "task": "background.tasks.recover_pending_jobs", "schedule": 30.0,
+        "task": "background.tasks.recover_pending_jobs",
+        "schedule": 30.0,
+    },
+    "purge-website-contact-messages": {
+        "task": "website.tasks.purge_expired_contact_messages",
+        "schedule": 86400.0,
     },
 }
 

@@ -1,7 +1,21 @@
 from django.urls import include, path
 
+
 urlpatterns = [
-    path("accounts/", include("accounts.api.v1.urls")),
-    path("workspaces/", include("workspaces.api.v1.urls")),
-    path("notifications/", include("notifications.api.v1.urls")),
+    path(
+        "accounts/",
+        include("accounts.api.v1.urls"),
+    ),
+    path(
+        "workspaces/",
+        include("workspaces.api.v1.urls"),
+    ),
+    path(
+        "notifications/",
+        include("notifications.api.v1.urls"),
+    ),
+    path(
+        "website/",
+        include("website.api.v1.urls"),
+    ),
 ]
