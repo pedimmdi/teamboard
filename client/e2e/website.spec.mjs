@@ -1,0 +1,37 @@
+import {test,expect} from "@playwright/test";
+test("public website is accessible, searchable and supports safe articles and contact recovery",async({page,request})=>{
+ test.setTimeout(120000);
+ await page.goto("/");
+ await expect(page.getByRole("heading",{level:1})).toContainText("Ship together");
+ await expect(page.getByRole("navigation",{name:"Main navigation"})).toBeVisible();
+ await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content",/TeamBoard/);
+ await page.setViewportSize({width:390,height:844});
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:"test-results/website-home-mobile.png",fullPage:true});
+ await page.setViewportSize({width:1440,height:900});
+ await page.screenshot({path:"test-results/website-home-desktop.png",fullPage:true});
+ await page.goto("/blog");
+ await expect(page.getByRole("article")).toHaveCount(10);
+ await page.getByRole("link",{name:"Next →",exact:true}).click();
+ await expect(page).toHaveURL(/page=2/);
+ await expect(page.getByRole("article")).toHaveCount(1);
+ await page.goto("/blog/website-0");
+ await expect(page.getByRole("heading",{name:"A clearer workflow"})).toBeVisible();
+ expect(await page.evaluate(()=>window.websiteUnsafe)).toBeUndefined();
+ await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0);
+ await page.goto("/blog/nonexistent-website-post");
+ await expect(page.getByRole("heading",{name:"404"})).toBeVisible();
+ await page.goto("/contact");
+ for(const [label,value] of [["Your name","Website tester"],["Email address","website@example.com"],["Subject","Test enquiry"],["Message","A browser test enquiry."]])await page.getByLabel(label,{exact:true}).fill(value);
+ let code=400;
+ await page.route("**/api/v1/website/contact/",route=>route.fulfill({status:code,headers:{"Retry-After":"60","Access-Control-Expose-Headers":"Retry-After"},contentType:"application/json",body:JSON.stringify({email:["Check your email address."]})}));
+ for(const [status,message] of [[400,"highlighted"],[413,"too large"],[429,"wait 60 seconds"]]){code=status;await page.getByRole("button",{name:"Send message",exact:true}).click();await expect(page.locator("form").getByRole("alert")).toContainText(message);await expect(page.getByLabel("Your name")).toHaveValue("Website tester");}
+ await page.unroute("**/api/v1/website/contact/");
+ await page.getByRole("button",{name:"Send message",exact:true}).click();
+ await expect(page.locator("form").getByRole("status")).toContainText("has been received");
+ await page.setViewportSize({width:390,height:844});
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.screenshot({path:"test-results/website-contact-mobile.png",fullPage:true});
+ const robots=await request.get("/robots.txt");expect(await robots.text()).toContain("/dashboard/");
+ const sitemap=await request.get("/sitemap.xml");expect(sitemap.ok()).toBe(true);expect(await sitemap.text()).toContain("/blog/website-0");
+});

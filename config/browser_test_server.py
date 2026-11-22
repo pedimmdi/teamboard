@@ -103,4 +103,7 @@ process_reminder(seed_reminder.pk)
 
 dashboard_empty, _ = Workspace.objects.get_or_create(slug="dashempty", defaults={"name":"Dashboard empty workspace"})
 WorkspaceMembership.objects.get_or_create(workspace=dashboard_empty, user=reminder_user, defaults={"role":"owner"})
+from website.models import BlogPost
+for number in range(11):
+    BlogPost.objects.update_or_create(slug=f"website-{number}", defaults={"title":f"Website article {number}", "excerpt":"Ideas for better teamwork.", "content":"## A clearer workflow\n\nWork together.\n\n<script>window.websiteUnsafe=true</script>\n\n[Unsafe](javascript:alert(1))", "status":"published", "published_at":timezone.now()-timedelta(days=number+1)})
 call_command("runserver", "127.0.0.1:" + os.environ.get("E2E_BACKEND_PORT", "8100"), use_reloader=False)

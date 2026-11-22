@@ -115,6 +115,8 @@ services:
       dockerfile: docker/frontend.Dockerfile
     restart: unless-stopped
     environment:
+      WEBSITE_API_URL: ${WEBSITE_API_URL:-http://backend:8000}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${BACKEND_PORT:-8000}}
       WATCHPACK_POLLING: "true"
     ports:

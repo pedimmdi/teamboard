@@ -3,7 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "TeamBoard",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  title: {default:"TeamBoard",template:"%s | TeamBoard"},
   description: "TeamBoard project management platform",
 };
 

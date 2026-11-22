@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.core.cache import cache
 from django.urls import reverse
+from django.test import override_settings
 
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -11,6 +12,14 @@ from website.models import ContactMessage
 
 
 class WebsiteContactAPITests(APITestCase):
+
+    @override_settings(CORS_ALLOWED_ORIGINS=["https://public.example"])
+    def test_browser_can_read_retry_after_header(self):
+        response = self.client.post(
+            self.url, self.payload, format="json", HTTP_ORIGIN="https://public.example",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("Retry-After", response["Access-Control-Expose-Headers"])
 
     def setUp(self):
         cache.clear()

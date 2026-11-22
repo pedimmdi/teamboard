@@ -4,6 +4,10 @@ TeamBoard is a workspace for planning projects, tracking tasks on a Kanban board
 
 ## Features
 
+- **Public website** at `/` with product information, About, Contact, Blog, Privacy and Terms. Published articles render on the server with safe Markdown, public pagination, canonical metadata and social previews. Contact submissions use the existing private API, validation and spam trap; errors preserve form input. Signed-in visitors returning to `/` continue to their dashboard.
+
+For public deployment, set `NEXT_PUBLIC_SITE_URL` to the actual HTTPS origin before building (used by canonical links, Open Graph, robots and sitemap). Set `WEBSITE_API_URL` to the API origin reachable by the Next.js server; Compose defaults to `http://backend:8000`. `NEXT_PUBLIC_API_URL` must remain the browser-reachable API origin. Published article URLs are included in `/sitemap.xml`; protected/account routes are excluded from crawling. The website has crawlable server-rendered content, but search ranking depends on the deployed domain and content.
+
 - **Workspace Dashboard** is the signed-in landing page, with four focused task indicators and two short task lists of up to five preview items. Switch workspaces to change the overview; the last valid workspace is restored on return. Account details now live at `/dashboard/profile`. Mobile navigation places Dashboard between Calendar and Chats.
 
 - **Accounts** with email verification, password reset, profile images, and session management.
