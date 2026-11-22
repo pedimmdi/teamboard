@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useId, useRef, useState } from "react";
 import type { ProjectMember } from "@/lib/api";
 import TaskIcon from "./task-icons";
@@ -25,6 +26,7 @@ export default function AssigneePicker({
   error?: string;
   onRetry?: () => void;
 }) {
+  const { ui } = useWorkspaceLocale();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -117,7 +119,7 @@ export default function AssigneePicker({
         ref={trigger}
         disabled={disabled}
         aria-label={
-          filter ? `Filter by assignee: ${label}` : `Assignee: ${label}`
+          filter ? ui("Filter by assignee: {0}", label) : ui("Assignee: {0}", label)
         }
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -128,7 +130,7 @@ export default function AssigneePicker({
         }}
       >
         <span>
-          {filter ? (value ? `Assignee · ${label}` : "Assignee") : label}
+          {filter ? (value ? ui("Assignee · {0}", label) : ui("Assignee")) : label}
         </span>
         <TaskIcon name="chevron-down" />
       </button>
@@ -146,38 +148,34 @@ export default function AssigneePicker({
             ref={panel}
             role="dialog"
             aria-modal="true"
-            aria-label="Assignee"
+            aria-label={ui("Assignee")}
             id={id}
           >
-            <h3>Assignee</h3>
+            <h3>{ui("Assignee")}</h3>
             <p className={styles.hint}>
               {filter
-                ? "Filter by who is assigned."
-                : "Only project members can be assigned."}
+                ? ui("Filter by who is assigned.")
+                : ui("Only project members can be assigned.")}
             </p>
             <input
-              aria-label="Search members"
-              placeholder="Search members…"
+              aria-label={ui("Search members")}
+              placeholder={ui("Search members…")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
             {loading && (
-              <p className={styles.hint} role="status">
-                Loading project members…
-              </p>
+              <p className={styles.hint} role="status">{ui("Loading project members…")}</p>
             )}
             {error && (
               <>
                 <p className={styles.error} role="alert">
-                  {error}
+                  {ui(error)}
                 </p>
                 <button
                   type="button"
                   className={styles.secondaryButton}
                   onClick={onRetry}
-                >
-                  Retry members
-                </button>
+                >{ui("Retry members")}</button>
               </>
             )}
             <div className={styles.pickerOptions}>
@@ -189,7 +187,7 @@ export default function AssigneePicker({
                   <button
                     key={option.value || "any"}
                     type="button"
-                    aria-label={option.label}
+                    aria-label={ui(option.label)}
                     aria-pressed={value === option.value}
                     onClick={() => {
                       onChange(option.value);
@@ -203,7 +201,7 @@ export default function AssigneePicker({
                       className={styles.avatar}
                       size={24}
                     />
-                    <span>{option.label}</span>
+                    <span>{ui(option.label)}</span>
                     {value === option.value && (
                       <span aria-hidden="true">✓</span>
                     )}
@@ -212,7 +210,7 @@ export default function AssigneePicker({
             </div>
             {!options.some((option) =>
               option.label.toLowerCase().includes(search.toLowerCase()),
-            ) && <p className={styles.hint}>No members match your search.</p>}
+            ) && <p className={styles.hint}>{ui("No members match your search.")}</p>}
             <button
               className={`${styles.secondaryButton} ${styles.pickerClose}`}
               type="button"
@@ -220,9 +218,7 @@ export default function AssigneePicker({
                 setOpen(false);
                 trigger.current?.focus();
               }}
-            >
-              Close
-            </button>
+            >{ui("Close")}</button>
           </div>
         </>
       )}

@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useRef, useState } from "react";
 
 import styles from "./confirm-action-modal.module.css";
@@ -24,6 +25,7 @@ export default function ConfirmActionModal({
   onClose,
   onConfirm,
 }: Props) {
+  const { ui } = useWorkspaceLocale();
   const [confirmation, setConfirmation] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,7 +139,7 @@ export default function ConfirmActionModal({
         {workspaceName !== undefined && (
           <div className={styles.field}>
             <label htmlFor="confirm-workspace-name">
-              Type <strong>{workspaceName}</strong> to confirm
+              {ui("Type")} <strong>{workspaceName}</strong> {ui("to confirm")}
             </label>
 
             <input
@@ -153,7 +155,7 @@ export default function ConfirmActionModal({
 
         {error && (
           <p className={styles.error} role="alert">
-            {error}
+            {ui(error)}
           </p>
         )}
 
@@ -163,9 +165,7 @@ export default function ConfirmActionModal({
             className={styles.cancelButton}
             disabled={isSubmitting}
             onClick={onClose}
-          >
-            Cancel
-          </button>
+          >{ui("Cancel")}</button>
 
           <button
             type="button"
@@ -173,7 +173,7 @@ export default function ConfirmActionModal({
             disabled={!canConfirm || isSubmitting}
             onClick={() => void handleConfirm()}
           >
-            {isSubmitting ? pendingLabel : confirmLabel}
+            {ui(isSubmitting ? pendingLabel : confirmLabel)}
           </button>
         </div>
       </div>

@@ -16,38 +16,38 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--foreground);
 }
 
 .heading p {
   margin: 4px 0 0;
   font-size: 14px;
-  color: #64748b;
+  color: var(--muted);
 }
 
 .count {
   font-size: 13px;
-  color: #64748b;
+  color: var(--muted);
 }
 
 .card,
 .status {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
+  text-align: start;
   font-size: 13px;
 }
 
 .table th {
   padding: 14px 20px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--surface-subtle);
+  color: var(--muted);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -55,8 +55,8 @@
 
 .table td {
   padding: 16px 20px;
-  border-top: 1px solid #f1f5f9;
-  color: #475569;
+  border-top: 1px solid var(--surface-subtle);
+  color: var(--text-secondary);
 }
 
 .memberCell {
@@ -73,27 +73,27 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--primary-soft);
+  color: var(--primary);
   font-size: 12px;
   font-weight: 600;
 }
 
 .email {
-  color: #0f172a;
+  color: var(--foreground);
   overflow-wrap: anywhere;
 }
 
 .you {
-  color: #64748b;
+  color: var(--muted);
 }
 
 .role {
   display: inline-block;
   padding: 4px 9px;
   border-radius: 999px;
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--primary-soft);
+  color: var(--primary-hover);
   font-size: 12px;
   text-transform: capitalize;
 }
@@ -104,8 +104,8 @@
   justify-content: space-between;
   gap: 16px;
   padding: 14px 20px;
-  border-top: 1px solid #e2e8f0;
-  color: #64748b;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -117,10 +117,10 @@
 .actions button,
 .status button {
   padding: 8px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
-  background: white;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   cursor: pointer;
 }
@@ -132,7 +132,7 @@
 
 .status {
   padding: 24px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -163,7 +163,7 @@
 
 .mobileMember {
   padding: 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
 
 .mobileMember:last-child {
@@ -185,13 +185,13 @@
 }
 
 .mobileJoined {
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 12px;
 }
 
 .mobileMemberBottom {
   margin-top: 12px;
-  padding-left: 38px;
+  padding-inline-start: 38px;
 }
 
 @media (max-width: 768px) {

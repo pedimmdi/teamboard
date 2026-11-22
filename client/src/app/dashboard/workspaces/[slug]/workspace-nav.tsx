@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function WorkspaceNav({ slug }: Props) {
+  const { ui } = useWorkspaceLocale();
   const pathname = usePathname();
 
   const basePath = `/dashboard/workspaces/${encodeURIComponent(slug)}`;
@@ -26,7 +28,7 @@ export default function WorkspaceNav({ slug }: Props) {
   ];
 
   return (
-    <nav aria-label="Workspace navigation" className={styles.nav}>
+    <nav aria-label={ui("Workspace navigation")} className={styles.nav}>
       {items.map((item) => {
         const isActive = pathname === item.href;
 
@@ -39,7 +41,7 @@ export default function WorkspaceNav({ slug }: Props) {
               isActive ? styles.active : ""
             }`}
           >
-            {item.label}
+            {ui(item.label)}
           </Link>
         );
       })}

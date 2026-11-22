@@ -1,5 +1,6 @@
 
 "use client";
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import Avatar from "@/components/ui/Avatar";
 
 import { useEffect, useState } from "react";
@@ -18,6 +19,7 @@ import { useWorkspace } from "../workspace-context";
 import styles from "./members.module.css";
 
 export default function MembersPage() {
+  const { ui, formatDate, formatNumber } = useWorkspaceLocale();
   const { accessToken } = useAuth();
   const workspace = useWorkspace();
 
@@ -88,36 +90,34 @@ export default function MembersPage() {
     <section className={styles.section}>
       <div className={styles.heading}>
         <div>
-          <h2>Members</h2>
-          <p>People who belong to this workspace.</p>
+          <h2>{ui("Members")}</h2>
+          <p>{ui("People who belong to this workspace.")}</p>
         </div>
-        <span className={styles.count}>{count} members</span>
+        <span className={styles.count}>{formatNumber(count)} {ui("members")}</span>
       </div>
 
       {isLoading ? (
-        <div className={styles.status}>Loading members...</div>
+        <div className={styles.status}>{ui("Loading members...")}</div>
       ) : error ? (
         <div className={styles.status} role="alert">
-          <p>{error}</p>
+          <p>{ui(error)}</p>
           <button
             type="button"
             onClick={() => setReloadKey((value) => value + 1)}
-          >
-            Try again
-          </button>
+          >{ui("Try again")}</button>
         </div>
       ) : members.length === 0 ? (
-        <div className={styles.status}>No members found.</div>
+        <div className={styles.status}>{ui("No members found.")}</div>
       ) : (
         <div className={styles.card}>
           <div className={styles.desktopTable}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Member</th>
-                  <th>Role</th>
-                  <th>Joined</th>
-                  <th aria-label="Actions" />
+                  <th>{ui("Member")}</th>
+                  <th>{ui("Role")}</th>
+                  <th>{ui("Joined")}</th>
+                  <th aria-label={ui("Actions")} />
                 </tr>
               </thead>
               <tbody>
@@ -130,22 +130,18 @@ export default function MembersPage() {
                         <span className={styles.email}>
                           {member.user_email}
                           {member.is_current_user && (
-                            <span className={styles.you}> (You)</span>
+                            <span className={styles.you}> {ui("(You)")}</span>
                           )}
                         </span>
                       </div>
                     </td>
                     <td>
                       <span className={styles.role} data-role-tone={member.role}>
-                        {member.role}
+                        {ui(member.role)}
                       </span>
                     </td>
                     <td>
-                      {new Intl.DateTimeFormat("en-US", {
-                        month: "short",
-                        day: "2-digit",
-                        year: "numeric",
-                      }).format(new Date(member.joined_at))}
+                      {formatDate(member.joined_at, { month: "short", day: "2-digit", year: "numeric" })}
                     </td>
                     <td>
                       <MemberActions
@@ -174,17 +170,13 @@ export default function MembersPage() {
                       <span className={styles.email}>
                         {member.user_email}
                         {member.is_current_user && (
-                          <span className={styles.you}> (You)</span>
+                          <span className={styles.you}> {ui("(You)")}</span>
                         )}
                       </span>
 
                       <span className={styles.mobileJoined}>
-                        Joined{" "}
-                        {new Intl.DateTimeFormat("en-US", {
-                          month: "short",
-                          day: "2-digit",
-                          year: "numeric",
-                        }).format(new Date(member.joined_at))}
+                        {ui("Joined")}{" "}
+                        {formatDate(member.joined_at, { month: "short", day: "2-digit", year: "numeric" })}
                       </span>
                     </div>
                   </div>
@@ -199,29 +191,25 @@ export default function MembersPage() {
                 </div>
 
                 <div className={styles.mobileMemberBottom}>
-                  <span className={styles.role} data-role-tone={member.role}>{member.role}</span>
+                  <span className={styles.role} data-role-tone={member.role}>{ui(member.role)}</span>
                 </div>
               </div>
             ))}
           </div>
 
           <div className={styles.footer}>
-            <span>{count} members total</span>
+            <span>{formatNumber(count)} {ui("members total")}</span>
             <div className={styles.actions}>
               <button
                 type="button"
                 disabled={!hasPrevious}
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
-              >
-                Previous
-              </button>
+              >{ui("Previous")}</button>
               <button
                 type="button"
                 disabled={!hasNext}
                 onClick={() => setPage((value) => value + 1)}
-              >
-                Next
-              </button>
+              >{ui("Next")}</button>
             </div>
           </div>
         </div>

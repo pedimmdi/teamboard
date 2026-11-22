@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 
@@ -12,6 +14,7 @@ import { requestPasswordReset } from "@/lib/api";
 import styles from "./forgot-password.module.css";
 
 export default function ForgotPasswordPage() {
+  const { locale, t } = useLocale();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -27,14 +30,14 @@ export default function ForgotPasswordPage() {
       const result = await requestPasswordReset(email.trim());
 
       setMessage(
-        result.detail ||
-          "If an account exists for this email, a password reset link has been sent.",
+        (locale === "en" && result.detail) ||
+          t("If an account exists for this email, a password reset link has been sent.", "اگر برای این ایمیل حسابی وجود داشته باشد، پیوند بازنشانی گذرواژه برای آن ارسال شده است."),
       );
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to request a password reset. Please try again.",
+          : t("Unable to request a password reset. Please try again.", "درخواست بازنشانی گذرواژه ثبت نشد. دوباره تلاش کنید."),
       );
     } finally {
       setLoading(false);
@@ -44,10 +47,9 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell>
       <div className={styles.header}>
-        <h2>Forgot your password?</h2>
+        <h1>{t("Forgot your password?", "گذرواژه‌تان را فراموش کرده‌اید؟")}</h1>
         <p>
-          Enter your email address and we&apos;ll send you a link
-          to reset your password.
+          {t("Enter your email address and we'll send you a link to reset your password.", "نشانی ایمیل‌تان را وارد کنید تا پیوند بازنشانی گذرواژه را برایتان بفرستیم.")}
         </p>
       </div>
 
@@ -56,7 +58,7 @@ export default function ForgotPasswordPage() {
           id="email"
           name="email"
           type="email"
-          label="Email address"
+          label={t("Email address", "نشانی ایمیل")}
           placeholder="you@example.com"
           autoComplete="email"
           value={email}
@@ -72,7 +74,7 @@ export default function ForgotPasswordPage() {
 
         {error && (
           <div className={styles.error} role="alert">
-            {error}
+            {localizeAccountMessage(locale, error, "درخواست بازنشانی گذرواژه ثبت نشد. دوباره تلاش کنید.")}
           </div>
         )}
 
@@ -81,13 +83,13 @@ export default function ForgotPasswordPage() {
           className={styles.submit}
           loading={loading}
         >
-          Send reset link
+          {t("Send reset link", "ارسال پیوند بازنشانی")}
         </Button>
       </form>
 
       <Link href="/login" className={styles.backLink}>
-        <span aria-hidden="true">←</span>
-        Back to sign in
+        <span aria-hidden="true">{t("←", "→")}</span>
+        {t("Back to sign in", "بازگشت به ورود")}
       </Link>
     </AuthShell>
   );

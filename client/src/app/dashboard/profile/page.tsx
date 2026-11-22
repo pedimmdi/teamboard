@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { useTransientMessage } from "@/hooks/use-transient-message";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -25,6 +27,7 @@ function ProfileForm({
   user: CurrentUser;
   accessToken: string;
 }) {
+  const { locale, t } = useLocale();
   const [firstName, setFirstName] = useState(user.first_name);
   const [lastName, setLastName] = useState(user.last_name);
   const [avatar, setAvatar] = useState<File | null | undefined>();
@@ -68,7 +71,7 @@ function ProfileForm({
     const normalizedLastName = lastName.trim();
 
     if (!normalizedFirstName || !normalizedLastName) {
-      setErrorMessage("First name and last name are required.");
+      setErrorMessage(t("First name and last name are required.", "نام و نام خانوادگی را وارد کنید."));
       return;
     }
 
@@ -88,12 +91,12 @@ function ProfileForm({
       setAvatar(undefined);
       setPreview(null);
       if (fileInput.current) fileInput.current.value = "";
-      setSuccessMessage("Your profile has been updated.");
+      setSuccessMessage(t("Your profile has been updated.", "نمایه‌تان به‌روز شد."));
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Unable to update your profile.",
+          : t("Unable to update your profile.", "به‌روزرسانی نمایه انجام نشد."),
       );
     } finally {
       setIsSaving(false);
@@ -116,17 +119,17 @@ function ProfileForm({
         />
 
         <div className={styles.identityText}>
-          <h2>
+          <h2 dir="auto">
             {firstName || user.first_name} {lastName || user.last_name}
           </h2>
-          <p>{user.email}</p>
+          <p><bdi>{user.email}</bdi></p>
         </div>
       </div>
 
       <div className={styles.divider} />
 
       <div className={styles.field}>
-        <span id="profile-picture-label">Profile picture</span>
+        <span id="profile-picture-label">{t("Profile picture", "عکس نمایه")}</span>
         <div
           className={styles.pictureControls}
           role="group"
@@ -137,7 +140,7 @@ function ProfileForm({
             ref={fileInput}
             type="file"
             hidden
-            aria-label="Choose profile picture"
+            aria-label={t("Choose profile picture", "انتخاب عکس نمایه")}
             accept="image/jpeg,image/png,image/webp"
             disabled={isSaving}
             onChange={(event) => {
@@ -147,7 +150,7 @@ function ProfileForm({
                 !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
                 file.size > 5 * 1024 * 1024
               ) {
-                setErrorMessage("Choose a JPEG, PNG, or WebP image up to 5 MB.");
+                setErrorMessage(t("Choose a JPEG, PNG, or WebP image up to 5 MB.", "یک تصویر JPEG، PNG یا WebP با حجم حداکثر ۵ مگابایت انتخاب کنید."));
                 event.target.value = "";
                 return;
               }
@@ -167,18 +170,18 @@ function ProfileForm({
               <path d="M10 13V3M6.5 6.5L10 3L13.5 6.5M4 12V15.5C4 16.33 4.67 17 5.5 17H14.5C15.33 17 16 16.33 16 15.5V12"
                 stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            {avatar || (user.avatar && avatar !== null) ? "Change photo" : "Upload photo"}
+            {avatar || (user.avatar && avatar !== null) ? t("Change photo", "تغییر عکس") : t("Upload photo", "بارگذاری عکس")}
           </button>
-          <span className={styles.pictureFileName} title={avatar?.name}>
-            {avatar?.name ?? (user.avatar && avatar !== null ? "Current picture" : "No picture")}
+          <span className={styles.pictureFileName} title={avatar?.name} dir="auto">
+            {avatar?.name ?? (user.avatar && avatar !== null ? t("Current picture", "عکس فعلی") : t("No picture", "بدون عکس"))}
           </span>
           {(avatar || user.avatar) && avatar !== null && (
             <button
               type="button"
               className={styles.removePicture}
               disabled={isSaving}
-              aria-label="Remove profile picture"
-              title="Remove picture"
+              aria-label={t("Remove profile picture", "حذف عکس نمایه")}
+              title={t("Remove picture", "حذف عکس")}
               onClick={() => {
                 setAvatar(user.avatar ? null : undefined);
                 setPreview(null);
@@ -193,15 +196,16 @@ function ProfileForm({
           )}
         </div>
         <small id="profile-picture-help" className={styles.fieldHelp}>
-          JPEG, PNG or WebP · Up to 5 MB · Max 4096 × 4096
+          {t("JPEG, PNG or WebP · Up to 5 MB · Max 4096 × 4096", "JPEG، PNG یا WebP · حداکثر ۵ مگابایت · حداکثر ۴۰۹۶ × ۴۰۹۶ پیکسل")}
         </small>
       </div>
 
       <div className={styles.fieldRow}>
         <label className={styles.field}>
-          <span>First name</span>
+          <span>{t("First name", "نام")}</span>
           <input
             type="text"
+            dir="auto"
             value={firstName}
             onChange={(event) => setFirstName(event.target.value)}
             autoComplete="given-name"
@@ -210,9 +214,10 @@ function ProfileForm({
         </label>
 
         <label className={styles.field}>
-          <span>Last name</span>
+          <span>{t("Last name", "نام خانوادگی")}</span>
           <input
             type="text"
+            dir="auto"
             value={lastName}
             onChange={(event) => setLastName(event.target.value)}
             autoComplete="family-name"
@@ -222,23 +227,23 @@ function ProfileForm({
       </div>
 
       <div className={styles.field}>
-        <span>Email address</span>
+        <span>{t("Email address", "نشانی ایمیل")}</span>
 
         <div className={styles.readonlyField}>
-          <span>{user.email}</span>
+          <span><bdi>{user.email}</bdi></span>
 
           {user.is_email_verified && (
-            <span className={styles.successBadge}>Verified</span>
+            <span className={styles.successBadge}>{t("Verified", "تأییدشده")}</span>
           )}
         </div>
       </div>
 
       {successMessage && (
-        <p className={styles.successMessage}>{successMessage}</p>
+        <p className={styles.successMessage} role="status">{successMessage}</p>
       )}
 
       {errorMessage && (
-        <p className={styles.errorMessage}>{errorMessage}</p>
+        <p className={styles.errorMessage} role="alert">{localizeAccountMessage(locale, errorMessage, "به‌روزرسانی نمایه انجام نشد.")}</p>
       )}
 
       <div className={styles.actions}>
@@ -248,7 +253,7 @@ function ProfileForm({
           onClick={handleCancel}
           disabled={isSaving || !hasChanges}
         >
-          Cancel
+          {t("Cancel", "انصراف")}
         </button>
 
         <button
@@ -256,7 +261,7 @@ function ProfileForm({
           className={styles.primaryButton}
           disabled={isSaving || !hasChanges}
         >
-          {isSaving ? "Saving..." : "Save changes"}
+          {isSaving ? t("Saving...", "در حال ذخیره…") : t("Save changes", "ذخیره تغییرات")}
         </button>
       </div>
     </form>
@@ -264,6 +269,7 @@ function ProfileForm({
 }
 
 export default function DashboardPage() {
+  const { t } = useLocale();
   const { user, accessToken, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading || !isAuthenticated || !user || !accessToken) {
@@ -275,8 +281,8 @@ export default function DashboardPage() {
       <div className={styles.content}>
         <header className={styles.pageHeader}>
           <div>
-            <h1>Profile</h1>
-            <p>Manage your personal information.</p>
+            <h1>{t("Profile", "نمایه")}</h1>
+            <p>{t("Manage your personal information.", "اطلاعات شخصی خود را مدیریت کنید.")}</p>
           </div>
         </header>
 

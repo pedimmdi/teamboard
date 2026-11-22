@@ -22,22 +22,22 @@
 }
 
 .info {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .success {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-background);
+  color: var(--success);
 }
 
 .error {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--danger-background);
+  color: var(--danger);
 }
 
 .content h1 {
-  color: #0f172a;
+  color: var(--foreground);
   font-size: 21px;
   font-weight: 700;
   letter-spacing: -0.4px;
@@ -45,7 +45,7 @@
 
 .description {
   margin-top: 9px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.7;
   overflow-wrap: anywhere;

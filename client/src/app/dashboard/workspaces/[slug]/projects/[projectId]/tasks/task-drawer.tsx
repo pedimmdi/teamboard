@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiError,
@@ -49,6 +50,7 @@ export default function TaskDrawer({
   onMissing: () => void;
   onCommentCountChange: (id: string, count: number) => void;
 }) {
+  const { ui, formatDate, formatNumber } = useWorkspaceLocale();
   const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
   const [section, setSection] = useState<"comments" | "reminders" | "details">("comments");
@@ -99,17 +101,13 @@ export default function TaskDrawer({
         className={styles.dangerOutline}
         disabled={busy || commentBusy || reminderBusy}
         onClick={() => onDelete(task)}
-      >
-        Delete task
-      </button>
+      >{ui("Delete task")}</button>
     ) : (
-      <p className={styles.hint}>
-        Only project managers and workspace admins can delete tasks.
-      </p>
+      <p className={styles.hint}>{ui("Only project managers and workspace admins can delete tasks.")}</p>
     );
   return (
     <TaskDialog
-      title="Task"
+      title={ui("Task")}
       drawer
       onClose={onClose}
       busy={busy || commentBusy || reminderBusy}
@@ -119,7 +117,7 @@ export default function TaskDrawer({
           <button
             type="button"
             className={`${styles.iconButton} ${styles.mobileDelete}`}
-            aria-label="Delete task"
+            aria-label={ui("Delete task")}
             disabled={busy || commentBusy || reminderBusy}
             onClick={() => onDelete(task)}
           >
@@ -129,20 +127,16 @@ export default function TaskDrawer({
       }
     >
       {loading ? (
-        <p role="status" className={styles.muted}>
-          Loading task…
-        </p>
+        <p role="status" className={styles.muted}>{ui("Loading task…")}</p>
       ) : error ? (
         <>
           <p className={styles.alert} role="alert">
-            {error}
+            {ui(error)}
           </p>
           <button
             className={styles.secondaryButton}
             onClick={() => setReload((value) => value + 1)}
-          >
-            Try again
-          </button>
+          >{ui("Try again")}</button>
         </>
       ) : (
         task && (
@@ -151,24 +145,20 @@ export default function TaskDrawer({
               <h3>{task.title}</h3>
               <div className={commentStyles.taskLabels}>
                 <span className={`${styles.badge} ${styles[task.status]}`}>
-                  {taskStatuses.find((status) => status.value === task.status)?.label}
+                  {ui(taskStatuses.find((status) => status.value === task.status)?.label ?? "")}
                 </span>
                 <span className={`${styles.priority} ${styles[task.priority]}`}>
                   <span className={styles.dot} />
-                  {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                  {ui(task.priority.charAt(0).toUpperCase() + task.priority.slice(1))}
                 </span>
               </div>
             </div>
-            <div className={commentStyles.tabs} role="group" aria-label="Task sections">
+            <div className={commentStyles.tabs} role="group" aria-label={ui("Task sections")}>
               <button type="button" aria-pressed={section === "comments"} disabled={busy || commentBusy || reminderBusy} onClick={() => setSection("comments")}>
-                Comments{commentCount !== null && ` (${commentCount})`}
+                {ui("Comments")}{commentCount !== null && ` (${formatNumber(commentCount)})`}
               </button>
-              <button type="button" aria-pressed={section === "reminders"} disabled={busy || commentBusy || reminderBusy} onClick={() => setSection("reminders")}>
-                Reminders
-              </button>
-              <button type="button" aria-pressed={section === "details"} disabled={busy || commentBusy || reminderBusy} onClick={() => setSection("details")}>
-                Details
-              </button>
+              <button type="button" aria-pressed={section === "reminders"} disabled={busy || commentBusy || reminderBusy} onClick={() => setSection("reminders")}>{ui("Reminders")}</button>
+              <button type="button" aria-pressed={section === "details"} disabled={busy || commentBusy || reminderBusy} onClick={() => setSection("details")}>{ui("Details")}</button>
             </div>
             <div hidden={section !== "details"} inert={reminderBusy}>
                 <TaskForm
@@ -184,18 +174,18 @@ export default function TaskDrawer({
                   deleteAction={deletion}
                   metadata={
                     <p className={styles.metadata}>
-                      Created by {task.created_by_email || "a former member"} ·{" "}
-                      {new Intl.DateTimeFormat("en-US", {
+                      {ui("Created by")} <bdi>{task.created_by_email || ui("a former member")}</bdi> ·{" "}
+                      {formatDate(task.created_at, {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
-                      }).format(new Date(task.created_at))}
+                      })}
                       <br />
-                      Updated{" "}
-                      {new Intl.DateTimeFormat("en-US", {
+                      {ui("Updated")}{" "}
+                      {formatDate(task.updated_at, {
                         dateStyle: "medium",
                         timeStyle: "short",
-                      }).format(new Date(task.updated_at))}
+                      })}
                     </p>
                   }
                   onSubmit={async (input) => {

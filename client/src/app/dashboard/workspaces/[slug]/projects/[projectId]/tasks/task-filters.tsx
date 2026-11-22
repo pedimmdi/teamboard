@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useState } from "react";
 import type { ProjectMember } from "@/lib/api";
 import AssigneePicker from "./assignee-picker";
@@ -45,10 +46,11 @@ export default function TaskFiltersDialog({
   onApply: (filters: TaskFilters, view: "board" | "list") => void;
   onClose: () => void;
 }) {
+  const { ui } = useWorkspaceLocale();
   const [draft, setDraft] = useState(filters);
   const [mode, setMode] = useState(view);
   return (
-    <TaskDialog title="Filters" onClose={onClose}>
+    <TaskDialog title={ui("Filters")} onClose={onClose}>
       <form
         className={styles.form}
         onSubmit={(event) => {
@@ -57,7 +59,7 @@ export default function TaskFiltersDialog({
         }}
       >
         <fieldset className={styles.filterGroup}>
-          <legend>View</legend>
+          <legend>{ui("View")}</legend>
           <div className={styles.pills}>
             {(["board", "list"] as const).map((value) => (
               <button
@@ -67,13 +69,13 @@ export default function TaskFiltersDialog({
                 aria-pressed={mode === value}
                 onClick={() => setMode(value)}
               >
-                {value === "board" ? "Board" : "List"}
+                {value === "board" ? ui("Board") : ui("List")}
               </button>
             ))}
           </div>
         </fieldset>
         <fieldset className={styles.filterGroup}>
-          <legend>Status</legend>
+          <legend>{ui("Status")}</legend>
           <div className={styles.pills}>
             {taskStatuses.map((status) => (
               <button
@@ -96,13 +98,13 @@ export default function TaskFiltersDialog({
                   }))
                 }
               >
-                {status.label}
+                {ui(status.label)}
               </button>
             ))}
           </div>
         </fieldset>
         <fieldset className={styles.filterGroup}>
-          <legend>Priority</legend>
+          <legend>{ui("Priority")}</legend>
           <div className={styles.pills}>
             {taskPriorities.map((priority) => (
               <button
@@ -121,13 +123,13 @@ export default function TaskFiltersDialog({
                   }))
                 }
               >
-                {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                {ui(priority.charAt(0).toUpperCase() + priority.slice(1))}
               </button>
             ))}
           </div>
         </fieldset>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>Assignee</span>
+          <span className={styles.fieldLabel}>{ui("Assignee")}</span>
           <AssigneePicker
             filter
             members={members}
@@ -141,7 +143,7 @@ export default function TaskFiltersDialog({
           />
         </div>
         <div className={styles.field}>
-          <label htmlFor="task-due-before">Due before</label>
+          <label htmlFor="task-due-before">{ui("Due before")}</label>
           <input
             id="task-due-before"
             type="date"
@@ -165,10 +167,10 @@ export default function TaskFiltersDialog({
               }))
             }
           />
-          Only overdue tasks
+          {ui("Only overdue tasks")}
         </label>
         <div className={styles.field}>
-          <label htmlFor="task-ordering">Sort by</label>
+          <label htmlFor="task-ordering">{ui("Sort by")}</label>
           <select
             id="task-ordering"
             disabled={mode === "board"}
@@ -182,15 +184,12 @@ export default function TaskFiltersDialog({
           >
             {taskOrderings.map((ordering) => (
               <option key={ordering} value={ordering}>
-                {orderingLabels[ordering]}
+                {ui(orderingLabels[ordering])}
               </option>
             ))}
           </select>
           {mode === "board" && (
-            <p className={styles.hint}>
-              Board cards use their manual order. Drag a card or use Move task
-              to change it.
-            </p>
+            <p className={styles.hint}>{ui("Board cards use their manual order. Drag a card or use Move task to change it.")}</p>
           )}
         </div>
         <div className={styles.actions}>
@@ -200,10 +199,8 @@ export default function TaskFiltersDialog({
             onClick={() =>
               setDraft({ ...emptyTaskFilters, search: draft.search })
             }
-          >
-            Clear all
-          </button>
-          <button className={styles.primaryButton}>Apply filters</button>
+          >{ui("Clear all")}</button>
+          <button className={styles.primaryButton}>{ui("Apply filters")}</button>
         </div>
       </form>
     </TaskDialog>

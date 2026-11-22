@@ -1,48 +1,48 @@
 .inbox { max-width: 1080px; margin-inline: auto; }
 .heading { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
 .heading h1 { margin: 0; font-size: clamp(24px, 4vw, 30px); letter-spacing: -.025em; }
-.heading p, .state p, .content p { color: #475569; margin: 5px 0 0; font-size: 14px; }
+.heading p, .state p, .content p { color: var(--text-secondary); margin: 5px 0 0; font-size: 14px; }
 .headingIcon, .icon {
   display: inline-grid; place-items: center; flex: none; width: 42px; height: 42px;
-  background: #eef2ff; color: #4338ca; border-radius: 10px;
+  background: var(--primary-soft); color: var(--primary-hover); border-radius: 10px;
 }
-.panel { border: 1px solid #e2e8f0; border-radius: 14px; background: white; overflow: hidden; }
+.panel { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); overflow: hidden; }
 .toolbar, .footer {
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
   flex-wrap: wrap; padding: 14px 18px;
 }
-.toolbar { border-bottom: 1px solid #e2e8f0; }
+.toolbar { border-bottom: 1px solid var(--border); }
 .filters, .actions, .footer div { display: flex; align-items: center; gap: 8px; }
 .panel button {
   font: inherit; font-size: 13px; font-weight: 600; min-height: 36px; padding: 7px 12px;
-  color: #334155; border: 1px solid #cbd5e1; background: white; border-radius: 8px; cursor: pointer;
+  color: var(--foreground); border: 1px solid var(--border-strong); background: var(--surface); border-radius: 8px; cursor: pointer;
 }
 .panel button:disabled { opacity: .55; cursor: default; }
 .filters button, .rowActions button { border-color: transparent; background: transparent; }
-.panel button:hover:not(:disabled), .filters button[aria-pressed="true"] { background: #eef2ff; color: #3730a3; }
-.actions, .rowActions, .footer { font-size: 12px; color: #475569; }
-.actions span, .rowActions button { color: #4338ca; }
+.panel button:hover:not(:disabled), .filters button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); }
+.actions, .rowActions, .footer { font-size: 12px; color: var(--text-secondary); }
+.actions span, .rowActions button { color: var(--primary-hover); }
 .list { margin: 0; padding: 0; list-style: none; }
 .row {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start;
   gap: 12px; padding: 15px 18px; border-inline-start: 3px solid transparent;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
-.row[data-unread="true"] { background: #f5f7ff; border-inline-start-color: #4f46e5; }
+.row[data-unread="true"] { background: var(--primary-soft); border-inline-start-color: var(--primary); }
 .icon { width: 36px; height: 36px; font-weight: 700; }
-.icon[data-tone="workspace"] { color: #166534; background: #dcfce7; }
-.icon[data-tone="project"] { color: #1e40af; background: #dbeafe; }
-.icon[data-tone="comment"] { color: #6d28d9; background: #f3e8ff; }
+.icon[data-tone="workspace"] { color: var(--success); background: var(--success-background); }
+.icon[data-tone="project"] { color: var(--info); background: var(--info-background); }
+.icon[data-tone="comment"] { color: var(--violet); background: var(--violet-background); }
 .content { overflow-wrap: anywhere; }
-.content a, .content strong { color: #0f172a; font-weight: 600; font-size: 14px; text-decoration: none; }
+.content a, .content strong { color: var(--foreground); font-weight: 600; font-size: 14px; text-decoration: none; }
 .content a:hover { text-decoration: underline; }
 .rowActions { display: flex; flex-direction: column; align-items: flex-end; }
 .rowActions button { margin-inline-end: -12px; }
 .state { min-height: 280px; display: grid; place-content: center; justify-items: center; padding: 24px; text-align: center; }
 .state h2 { margin: 12px 0 0; font-size: 17px; }
-button.primary { margin-top: 16px; background: #4f46e5; color: white; border-color: #4f46e5; }
-button.primary:hover:not(:disabled) { background: #4338ca; color: white; }
-.actionError { color: #991b1b; background: #fef2f2; margin: 12px; padding: 12px; border-radius: 8px; }
+button.primary { margin-top: 16px; background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+button.primary:hover:not(:disabled) { background: var(--primary-hover); color: var(--primary-foreground); }
+.actionError { color: var(--danger); background: var(--danger-background); margin: 12px; padding: 12px; border-radius: 8px; }
 @media (max-width: 640px) {
   .toolbar, .row, .footer { padding-inline: 12px; }
   .actions { width: 100%; justify-content: space-between; }

@@ -104,6 +104,36 @@ class PublicBlogAPITests(APITestCase):
 
         self.assertNotIn("status", response.data)
 
+    def test_persian_listing_only_returns_published_translations(self):
+        for post in (self.new_post, self.draft_post, self.future_post):
+            BlogPost.objects.filter(pk=post.pk).update(
+                title_fa="کار تیمی بهتر",
+                excerpt_fa="ایده‌هایی برای همکاری بهتر.",
+                content_fa="## روالی روشن‌تر",
+            )
+        BlogPost.objects.filter(pk=self.old_post.pk).update(title_fa="ترجمه ناتمام")
+
+        listing = self.client.get(self.list_url, {"lang": "fa"})
+        self.assertEqual(listing.status_code, status.HTTP_200_OK)
+        self.assertEqual(listing.data["count"], 1)
+        article = listing.data["results"][0]
+        self.assertEqual(article["slug"], self.new_post.slug)
+        self.assertEqual(article["title"], "کار تیمی بهتر")
+        self.assertEqual(article["excerpt"], "ایده‌هایی برای همکاری بهتر.")
+        self.assertTrue(article["has_persian_translation"])
+        self.assertNotIn("content", article)
+
+        detail = self.client.get(self.detail_url(self.new_post.slug), {"lang": "fa"})
+        self.assertEqual(detail.data["content"], "## روالی روشن‌تر")
+        original = self.client.get(self.detail_url(self.new_post.slug))
+        self.assertEqual(original.data["title"], self.new_post.title)
+        self.assertTrue(original.data["has_persian_translation"])
+        fallback = self.client.get(self.detail_url(self.old_post.slug), {"lang": "fa"})
+        self.assertEqual(fallback.data["title"], self.old_post.title)
+        self.assertFalse(fallback.data["has_persian_translation"])
+        for post in (self.draft_post, self.future_post):
+            self.assertEqual(self.client.get(self.detail_url(post.slug), {"lang": "fa"}).status_code, status.HTTP_404_NOT_FOUND)
+
     def test_drafts_and_future_posts_are_never_public(self):
         list_response = self.client.get(self.list_url)
 

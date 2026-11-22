@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -26,6 +27,7 @@ export default function RevokeInvitationModal({
   onClose,
   onRevoked,
 }: Props) {
+  const { ui } = useWorkspaceLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -126,17 +128,17 @@ export default function RevokeInvitationModal({
         aria-labelledby="revoke-title"
         aria-describedby="revoke-description"
       >
-        <h2 id="revoke-title">Revoke invitation?</h2>
+        <h2 id="revoke-title">{ui("Revoke invitation?")}</h2>
 
         <p id="revoke-description" className={styles.description}>
-          The invitation sent to{" "}
+          {ui("The invitation sent to")}{" "}
           <strong>{invitation.email}</strong>{" "}
-          will no longer be valid.
+          {ui("will no longer be valid.")}
         </p>
 
         {error && (
           <p className={styles.error} role="alert">
-            {error}
+            {ui(error)}
           </p>
         )}
 
@@ -147,9 +149,7 @@ export default function RevokeInvitationModal({
             className={styles.cancelButton}
             disabled={isSubmitting}
             onClick={onClose}
-          >
-            Cancel
-          </button>
+          >{ui("Cancel")}</button>
 
           <button
             type="button"
@@ -157,7 +157,7 @@ export default function RevokeInvitationModal({
             disabled={isSubmitting}
             onClick={handleRevoke}
           >
-            {isSubmitting ? "Revoking..." : "Revoke invitation"}
+            {isSubmitting ? ui("Revoking...") : ui("Revoke invitation")}
           </button>
         </div>
       </div>

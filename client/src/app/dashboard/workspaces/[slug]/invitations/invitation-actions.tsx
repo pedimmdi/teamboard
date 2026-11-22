@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useRef, useState } from "react";
 
 import type { WorkspaceInvitation } from "@/lib/api";
@@ -18,6 +19,7 @@ export default function InvitationActions({
   onResend,
   onRevoke,
 }: Props) {
+  const { ui } = useWorkspaceLocale();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +64,7 @@ export default function InvitationActions({
       <button
         type="button"
         className={styles.trigger}
-        aria-label={`Actions for ${invitation.email}`}
+        aria-label={ui("Actions for {0}", invitation.email)}
         aria-expanded={isOpen}
         aria-haspopup="menu"
         onClick={() => setIsOpen((value) => !value)}
@@ -80,9 +82,7 @@ export default function InvitationActions({
                 setIsOpen(false);
                 onResend();
               }}
-            >
-              Resend invitation
-            </button>
+            >{ui("Resend invitation")}</button>
           )}
 
           {canRevoke && (
@@ -94,9 +94,7 @@ export default function InvitationActions({
                 setIsOpen(false);
                 onRevoke();
               }}
-            >
-              Revoke invitation
-            </button>
+            >{ui("Revoke invitation")}</button>
           )}
         </div>
       )}

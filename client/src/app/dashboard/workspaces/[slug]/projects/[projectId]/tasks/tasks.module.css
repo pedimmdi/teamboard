@@ -5,7 +5,7 @@
   min-width: 0;
 }
 .notice {
-  color: #15803d;
+  color: var(--success);
   font-size: 12px;
 }
 .mobileBack {
@@ -38,24 +38,24 @@
 }
 .search > svg {
   position: absolute;
-  left: 12px;
+  inset-inline-start: 12px;
   top: 10px;
-  color: #94a3b8;
+  color: var(--muted);
 }
 .search input {
   width: 100%;
   height: 40px;
   padding: 10px 12px 10px 40px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: white;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
 }
 .search input::placeholder,
 .field input::placeholder,
 .field textarea::placeholder {
-  color: #94a3b8;
+  color: var(--muted);
 }
 .primaryButton,
 .secondaryButton,
@@ -67,10 +67,10 @@
   justify-content: center;
   gap: 6px;
   padding: 9px 14px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: white;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -78,23 +78,23 @@
   cursor: pointer;
 }
 .primaryButton {
-  background: #4f46e5;
-  border-color: #4f46e5;
-  color: white;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
 }
 .primaryButton:hover:not(:disabled) {
-  background: #4338ca;
+  background: var(--primary-hover);
 }
 .secondaryButton:hover:not(:disabled) {
-  background: #f8fafc;
+  background: var(--surface-subtle);
 }
 .dangerButton {
-  background: #dc2626;
-  border-color: #dc2626;
-  color: white;
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--danger-background);
 }
 .dangerOutline {
-  color: #b91c1c;
+  color: var(--danger);
 }
 .primaryButton:disabled,
 .secondaryButton:disabled,
@@ -111,16 +111,16 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid #e2e8f0;
-  background: white;
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 8px;
-  color: #475569;
+  color: var(--text-secondary);
   font: inherit;
   font-size: 24px;
   cursor: pointer;
 }
 .toggle {
-  background: #f1f5f9;
+  background: var(--surface-subtle);
   border-radius: 8px;
   padding: 3px;
   gap: 0;
@@ -133,15 +133,15 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #475569;
+  color: var(--text-secondary);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
 }
 .toggle .activeView {
-  background: white;
-  color: #0f172a;
-  box-shadow: 0 1px 3px #0f172a18;
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: var(--shadow-card);
 }
 .filterSelect,
 .selectButton {
@@ -152,10 +152,10 @@
   min-height: 40px;
   max-width: 100%;
   padding: 9px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: white;
-  color: #334155;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
@@ -170,9 +170,9 @@
   white-space: nowrap;
 }
 .activeFilter {
-  background: #eef2ff;
-  border-color: #818cf8;
-  color: #4f46e5;
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 .chips {
   display: flex;
@@ -188,15 +188,15 @@
   border: 0;
   padding: 4px 8px;
   border-radius: 999px;
-  color: #4f46e5;
-  background: #eef2ff;
+  color: var(--primary);
+  background: var(--primary-soft);
   font: inherit;
   cursor: pointer;
 }
 .clearButton {
   border: 0;
   padding: 4px 6px;
-  color: #4f46e5;
+  color: var(--primary);
   background: transparent;
   font: inherit;
   font-weight: 600;
@@ -219,7 +219,7 @@
 .column {
   min-width: 0;
   padding: 10px;
-  background: #f1f5f9;
+  background: var(--surface-subtle);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
@@ -235,15 +235,15 @@
   padding: 2px 0;
 }
 .columnHeader small {
-  color: #64748b;
+  color: var(--muted);
   font-size: 12px;
   font-weight: 400;
 }
 .columnHeader button {
-  margin-left: auto;
+  margin-inline-start: auto;
   border: 0;
   background: transparent;
-  color: #64748b;
+  color: var(--muted);
   width: 28px;
   height: 28px;
   font: inherit;
@@ -255,28 +255,31 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #94a3b8;
+  background: var(--muted);
   flex-shrink: 0;
 }
 .dot.in_progress {
-  background: #4f46e5;
+  background: var(--primary);
 }
 .dot.in_review {
-  background: #1e40af;
+  background: var(--info);
 }
 .dot.done {
-  background: #16a34a;
+  background: var(--success);
 }
 .taskCard {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
   min-width: 0;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow-card);
 }
+.taskCard:focus-within,
+.taskCard:hover { border-color: var(--border-strong); }
 .taskCard[draggable="true"] {
   cursor: grab;
   user-select: none;
@@ -290,8 +293,8 @@
 .titleButton {
   border: 0;
   padding: 0;
-  text-align: left;
-  color: #0f172a;
+  text-align: start;
+  color: var(--foreground);
   background: transparent;
   font: inherit;
   font-size: 14px;
@@ -300,7 +303,7 @@
   overflow-wrap: anywhere;
 }
 .titleButton:hover {
-  color: #4f46e5;
+  color: var(--primary);
   text-decoration: underline;
 }
 .priority {
@@ -309,7 +312,7 @@
   gap: 6px;
   font-size: 12px;
   line-height: 20px;
-  color: #475569;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .priority .dot {
@@ -317,13 +320,13 @@
   height: 7px;
 }
 .priority.high .dot {
-  background: #92400e;
+  background: var(--warning);
 }
 .priority.urgent .dot {
-  background: #dc2626;
+  background: var(--danger);
 }
 .priority.medium .dot {
-  background: #1e40af;
+  background: var(--info);
 }
 .cardFooter {
   display: flex;
@@ -332,13 +335,16 @@
   gap: 8px;
   margin-top: auto;
   min-width: 0;
+  flex-wrap: wrap;
 }
+
+.mobileBack img:dir(rtl) { transform: scaleX(-1); }
 .due {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
   white-space: nowrap;
 }
 .due svg {
@@ -346,7 +352,7 @@
   height: 16px;
 }
 .overdue {
-  color: #dc2626 !important;
+  color: var(--danger) !important;
   font-size: 12px;
 }
 .assignee {
@@ -354,7 +360,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .assignee > span:last-child:not(:first-child) {
@@ -369,50 +375,50 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  color: #4f46e5;
-  background: #eef2ff;
+  color: var(--primary);
+  background: var(--primary-soft);
   font-size: 10px;
 }
 .cardFooter > .assignee {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .badge {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
   padding: 2px 8px;
-  color: #475569;
-  background: #f1f5f9;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
   font-size: 12px;
   line-height: 16px;
   white-space: nowrap;
 }
 .badge.in_progress {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 .badge.in_review {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--info-background);
+  color: var(--info);
 }
 .badge.done {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--success-background);
+  color: var(--success);
 }
 .dragging {
   opacity: 0.35;
 }
 .dropBefore {
-  border-top: 3px dashed #818cf8;
+  border-top: 3px dashed var(--primary);
   padding-top: 12px;
 }
 .dropColumn {
-  outline: 2px dashed #818cf8;
+  outline: 2px dashed var(--primary);
   outline-offset: -3px;
 }
 .showMore {
   border: 0;
-  color: #4f46e5;
+  color: var(--primary);
   background: transparent;
   padding: 10px 4px;
   font: inherit;
@@ -423,26 +429,26 @@
 .columnEmpty {
   padding: 20px 4px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
   text-align: center;
 }
 .tableCard {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: white;
+  background: var(--surface);
 }
 .table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  text-align: left;
+  text-align: start;
   font-size: 14px;
 }
 .table th {
-  color: #64748b;
+  color: var(--muted);
   font-size: 11px;
   font-weight: 500;
-  background: #f1f5f9;
+  background: var(--surface-subtle);
   padding: 12px 14px;
 }
 .table th:first-child {
@@ -465,9 +471,9 @@
   width: 125px;
 }
 .table td {
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
   padding: 14px;
-  color: #475569;
+  color: var(--text-secondary);
   vertical-align: middle;
 }
 .sortButton {
@@ -487,7 +493,7 @@
   gap: 12px;
   padding: 12px 16px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
   flex-wrap: wrap;
 }
 .empty {
@@ -499,8 +505,8 @@
   align-items: center;
   text-align: center;
   gap: 12px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
 }
 .empty h2 {
@@ -513,13 +519,13 @@
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: #eef2ff;
+  background: var(--primary-soft);
   border-radius: 50%;
-  color: #4f46e5;
+  color: var(--primary);
   margin-bottom: 8px;
 }
 .muted {
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 22px;
   overflow-wrap: anywhere;
@@ -528,7 +534,7 @@
 .metadata {
   font-size: 12px;
   line-height: 18px;
-  color: #64748b;
+  color: var(--muted);
   overflow-wrap: anywhere;
 }
 .metadata {
@@ -536,23 +542,23 @@
 }
 .status {
   padding: 24px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: white;
+  background: var(--surface);
   font-size: 14px;
 }
 .alert {
   padding: 12px;
-  border: 1px solid #fca5a5;
+  border: 1px solid var(--danger-border);
   border-radius: 8px;
-  color: #b91c1c;
-  background: #fef2f2;
+  color: var(--danger);
+  background: var(--danger-background);
   font-size: 14px;
   line-height: 20px;
   overflow-wrap: anywhere;
 }
 .error {
-  color: #b91c1c;
+  color: var(--danger);
   font-size: 12px;
   line-height: 18px;
 }
@@ -575,7 +581,7 @@
   align-items: center;
   padding: 24px;
   z-index: 110;
-  background: #0f172a80;
+  background: var(--workspace-scrim, rgb(4 15 19 / 64%));
 }
 .dialog {
   width: 480px;
@@ -583,10 +589,10 @@
   max-height: calc(100dvh - 48px);
   overflow-y: auto;
   border-radius: 16px;
-  background: white;
+  background: var(--surface);
   padding: 24px;
   outline: none;
-  box-shadow: 0 16px 48px #0f172a26;
+  box-shadow: var(--shadow-card);
 }
 .dialogHeader {
   display: flex;
@@ -618,7 +624,7 @@
 }
 .field label,
 .fieldLabel {
-  color: #0f172a;
+  color: var(--foreground);
   font-size: 14px;
   font-weight: 500;
 }
@@ -628,10 +634,10 @@
 .pickerPanel > input {
   width: 100%;
   padding: 11px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: white;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 14px;
   min-width: 0;
@@ -645,16 +651,16 @@
   line-height: 20px;
 }
 .field [aria-invalid="true"] {
-  border-color: #dc2626;
+  border-color: var(--danger);
 }
 .field input:focus,
 .field textarea:focus,
 .field select:focus,
 .search input:focus,
 .pickerPanel input:focus {
-  outline: 2px solid #c7d2fe;
+  outline: 2px solid var(--primary-soft);
   outline-offset: 0;
-  border-color: #6366f1;
+  border-color: var(--primary);
 }
 .formGrid {
   display: grid;
@@ -669,15 +675,15 @@
   flex-wrap: wrap;
 }
 .formFooter > .actions {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 .actions {
   justify-content: flex-end;
 }
 .counter {
-  text-align: right;
+  text-align: end;
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
 }
 .drawerOverlay {
   justify-content: flex-end;
@@ -687,16 +693,16 @@
   width: 440px;
   max-width: 100%;
   height: 100dvh;
-  background: white;
+  background: var(--surface);
   padding: 24px;
   overflow-y: auto;
   outline: none;
-  box-shadow: -8px 0 32px #0f172a18;
+  box-shadow: var(--shadow-card);
 }
 .drawer .dialogHeader h2 {
   font-size: 12px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--muted);
   text-transform: uppercase;
 }
 .drawer:has(> [data-comment-thread]:not([hidden])) {
@@ -717,8 +723,8 @@
 .drawer .formFooter .secondaryButton,
 .drawer .formFooter .dangerOutline {
   font-size: 12px;
-  padding-left: 12px;
-  padding-right: 12px;
+  padding-inline-start: 12px;
+  padding-inline-end: 12px;
 }
 .picker {
   position: relative;
@@ -737,14 +743,14 @@
 .pickerPanel {
   position: absolute;
   top: calc(100% + 6px);
-  left: 0;
+  inset-inline-start: 0;
   width: 290px;
   max-width: calc(100vw - 40px);
   padding: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: white;
-  box-shadow: 0 8px 24px #0f172a26;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
   z-index: 121;
 }
 .pickerPanel h3 {
@@ -766,11 +772,11 @@
   padding: 8px;
   border: 0;
   border-radius: 6px;
-  background: white;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 12px;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 .pickerOptions button > span:nth-child(2) {
@@ -779,7 +785,7 @@
 }
 .pickerOptions button:hover,
 .pickerOptions button[aria-pressed="true"] {
-  background: #eef2ff;
+  background: var(--primary-soft);
 }
 .pickerClose {
   display: none;
@@ -795,7 +801,7 @@
 .filterGroup legend {
   font-size: 12px;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--muted);
   margin-bottom: 12px;
 }
 .pills {
@@ -810,19 +816,19 @@
   align-items: center;
   justify-content: center;
   padding: 8px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  background: white;
-  color: #334155;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
 }
 .selectedPill {
-  background: #eef2ff;
-  color: #4f46e5;
-  border-color: #818cf8;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: var(--primary);
 }
 .checkbox {
   display: flex;
@@ -832,20 +838,20 @@
 }
 .checkbox input,
 .radioOption input {
-  accent-color: #4f46e5;
+  accent-color: var(--primary);
 }
 .radioOption {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 14px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   cursor: pointer;
 }
 .radioOption:has(input:checked) {
-  border-color: #818cf8;
-  background: #eef2ff;
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 .radioOption strong {
   display: block;
@@ -867,26 +873,26 @@
   height: 28px;
   border: 0;
   border-radius: 6px;
-  background: white;
-  color: #64748b;
+  background: var(--surface);
+  color: var(--muted);
   font: inherit;
   font-size: 20px;
   cursor: pointer;
 }
 .moreButton:hover {
-  background: #f1f5f9;
+  background: var(--surface-subtle);
 }
 .actionMenu {
   position: absolute;
-  right: 0;
+  inset-inline-end: 0;
   top: calc(100% + 5px);
   width: 190px;
   padding: 6px;
   z-index: 121;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: white;
-  box-shadow: 0 8px 24px #0f172a26;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 .actionMenu > p {
   display: none;
@@ -895,20 +901,20 @@
   display: block;
   width: 100%;
   padding: 10px;
-  text-align: left;
+  text-align: start;
   border: 0;
   border-radius: 5px;
-  color: #334155;
-  background: white;
+  color: var(--foreground);
+  background: var(--surface);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
 }
 .actionMenu > button:hover {
-  background: #f8fafc;
+  background: var(--surface-subtle);
 }
 .actionMenu .removeAction {
-  color: #b91c1c;
+  color: var(--danger);
 }
 .menuClose {
   display: none !important;
@@ -932,18 +938,18 @@
   .mobileNew {
     display: inline-flex;
     position: fixed;
-    right: 20px;
+    inset-inline-end: 20px;
     bottom: calc(100px + env(safe-area-inset-bottom));
     width: 56px;
     height: 56px;
     border-radius: 50%;
     border: 0;
-    background: #4f46e5;
-    color: white;
+    background: var(--primary);
+    color: var(--primary-foreground);
     align-items: center;
     justify-content: center;
     font-size: 28px;
-    box-shadow: 0 4px 12px #4f46e526;
+    box-shadow: 0 4px 12px var(--focus-ring);
     z-index: 41;
     cursor: pointer;
   }
@@ -1009,7 +1015,7 @@
     padding: 20px 0;
   }
   .pagination > .actions {
-    margin-left: auto;
+    margin-inline-start: auto;
   }
 }
 @media (max-width: 767px) {
@@ -1022,7 +1028,7 @@
   .drawer .dialogHeader h2 {
     flex: 1;
   }
-  .drawer .dialogHeader button[aria-label="Back to tasks"] {
+  .drawer .dialogHeader button[data-drawer-back] {
     order: -1;
     border: 0;
     width: 24px;
@@ -1054,7 +1060,7 @@
     width: 36px;
     height: 4px;
     border-radius: 4px;
-    background: #cbd5e1;
+    background: var(--border-strong);
   }
   .formGrid {
     grid-template-columns: 1fr;
@@ -1082,7 +1088,7 @@
     align-items: stretch;
   }
   .formFooter > .actions {
-    margin-left: 0;
+    margin-inline-start: 0;
   }
   .formFooter > .hint {
     max-width: none !important;
@@ -1101,11 +1107,11 @@
     z-index: 5;
     margin: 0 -20px;
     padding: 14px 20px;
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
   }
   .drawer .dialogHeader h2 {
-    color: #0f172a;
+    color: var(--foreground);
     font-size: 14px;
     text-transform: none;
     font-weight: 600;
@@ -1115,7 +1121,7 @@
   }
   .pickerBackdrop,
   .menuBackdrop {
-    background: #0f172a80;
+    background: var(--workspace-scrim, rgb(4 15 19 / 64%));
   }
   .pickerPanel,
   .actionMenu {
@@ -1136,7 +1142,7 @@
   }
   .actionMenu > p {
     display: block;
-    color: #0f172a;
+    color: var(--foreground);
     font-weight: 600;
     font-size: 14px;
     padding: 0 10px 14px;
@@ -1144,7 +1150,7 @@
   }
   .menuClose {
     display: block !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid var(--border) !important;
     margin-top: 12px;
     text-align: center !important;
   }
@@ -1155,16 +1161,16 @@
 }
 
 .taskCard { cursor: pointer; }
-.taskCard:hover { border-color: #a5b4fc; }
+.taskCard:hover { border-color: var(--primary); }
 .taskCard.dragging { cursor: grabbing; }
 .commentCount {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .commentCount svg { width: 16px; height: 16px; }
 .selectButton svg { flex-shrink: 0; width: 16px; height: 16px; }
 
-.completedTitle { text-decoration: line-through; color: #64748b; }
+.completedTitle { text-decoration: line-through; color: var(--muted); }

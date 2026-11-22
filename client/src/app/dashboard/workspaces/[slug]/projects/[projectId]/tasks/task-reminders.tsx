@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import {useEffect, useId, useRef, useState, type FormEvent} from "react";
 import {getTaskReminders, saveTaskReminder, cancelTaskReminder, ApiError, type TaskReminder, type Task, type ReminderInput} from "@/lib/api";
 import {useTransientMessage} from "@/hooks/use-transient-message";
@@ -12,6 +13,7 @@ function errorText(error: unknown) {
 export default function TaskReminders({token, slug, projectId, task, onBusyChange}: {
   token: string; slug: string; projectId: string; task: Task; onBusyChange: (busy: boolean) => void;
 }) {
+  const { ui, formatDate, formatNumber } = useWorkspaceLocale();
   const [rows, setRows] = useState<TaskReminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,37 +70,37 @@ export default function TaskReminders({token, slug, projectId, task, onBusyChang
   }
   function time(row: TaskReminder) {
     if (!row.run_at) return "Waiting for a due date";
-    try {return new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "short", timeZone: row.timezone}).format(new Date(row.run_at)) + ` (${row.timezone})`;}
+    try {return formatDate(row.run_at, { dateStyle: "medium", timeStyle: "short", timeZone: row.timezone }) + ` (${row.timezone})`;}
     catch {return row.run_at;}
   }
-  return <section className={styles.section} aria-label="Reminders">
-    <header><h3>Reminders</h3><span>Private to you · up to 3 active</span></header>
-    {loading && <p role="status">Loading reminders…</p>}
-    {error && <div role="alert"><p>{error}</p><button type="button" disabled={busy} onClick={() => setRevision((value) => value + 1)}>Retry reminders</button></div>}
-    {success && <p role="status">{success}</p>}
-    {!loading && !rows.length && <p>No reminders yet. Schedule a private notification for this task.</p>}
+  return <section className={styles.section} aria-label={ui("Reminders")}>
+    <header><h3>{ui("Reminders")}</h3><span>{ui("Private to you · up to 3 active")}</span></header>
+    {loading && <p role="status">{ui("Loading reminders…")}</p>}
+    {error && <div role="alert"><p>{ui(error)}</p><button type="button" disabled={busy} onClick={() => setRevision((value) => value + 1)}>{ui("Retry reminders")}</button></div>}
+    {success && <p role="status">{ui(success)}</p>}
+    {!loading && !rows.length && <p>{ui("No reminders yet. Schedule a private notification for this task.")}</p>}
     <ul>{rows.map((row) => <li key={row.id}>
-      <strong>{time(row)}</strong><small>{row.kind === "relative" ? `${row.days_before} day(s) before due date at ${row.local_time?.slice(0,5)}` : "Fixed time"} · {row.status}</small>
-      {row.status === "invalid" && <p>Choose another time. The due date changed or the local time is invalid.</p>}
-      {row.status === "failed" && <p>Delivery will retry automatically. You can also reschedule.</p>}
+      <strong>{time(row)}</strong><small>{row.kind === "relative" ? ui("{0} day(s) before due date at {1}", row.days_before, row.local_time?.slice(0,5)) : ui("Fixed time")} · {ui(row.status.charAt(0).toUpperCase() + row.status.slice(1))}</small>
+      {row.status === "invalid" && <p>{ui("Choose another time. The due date changed or the local time is invalid.")}</p>}
+      {row.status === "failed" && <p>{ui("Delivery will retry automatically. You can also reschedule.")}</p>}
       {["pending", "disabled", "invalid", "failed"].includes(row.status) && <div className={styles.actions}>
-        <button type="button" disabled={busy} onClick={() => open(row)}>Edit reminder</button>
-        <button type="button" disabled={busy} onClick={() => void action(() => cancelTaskReminder(token, slug, projectId, task.id, row.id), "Reminder cancelled.")}>Cancel reminder</button>
+        <button type="button" disabled={busy} onClick={() => open(row)}>{ui("Edit reminder")}</button>
+        <button type="button" disabled={busy} onClick={() => void action(() => cancelTaskReminder(token, slug, projectId, task.id, row.id), "Reminder cancelled.")}>{ui("Cancel reminder")}</button>
       </div>}
     </li>)}</ul>
-    {hasMore && <button type="button" disabled={busy} onClick={() => setPage((value) => value + 1)}>Load more reminders</button>}
-    {!form && <button type="button" className={styles.newReminder} disabled={busy || loading || active >= 3 || task.status === "done"} onClick={() => open()}>New reminder</button>}
-    {task.status === "done" && <p>Reopen this task to schedule a new reminder.</p>}
+    {hasMore && <button type="button" disabled={busy} onClick={() => setPage((value) => value + 1)}>{ui("Load more reminders")}</button>}
+    {!form && <button type="button" className={styles.newReminder} disabled={busy || loading || active >= 3 || task.status === "done"} onClick={() => open()}>{ui("New reminder")}</button>}
+    {task.status === "done" && <p>{ui("Reopen this task to schedule a new reminder.")}</p>}
     {form && <form onSubmit={submit} className={styles.form}>
-      <label htmlFor={id+"kind"}>Reminder type</label><select id={id+"kind"} disabled={busy} value={kind} onChange={(event) => setKind(event.target.value as "absolute" | "relative")}><option value="absolute">Fixed date and time</option><option value="relative" disabled={!task.due_date}>Relative to due date</option></select>
-      <label htmlFor={id+"zone"}>Timezone (IANA)</label><input id={id+"zone"} required maxLength={64} disabled={busy} value={zone} onChange={(event) => setZone(event.target.value)} list={id+"zones"}/>
+      <label htmlFor={id+"kind"}>{ui("Reminder type")}</label><select id={id+"kind"} disabled={busy} value={kind} onChange={(event) => setKind(event.target.value as "absolute" | "relative")}><option value="absolute">{ui("Fixed date and time")}</option><option value="relative" disabled={!task.due_date}>{ui("Relative to due date")}</option></select>
+      <label htmlFor={id+"zone"}>{ui("Timezone (IANA)")}</label><input id={id+"zone"} required maxLength={64} disabled={busy} value={zone} onChange={(event) => setZone(event.target.value)} list={id+"zones"}/>
       <datalist id={id+"zones"}>{["UTC","Asia/Tehran","Europe/London","Europe/Paris","America/New_York","Asia/Tokyo"].map((value) => <option key={value} value={value}/>)}</datalist>
-      {kind === "absolute" ? <><label htmlFor={id+"date"}>Reminder date and time</label><input id={id+"date"} type="datetime-local" required disabled={busy} value={date} onChange={(event) => setDate(event.target.value)}/><small>Enter time in the selected timezone. Changing timezone keeps the entered wall-clock time.</small></> : <>
-        <label htmlFor={id+"preset"}>Due date preset</label><select id={id+"preset"} value={days} disabled={busy} onChange={(event) => setDays(Number(event.target.value))}><option value={0}>On the due date</option><option value={1}>One day before</option><option value={3}>Three days before</option><option value={7}>One week before</option>{![0,1,3,7].includes(days) && <option value={days}>{days} days before</option>}</select>
-        <label htmlFor={id+"days"}>Days before due date</label><input id={id+"days"} type="number" min={0} max={365} required value={days} disabled={busy} onChange={(event) => setDays(Number(event.target.value))}/>
-        <label htmlFor={id+"clock"}>Local reminder time</label><input id={id+"clock"} type="time" required disabled={busy} value={clock} onChange={(event) => setClock(event.target.value)}/><small>Due dates have no deadline hour. Default: 09:00 in the selected timezone. Invalid or ambiguous DST times must be changed.</small>
+      {kind === "absolute" ? <><label htmlFor={id+"date"}>{ui("Reminder date and time")}</label><input id={id+"date"} type="datetime-local" required disabled={busy} value={date} onChange={(event) => setDate(event.target.value)}/><small>{ui("Enter time in the selected timezone. Changing timezone keeps the entered wall-clock time.")}</small></> : <>
+        <label htmlFor={id+"preset"}>{ui("Due date preset")}</label><select id={id+"preset"} value={days} disabled={busy} onChange={(event) => setDays(Number(event.target.value))}><option value={0}>{ui("On the due date")}</option><option value={1}>{ui("One day before")}</option><option value={3}>{ui("Three days before")}</option><option value={7}>{ui("One week before")}</option>{![0,1,3,7].includes(days) && <option value={days}>{formatNumber(days)} {ui("days before")}</option>}</select>
+        <label htmlFor={id+"days"}>{ui("Days before due date")}</label><input id={id+"days"} type="number" min={0} max={365} required value={days} disabled={busy} onChange={(event) => setDays(Number(event.target.value))}/>
+        <label htmlFor={id+"clock"}>{ui("Local reminder time")}</label><input id={id+"clock"} type="time" required disabled={busy} value={clock} onChange={(event) => setClock(event.target.value)}/><small>{ui("Due dates have no deadline hour. Default: 09:00 in the selected timezone. Invalid or ambiguous DST times must be changed.")}</small>
       </>}
-      <div className={styles.actions}><button disabled={busy}>{busy ? "Saving…" : editing ? "Save reminder" : "Create reminder"}</button><button type="button" disabled={busy} onClick={() => setForm(false)}>Close reminder form</button></div>
+      <div className={styles.actions}><button disabled={busy}>{busy ? ui("Saving…") : editing ? ui("Save reminder") : ui("Create reminder")}</button><button type="button" disabled={busy} onClick={() => setForm(false)}>{ui("Close reminder form")}</button></div>
     </form>}
   </section>;
 }

@@ -1,148 +1,119 @@
 import Link from "next/link";
-import { posts, publicMetadata, jsonLd, siteUrl } from "@/lib/website";
+import { AuthEntry, HomeSession } from "@/components/website/public-auth";
 import PostList from "@/components/website/post-list";
-import { HomeSession } from "@/components/website/public-auth";
+import BrandMark from "@/components/ui/BrandMark";
+import { WebsiteIcon } from "@/components/website/website-icons";
+import { getLocale } from "@/lib/server-preferences";
+import { jsonLd, posts, publicMetadata, siteUrl, websitePath, type WebsiteLocale } from "@/lib/website";
+import { websiteCopy } from "@/lib/website-copy";
 import styles from "./website.module.css";
-export const metadata = publicMetadata(
-  "TeamBoard — Plan work. Ship together.",
-  "Organize projects, discuss tasks, and stay on top of deadlines with TeamBoard’s shared workspace.",
-  "/",
-);
+
+const featureIcons = ["board", "chat", "calendar", "reports"] as const;
+
+export async function generateMetadata() {
+  const locale = await getLocale();
+  const copy = websiteCopy[locale];
+  return publicMetadata(copy.homeTitle, copy.homeDescription, "/", locale);
+}
+
+function WorkspacePreview({ locale }: { locale: WebsiteLocale }) {
+  const copy = websiteCopy[locale];
+  const numbers = new Intl.NumberFormat(locale);
+  return (
+    <div className={styles.previewStage}>
+      <figure className={styles.preview} role="img" aria-label={copy.preview}>
+        <div aria-hidden="true">
+          <div className={styles.previewBar}>
+            <span className={styles.previewBrand}><BrandMark /> {locale === "fa" ? "تیم‌برد" : "TeamBoard"}</span>
+            <span className={styles.previewTeam}>{copy.previewTeam}</span>
+            <div className={styles.people}><span>JD</span><span>AR</span><span>SL</span></div>
+          </div>
+          <div className={styles.previewBody}>
+            <div className={styles.previewHeading}>{copy.previewHeading}</div>
+            <div className={styles.previewTabs}>{copy.previewTabs.map((tab) => <span key={tab}>{tab}</span>)}</div>
+            <div className={styles.board}>
+              {copy.previewStatuses.map((status, index) => (
+                <div key={status} className={styles.column}>
+                  <div className={styles.columnLabel}><i />{status}<small>{numbers.format(1)}</small></div>
+                  <div className={styles.boardCard}>
+                    <small>{copy.previewTags[index]}</small>
+                    <strong>{copy.previewTasks[index]}</strong>
+                    <div className={styles.boardCardFooter}>
+                      <span>{["AR", "JD", "SL"][index]}</span>
+                      {index === 2 && <WebsiteIcon name="check" width="15" height="15" />}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </figure>
+    </div>
+  );
+}
+
 export default async function Home() {
-  const articles = await posts().catch(() => null);
+  const locale = await getLocale();
+  const copy = websiteCopy[locale];
+  const articles = await posts(1, 3, locale).catch(() => null);
+  const homeUrl = siteUrl + websitePath("/", locale);
+
   return (
     <>
-      <HomeSession />
+      <HomeSession locale={locale} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: jsonLd({
             "@context": "https://schema.org",
-            "@type": "WebApplication",
-            name: "TeamBoard",
-            url: siteUrl,
-            applicationCategory: "BusinessApplication",
-            operatingSystem: "Web",
-            description:
-              "Projects, tasks and conversations in one shared workspace.",
+            "@graph": [
+              { "@type": "Organization", "@id": siteUrl + "/#organization", name: "TeamBoard", url: siteUrl, logo: siteUrl + "/icon.svg" },
+              { "@type": "WebSite", name: "TeamBoard", url: homeUrl, inLanguage: locale, publisher: { "@id": siteUrl + "/#organization" } },
+              { "@type": "WebApplication", name: "TeamBoard", url: homeUrl, inLanguage: locale, applicationCategory: "BusinessApplication", operatingSystem: "Web", description: copy.homeDescription },
+            ],
           }),
         }}
       />
       <section className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>
-            ONE WORKSPACE. A CLEARER WAY TO WORK.
-          </p>
-          <h1>
-            Plan work.
-            <br />
-            Ship together.
-          </h1>
-          <p>
-            Bring your projects, conversations and deadlines into one shared
-            place. Know what needs your attention, and keep your team moving
-            forward.
-          </p>
-          <div className={styles.actions}>
-            <Link className={styles.primary} href="/register">
-              Create your account →
-            </Link>
-            <Link className={styles.secondary} href="/about">
-              Explore TeamBoard
-            </Link>
-          </div>
-          <small>Built around your team. Focused on your next step.</small>
-        </div>
-        <div
-          className={styles.preview}
-          aria-label="Example TeamBoard dashboard"
-        >
-          <div className={styles.previewTop}>
-            ▥ TeamBoard <span>Product team</span>
-          </div>
-          <div className={styles.previewBody}>
-            <small>WORKSPACE / DASHBOARD</small>
-            <h2>Your work, at a glance.</h2>
-            <div className={styles.stats}>
-              <div>
-                Today<strong>4</strong>
-              </div>
-              <div>
-                Follow up<strong>2</strong>
-              </div>
-              <div>
-                Due soon<strong>6</strong>
-              </div>
+        <div className={styles.heroInner}>
+          <div className={styles.heroCopy}>
+            <h1>{copy.heroLead} <span>{copy.heroEnd}</span></h1>
+            <p>{copy.heroBody}</p>
+            <div className={styles.actions}>
+              <AuthEntry locale={locale} className={styles.primary} href="/register">{copy.heroAction}<WebsiteIcon name="arrow" className={styles.arrow} /></AuthEntry>
+              <Link className={styles.secondary} href={websitePath("/about", locale)}>{copy.explore}</Link>
             </div>
-            <div className={styles.sample}>
-              <strong>My Tasks</strong>
-              <p>
-                Design the next release <span>In progress</span>
-              </p>
-              <p>
-                Review onboarding <span>To do</span>
-              </p>
-              <p>
-                Share release notes <span>In review</span>
-              </p>
-            </div>
-            <small>Illustrative workspace · sample data</small>
           </div>
+          <WorkspacePreview locale={locale} />
         </div>
       </section>
       <section className={styles.section}>
-        <p className={styles.eyebrow}>LESS CONTEXT SWITCHING. MORE PROGRESS.</p>
-        <h2>Everything your team needs to move work forward.</h2>
-        <div className={styles.cards}>
-          {[
-            [
-              "Projects that stay organized",
-              "Keep ownership clear with workspaces, project roles and task boards.",
-            ],
-            [
-              "Conversations in context",
-              "Discuss tasks, reply to teammates and share files where the work happens.",
-            ],
-            [
-              "Deadlines you can see",
-              "Plan with calendars, set private reminders and keep track of upcoming work.",
-            ],
-            [
-              "A clear view of progress",
-              "See personal priorities on your dashboard and explore reports when you need more detail.",
-            ],
-          ].map(([title, body]) => (
-            <article className={styles.card} key={title}>
+        <h2>{copy.featureHeading}</h2>
+        <div className={styles.features}>
+          {copy.features.map(([title, body], index) => (
+            <article key={title}>
+              <span className={styles.featureIcon}><WebsiteIcon name={featureIcons[index]} /></span>
               <h3>{title}</h3>
               <p>{body}</p>
             </article>
           ))}
         </div>
       </section>
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <div>
-            <p className={styles.eyebrow}>FROM THE TEAMBOARD BLOG</p>
-            <h2>Ideas for better teamwork.</h2>
+      <section className={styles.blogBand}>
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>
+            <h2>{copy.latestArticles}</h2>
+            <Link className={styles.textLink} href={websitePath("/blog", locale)}>{copy.allArticles}<WebsiteIcon name="arrow" className={styles.arrow} /></Link>
           </div>
-          <Link href="/blog">All articles →</Link>
+          {articles?.results.length ? <PostList items={articles.results} locale={locale} headingLevel={3} /> : <p>{articles ? copy.noArticles : copy.unableArticles}</p>}
         </div>
-        {articles?.results.length ? (
-          <PostList items={articles.results.slice(0, 3)} />
-        ) : (
-          <p>
-            {articles
-              ? "Our first articles are on their way. Check back soon."
-              : "Articles are temporarily unavailable. Visit the blog to try again."}
-          </p>
-        )}
       </section>
-      <section className={styles.cta}>
-        <h2>Make room for your best work.</h2>
-        <p>Your projects and teammates, brought together.</p>
-        <Link className={styles.primary} href="/register">
-          Get started with TeamBoard
-        </Link>
+      <section className={styles.section}>
+        <div className={styles.cta}>
+          <h2>{copy.cta}</h2>
+          <AuthEntry locale={locale} className={styles.primary} href="/register">{copy.heroAction}<WebsiteIcon name="arrow" className={styles.arrow} /></AuthEntry>
+        </div>
       </section>
     </>
   );

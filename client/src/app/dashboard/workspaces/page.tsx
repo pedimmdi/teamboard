@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { useEffect, useState } from "react";
 import CreateWorkspaceModal from "./create-workspace-modal";
 import Avatar from "@/components/ui/Avatar";
@@ -15,34 +17,13 @@ import { useAuth } from "@/lib/auth";
 
 import styles from "./workspaces.module.css";
 
-function formatCreatedDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  }).format(new Date(value));
-}
+import { workspaceRoleLabel } from "../workspace-role";
+
+const WORKSPACE_PAGE_SIZE = 20;
 
 function getWorkspaceInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || "O";
 }
-
-function getRoleLabel(role: Workspace["role"]) {
-  switch (role?.toUpperCase()) {
-    case "OWNER":
-      return "Owner";
-
-    case "ADMIN":
-      return "Admin";
-
-    case "MEMBER":
-      return "Member";
-
-    default:
-      return "Unknown";
-  }
-}
-
 
 function ChevronRightIcon() {
   return (
@@ -63,6 +44,7 @@ function ChevronRightIcon() {
 }
 
 export default function WorkspacesPage() {
+  const { locale, t, formatDate, formatNumber } = useLocale();
   const { accessToken } = useAuth();
 
   const [workspaces, setWorkspaces] = useState<
@@ -119,7 +101,7 @@ export default function WorkspacesPage() {
           setError(error.message);
         } else {
           setError(
-            "Unable to load workspaces. Please try again.",
+            t("Unable to load workspaces. Please try again.", "فضاهای کاری بارگیری نشدند. دوباره تلاش کنید."),
           );
         }
       } finally {
@@ -134,10 +116,10 @@ export default function WorkspacesPage() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, page, reloadKey]);
+  }, [accessToken, page, reloadKey, t]);
 
   const startItem =
-    count === 0 ? 0 : (page - 1) * workspaces.length + 1;
+    count === 0 ? 0 : (page - 1) * WORKSPACE_PAGE_SIZE + 1;
 
   const endItem =
     count === 0
@@ -152,10 +134,10 @@ export default function WorkspacesPage() {
       <div className={styles.content}>
         <header className={styles.header}>
           <div>
-            <h1>Workspaces</h1>
+            <h1>{t("Workspaces", "فضاهای کاری")}</h1>
 
             <p>
-              Workspaces you belong to.
+              {t("Workspaces you belong to.", "فضاهای کاری که در آن‌ها عضویت دارید.")}
             </p>
           </div>
 
@@ -165,26 +147,24 @@ export default function WorkspacesPage() {
             onClick={() => setIsCreateOpen(true)}
             disabled={!accessToken}
           >
-            Create workspace
+            {t("Create workspace", "ایجاد فضای کاری")}
           </button>
         </header>
 
         {isLoading ? (
-          <div className={styles.loadingState}>
-            <div className={styles.loadingRow} />
-            <div className={styles.loadingRow} />
-            <div className={styles.loadingRow} />
+          <div className={styles.loadingState} role="status">
+            {t("Loading workspaces…", "در حال بارگیری فضاهای کاری…")}
           </div>
         ) : error ? (
-          <div className={styles.errorState}>
-            <p>{error}</p>
+          <div className={styles.errorState} role="alert">
+            <p>{localizeAccountMessage(locale, error, "فضاهای کاری بارگیری نشدند. دوباره تلاش کنید.")}</p>
 
             <button
               type="button"
               className={styles.secondaryButton}
-              onClick={() => setPage(1)}
+              onClick={() => setReloadKey((key) => key + 1)}
             >
-              Try again
+              {t("Try again", "تلاش دوباره")}
             </button>
           </div>
         ) : workspaces.length === 0 ? (
@@ -193,11 +173,10 @@ export default function WorkspacesPage() {
               <WorkspaceIcon />
             </div>
 
-            <h2>No workspaces yet</h2>
+            <h2>{t("No workspaces yet", "هنوز فضای کاری ندارید")}</h2>
 
             <p>
-              Create your first workspace, or accept an
-              invitation sent to your email address.
+              {t("Create your first workspace, or accept an invitation sent to your email address.", "اولین فضای کاری خود را بسازید یا دعوتی را که به ایمیل‌تان رسیده بپذیرید.")}
             </p>
           </section>
         ) : (
@@ -214,22 +193,22 @@ export default function WorkspacesPage() {
                   <Avatar className={styles.workspaceIcon} src={workspace.avatar} fallback={getWorkspaceInitial(workspace.name)} />
 
                   <div className={styles.workspaceInfo}>
-                    <div className={styles.workspaceName}>
+                    <div className={styles.workspaceName} dir="auto">
                       {workspace.name}
                     </div>
 
                     <div className={styles.workspaceDate}>
-                      Created{" "}
-                      {formatCreatedDate(
-                        workspace.created_at,
-                      )}
+                      {t("Created", "تاریخ ایجاد")}{" "}
+                      <time dateTime={workspace.created_at}>
+                        {formatDate(workspace.created_at, { month: "short", day: "2-digit", year: "numeric" })}
+                      </time>
                     </div>
                   </div>
 
                   <span
                     className={styles.roleBadge} data-role-tone={workspace.role ?? "member"}
                   >
-                    {getRoleLabel(workspace.role)}
+                    {workspaceRoleLabel(workspace.role, locale)}
                   </span>
 
                   <span
@@ -244,7 +223,7 @@ export default function WorkspacesPage() {
 
             <div className={styles.pagination}>
               <span className={styles.paginationInfo}>
-                Showing {startItem}–{endItem} of {count}
+                {t("Showing", "نمایش")} <bdi>{formatNumber(startItem)}–{formatNumber(endItem)}</bdi> {t("of", "از")} {formatNumber(count)}
               </span>
 
               <div className={styles.paginationActions}>
@@ -258,7 +237,7 @@ export default function WorkspacesPage() {
                     )
                   }
                 >
-                  Previous
+                  {t("Previous", "قبلی")}
                 </button>
 
                 <button
@@ -269,7 +248,7 @@ export default function WorkspacesPage() {
                     setPage((current) => current + 1)
                   }
                 >
-                  Next
+                  {t("Next", "بعدی")}
                 </button>
               </div>
             </div>

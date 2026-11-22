@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -11,6 +13,8 @@ import {
   type AcceptWorkspaceInvitationResponse,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { PreferencesControls } from "@/components/preferences-controls";
+import BrandMark from "@/components/ui/BrandMark";
 import { clearInvitationReturn, saveInvitationReturn } from "@/lib/invitation-return";
 
 import styles from "./accept-invitation.module.css";
@@ -18,11 +22,15 @@ import styles from "./accept-invitation.module.css";
 type InvitationStatus = "ready" | "success" | "error";
 
 function Brand() {
+  const { locale, t } = useLocale();
   return (
-    <Link href="/" className={styles.brand}>
-      <span className={styles.brandMark}>T</span>
-      <span>TeamBoard</span>
-    </Link>
+    <header className={styles.header}>
+      <Link href={locale === "fa" ? "/fa" : "/"} className={styles.brand}>
+        <span className={styles.brandMark}><BrandMark /></span>
+        <span>{t("TeamBoard", "تیم‌برد")}</span>
+      </Link>
+      <PreferencesControls compact />
+    </header>
   );
 }
 
@@ -54,6 +62,7 @@ function StatusIcon({
 }
 
 function InvitationContent() {
+  const { locale, t } = useLocale();
   const searchParams = useSearchParams();
   const invitationToken = searchParams.get("token")?.trim() ?? "";
 
@@ -104,7 +113,7 @@ function InvitationContent() {
       await logout();
       router.replace(loginPath);
     } catch {
-      setAccountError("Unable to sign out. Please try again.");
+      setAccountError(t("Unable to sign out. Please try again.", "خروج از حساب انجام نشد. دوباره تلاش کنید."));
       setIsSwitchingAccount(false);
     }
   }
@@ -147,7 +156,7 @@ function InvitationContent() {
               : err.message,
         );
       } else {
-        setError("Unable to accept this invitation. Please try again.");
+        setError(t("Unable to accept this invitation. Please try again.", "دعوت پذیرفته نشد. دوباره تلاش کنید."));
       }
     } finally {
       setIsSubmitting(false);
@@ -164,10 +173,11 @@ function InvitationContent() {
 
           {status === "success" && result ? (
             <>
-              <h1>You joined {result.workspace.name}.</h1>
+              <h1>{locale === "fa"
+                ? <>به <bdi>{result.workspace.name}</bdi> پیوستید.</>
+                : <>You joined <bdi>{result.workspace.name}</bdi>.</>}</h1>
               <p className={styles.description}>
-                You are now a member of this workspace.
-                You can start collaborating with your team.
+                {t("You are now a member of this workspace. You can start collaborating with your team.", "اکنون عضو این فضای کاری هستید و می‌توانید همکاری با تیم را شروع کنید.")}
               </p>
 
               <Link
@@ -176,35 +186,34 @@ function InvitationContent() {
                   result.workspace.slug,
                 )}`}
               >
-                Go to Workspace
+                {t("Go to Workspace", "رفتن به فضای کاری")}
               </Link>
 
               <Link
                 className={styles.secondaryLink}
                 href="/dashboard/workspaces"
               >
-                View all workspaces
+                {t("View all workspaces", "مشاهده همه فضاهای کاری")}
               </Link>
             </>
           ) : status === "error" ? (
             <>
-              <h1>This invitation can&apos;t be used</h1>
+              <h1>{t("This invitation can't be used", "امکان استفاده از این دعوت وجود ندارد")}</h1>
               <p className={styles.description}>
-                This invitation may be invalid, expired, revoked,
-                or intended for another account.
+                {t("This invitation may be invalid, expired, revoked, or intended for another account.", "شاید دعوت نامعتبر، منقضی یا لغو شده باشد، یا برای حساب دیگری صادر شده باشد.")}
               </p>
 
               <div className={styles.errorMessage} role="alert">
-                {error ?? "The invitation link is missing or invalid."}
+                {error ? localizeAccountMessage(locale, error, "دعوت پذیرفته نشد. دوباره تلاش کنید.") : t("The invitation link is missing or invalid.", "پیوند دعوت ناقص یا نامعتبر است.")}
               </div>
 
               {isAuthenticated ? (
                 <Link className={styles.primaryButton} href="/dashboard/workspaces">
-                  Go to workspaces
+                  {t("Go to workspaces", "رفتن به فضاهای کاری")}
                 </Link>
               ) : (
                 <Link className={styles.primaryButton} href={loginPath}>
-                  Sign in with another account
+                  {t("Sign in with another account", "ورود با حساب دیگر")}
                 </Link>
               )}
 
@@ -212,27 +221,24 @@ function InvitationContent() {
                 className={styles.secondaryLink}
                 href="/dashboard/workspaces"
               >
-                Go to workspaces
+                {t("Go to workspaces", "رفتن به فضاهای کاری")}
               </Link>
 
               <p className={styles.helpText}>
-                If the invitation has expired or was revoked,
-                ask an workspace admin to send a new one.
+                {t("If the invitation has expired or was revoked, ask an workspace admin to send a new one.", "اگر دعوت منقضی یا لغو شده، از مدیر فضای کاری بخواهید دعوت تازه‌ای بفرستد.")}
               </p>
             </>
           ) : (
             <>
-              <h1>Accept your invitation</h1>
+              <h1>{t("Accept your invitation", "دعوت‌تان را بپذیرید")}</h1>
 
               <p className={styles.description}>
-                You&apos;ve been invited to join an workspace
-                on TeamBoard. Accept the invitation to collaborate
-                with your team.
+                {t("You've been invited to join an workspace on TeamBoard. Accept the invitation to collaborate with your team.", "برای پیوستن به یک فضای کاری در تیم‌بورد دعوت شده‌اید. دعوت را بپذیرید تا با تیمتان همکاری کنید.")}
               </p>
 
               {isLoading ? (
                 <button className={styles.primaryButton} disabled>
-                  Checking session...
+                  {t("Checking session...", "در حال بررسی نشست…")}
                 </button>
               ) : isAuthenticated ? (
                 <>
@@ -243,13 +249,13 @@ function InvitationContent() {
                     onClick={() => void handleAccept()}
                   >
                     {isSubmitting
-                      ? "Accepting invitation..."
-                      : "Accept invitation"}
+                      ? t("Accepting invitation...", "در حال پذیرش دعوت…")
+                      : t("Accept invitation", "پذیرش دعوت")}
                   </button>
 
                   {user && (
                     <p className={styles.accountHint}>
-                      Signed in as {user.email}
+                      {t("Signed in as", "حساب فعلی")} {user.email}
                     </p>
                   )}
                 </>
@@ -260,7 +266,7 @@ function InvitationContent() {
                     href={loginPath}
                     onClick={() => saveInvitationReturn(returnPath)}
                   >
-                    Sign in to accept
+                    {t("Sign in to accept", "برای پذیرش وارد شوید")}
                   </Link>
 
                   <Link
@@ -268,7 +274,7 @@ function InvitationContent() {
                     href={registerPath}
                     onClick={() => saveInvitationReturn(returnPath)}
                   >
-                    Don&apos;t have an account? Sign up
+                    {t("Don't have an account? Sign up", "حساب ندارید؟ ثبت‌نام کنید")}
                   </Link>
                 </>
               )}
@@ -288,8 +294,8 @@ function InvitationContent() {
                     onClick={() => void handleSwitchAccount()}
                   >
                     {isSwitchingAccount
-                      ? "Switching account..."
-                      : "Not you? Use another account"}
+                      ? t("Switching account...", "در حال تغییر حساب…")
+                      : t("Not you? Use another account", "حساب دیگری دارید؟ با آن وارد شوید")}
                   </button>
                 </>
               )}
@@ -302,6 +308,7 @@ function InvitationContent() {
 }
 
 export default function AcceptInvitationPage() {
+  const { t } = useLocale();
   return (
     <Suspense
       fallback={
@@ -309,7 +316,7 @@ export default function AcceptInvitationPage() {
           <div className={styles.container}>
             <Brand />
             <div className={styles.card}>
-              <p className={styles.description}>Loading invitation...</p>
+              <p className={styles.description}>{t("Loading invitation...", "در حال بارگیری دعوت…")}</p>
             </div>
           </div>
         </main>

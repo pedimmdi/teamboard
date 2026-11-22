@@ -1,4 +1,5 @@
 import type { InboxNotification } from "@/lib/api";
+import type { Locale } from "@/lib/locale";
 
 const events = {
   task_assigned: ["You were assigned to a task", "✓", "task"],
@@ -12,8 +13,24 @@ const events = {
   project_role_changed: ["Your project role was updated", "↕", "project"],
 } as const;
 
-export function notificationContent(notification: InboxNotification) {
-  const [title, icon, tone] = events[notification.event_type] ??
+const persianTitles: Record<keyof typeof events, string> = {
+  task_assigned: "وظیفه‌ای به شما واگذار شد",
+  task_reminder: "یادآور وظیفه",
+  task_updated: "یکی از وظایف شما به‌روز شد",
+  comment_mentioned: "در دیدگاهی به شما اشاره شد",
+  comment_replied: "به دیدگاه شما پاسخ داده شد",
+  workspace_invited: "دعوت تازه‌ای برای یک فضای کاری دارید",
+  workspace_role_changed: "نقش شما در فضای کاری تغییر کرد",
+  project_member_added: "به پروژه‌ای اضافه شدید",
+  project_role_changed: "نقش شما در پروژه تغییر کرد",
+};
+
+const persianRoles: Readonly<Record<string, string>> = {
+  owner: "مالک", admin: "مدیر", member: "عضو", manager: "مدیر پروژه", viewer: "بیننده",
+};
+
+export function notificationContent(notification: InboxNotification, locale: Locale = "en") {
+  const [englishTitle, icon, tone] = events[notification.event_type] ??
     ["New activity", "•", "task"];
   const { workspace_slug, project, task, payload } = notification;
   const workspace = workspace_slug
@@ -31,10 +48,16 @@ export function notificationContent(notification: InboxNotification) {
     href = `${workspace}/members`;
   }
 
-  const role = [payload.old_role, payload.new_role]
-    .filter(Boolean).join(" → ") || payload.role;
+  const roles = [payload.old_role, payload.new_role].filter(Boolean);
+  if (roles.length === 0 && payload.role) roles.push(payload.role);
+  const role = locale === "fa"
+    ? roles.map((value) => {
+      const key = String(value).toLowerCase();
+      return Object.hasOwn(persianRoles, key) ? persianRoles[key] : value;
+    }).join(" ← ")
+    : roles.join(" → ");
   return {
-    title,
+    title: locale === "fa" ? persianTitles[notification.event_type] ?? "فعالیت تازه" : englishTitle,
     icon,
     tone,
     href,

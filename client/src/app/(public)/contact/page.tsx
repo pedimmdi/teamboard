@@ -1,21 +1,31 @@
+import { getLocale } from "@/lib/server-preferences";
 import { publicMetadata } from "@/lib/website";
+import { websiteCopy } from "@/lib/website-copy";
 import ContactForm from "@/components/website/contact-form";
+import { WebsiteIcon } from "@/components/website/website-icons";
 import styles from "../website.module.css";
-export const metadata = publicMetadata(
-  "Contact TeamBoard",
-  "Get in touch with TeamBoard. Send a question or share feedback about your workspace.",
-  "/contact",
-);
-export default function Contact() {
+
+export async function generateMetadata() {
+  const locale = await getLocale();
+  return publicMetadata(locale === "fa" ? "تماس با تیم‌برد" : "Contact TeamBoard", websiteCopy[locale].contactDescription, "/contact", locale);
+}
+
+export default async function Contact() {
+  const locale = await getLocale();
+  const copy = websiteCopy[locale];
   return (
-    <section className={styles.document}>
-      <p className={styles.eyebrow}>LET’S TALK</p>
-      <h1>How can we help?</h1>
-      <p>
-        Ask a question or tell us how TeamBoard could work better for your team.
-        Please don’t include passwords or other sensitive information.
-      </p>
-      <ContactForm />
+    <section className={styles.contact}>
+      <header className={styles.contactIntro}>
+        <span className={styles.featureIcon}><WebsiteIcon name="inbox" /></span>
+        <p className={styles.eyebrow}>{copy.contact}</p>
+        <h1>{copy.contactTitle}</h1>
+        <p>{copy.contactDescription}</p>
+        <p className={styles.contactSafety}><WebsiteIcon name="lock" />{copy.contactSafety}</p>
+      </header>
+      <div className={styles.contactPane}>
+        <h2>{copy.form.heading}</h2>
+        <ContactForm locale={locale} />
+      </div>
     </section>
   );
 }

@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 
@@ -22,6 +24,7 @@ import VerificationStatus from "@/components/auth/VerificationStatus";
 import styles from "./register.module.css";
 
 export default function RegisterPage() {
+  const { locale, t } = useLocale();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -31,13 +34,13 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
 
   const requirements = [
-    { label: "At least 8 characters", met: password.length >= 8 },
+    { label: t("At least 8 characters", "حداقل ۸ نویسه"), met: password.length >= 8 },
     {
-      label: "Not entirely numeric",
+      label: t("Not entirely numeric", "شامل چیزی بیش از اعداد"),
       met: password.length > 0 && !/^\d+$/.test(password),
     },
     {
-      label: "Passwords match",
+      label: t("Passwords match", "گذرواژه‌ها یکسان‌اند"),
       met: passwordConfirm.length > 0 && password === passwordConfirm,
     },
   ];
@@ -63,7 +66,7 @@ export default function RegisterPage() {
 
     if (password !== passwordConfirm) {
       setFieldErrors({
-        password_confirm: "Passwords do not match.",
+        password_confirm: t("Passwords do not match.", "گذرواژه‌ها یکسان نیستند."),
       });
       return;
     }
@@ -105,7 +108,7 @@ export default function RegisterPage() {
         setError(
           err instanceof Error
             ? err.message
-            : "Unable to create your account.",
+            : t("Unable to create your account.", "ایجاد حساب کاربری انجام نشد."),
         );
       }
     } finally {
@@ -118,13 +121,13 @@ export default function RegisterPage() {
       <VerificationShell>
         <VerificationStatus
           tone="info"
-          title="Check your inbox"
+          title={t("Check your inbox", "صندوق ایمیل خود را بررسی کنید")}
           description={
             <>
-              We&apos;ve sent a verification link to{" "}
-              <strong>{email}</strong>.
+              {t("We've sent a verification link to", "پیوند تأیید را فرستادیم به")}{" "}
+              <strong><bdi>{email}</bdi></strong>.
               <br />
-              Open the link in your email to activate your account.
+              {t("Open the link in your email to activate your account.", "پیوند داخل ایمیل را باز کنید تا حسابتان فعال شود.")}
             </>
           }
         >
@@ -134,7 +137,7 @@ export default function RegisterPage() {
             }).toString()}`}
             className={styles.verificationButton}
           >
-            Resend verification email
+            {t("Resend verification email", "ارسال دوباره ایمیل تأیید")}
           </Link>
 
           <Link
@@ -145,7 +148,7 @@ export default function RegisterPage() {
               saveInvitationReturn(params.get("next"));
             }}
           >
-            Already verified? Sign in
+            {t("Already verified? Sign in", "ایمیل را تأیید کرده‌اید؟ وارد شوید")}
           </Link>
         </VerificationStatus>
       </VerificationShell>
@@ -155,8 +158,8 @@ export default function RegisterPage() {
   return (
     <AuthShell>
       <div className={styles.header}>
-        <h2>Create your account</h2>
-        <p>Join TeamBoard and start working with your team.</p>
+        <h1>{t("Create your account", "حساب کاربری بسازید")}</h1>
+        <p>{t("Join TeamBoard and start working with your team.", "به تیم‌بورد بپیوندید و کار با تیمتان را شروع کنید.")}</p>
       </div>
 
       <form className={styles.form} onSubmit={handleSubmit}>
@@ -164,36 +167,36 @@ export default function RegisterPage() {
           id="email"
           name="email"
           type="email"
-          label="Email address"
+          label={t("Email address", "نشانی ایمیل")}
           placeholder="you@example.com"
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          error={fieldErrors.email}
+          error={localizeAccountMessage(locale, fieldErrors.email, "اطلاعات واردشده را بررسی کنید و دوباره تلاش کنید.")}
           required
         />
 
         <PasswordField
           id="password"
           name="password"
-          label="Password"
-          placeholder="Create a password"
+          label={t("Password", "گذرواژه")}
+          placeholder={t("Create a password", "یک گذرواژه انتخاب کنید")}
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          error={fieldErrors.password}
+          error={localizeAccountMessage(locale, fieldErrors.password, "اطلاعات واردشده را بررسی کنید و دوباره تلاش کنید.")}
           required
         />
 
         <PasswordField
           id="password-confirm"
           name="password-confirm"
-          label="Confirm password"
-          placeholder="Repeat your password"
+          label={t("Confirm password", "تکرار گذرواژه")}
+          placeholder={t("Repeat your password", "گذرواژه‌تان را دوباره وارد کنید")}
           autoComplete="new-password"
           value={passwordConfirm}
           onChange={(event) => setPasswordConfirm(event.target.value)}
-          error={fieldErrors.password_confirm}
+          error={localizeAccountMessage(locale, fieldErrors.password_confirm, "اطلاعات واردشده را بررسی کنید و دوباره تلاش کنید.")}
           required
         />
 
@@ -213,7 +216,7 @@ export default function RegisterPage() {
 
         {error && (
           <div className={styles.errorBanner} role="alert">
-            {error}
+            {localizeAccountMessage(locale, error, "اطلاعات واردشده را بررسی کنید و دوباره تلاش کنید.")}
           </div>
         )}
 
@@ -222,12 +225,12 @@ export default function RegisterPage() {
           loading={loading}
           className={styles.submit}
         >
-          Create account
+          {t("Create account", "ایجاد حساب")}
         </Button>
       </form>
 
       <p className={styles.footer}>
-        Already have an account?{" "}
+        {t("Already have an account?", "از قبل حساب کاربری دارید؟")}{" "}
         <Link
           href="/login"
           onClick={(event) => {
@@ -235,7 +238,7 @@ export default function RegisterPage() {
             window.location.assign(getLoginPath());
           }}
         >
-          Sign in
+          {t("Sign in", "ورود")}
         </Link>
       </p>
     </AuthShell>

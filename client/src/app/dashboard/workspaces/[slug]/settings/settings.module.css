@@ -9,7 +9,7 @@
 
 .heading h2 {
   margin: 0;
-  color: #0f172a;
+  color: var(--foreground);
   font-size: 22px;
   font-weight: 700;
   line-height: 30px;
@@ -17,21 +17,21 @@
 
 .heading p {
   margin: 5px 0 0;
-  color: #64748b;
+  color: var(--muted);
   font-size: 14px;
   line-height: 22px;
 }
 
 .card {
   padding: 24px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .card h3 {
   margin: 0 0 22px;
-  color: #0f172a;
+  color: var(--foreground);
   font-size: 16px;
   font-weight: 650;
 }
@@ -50,7 +50,7 @@
 
 .field label {
   margin-bottom: 8px;
-  color: #334155;
+  color: var(--foreground);
   font-size: 13px;
   font-weight: 600;
 }
@@ -60,29 +60,29 @@
   min-width: 0;
   min-height: 42px;
   padding: 10px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: #fff;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 14px;
   outline: none;
 }
 
 .field input:focus {
-  border-color: #4f46e5;
+  border-color: var(--primary);
   box-shadow: 0 0 0 3px rgb(79 70 229 / 12%);
 }
 
 .field input:disabled,
 .field input:read-only {
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--surface-subtle);
+  color: var(--muted);
 }
 
 .helper {
   margin-top: 8px;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 12px;
   line-height: 18px;
 }
@@ -95,14 +95,14 @@
 }
 
 .idField input {
-  padding-right: 76px;
+  padding-inline-end: 76px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .copyButton {
   position: absolute;
-  right: 5px;
+  inset-inline-end: 5px;
   top: 50%;
   transform: translateY(-50%);
   min-height: 30px;
@@ -110,7 +110,7 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #4f46e5;
+  color: var(--primary);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -118,7 +118,7 @@
 }
 
 .copyButton:hover {
-  background: #eef2ff;
+  background: var(--primary-soft);
 }
 
 .formActions {
@@ -130,10 +130,10 @@
 .saveButton {
   min-height: 40px;
   padding: 10px 18px;
-  border: 1px solid #4f46e5;
+  border: 1px solid var(--primary);
   border-radius: 8px;
-  background: #4f46e5;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -141,7 +141,7 @@
 }
 
 .saveButton:hover:not(:disabled) {
-  background: #4338ca;
+  background: var(--primary-hover);
 }
 
 .saveButton:disabled {
@@ -159,15 +159,15 @@
 }
 
 .error {
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-background);
+  color: var(--danger);
 }
 
 .success {
-  border: 1px solid #bbf7d0;
-  background: #f0fdf4;
-  color: #166534;
+  border: 1px solid var(--success-border);
+  background: var(--success-background);
+  color: var(--success);
 }
 
 @media (max-width: 768px) {
@@ -205,7 +205,7 @@
 
 .dangerZone > h3 {
   margin: 4px 0 0;
-  color: #0f172a;
+  color: var(--foreground);
   font-size: 16px;
   font-weight: 650;
 }
@@ -216,9 +216,9 @@
   justify-content: space-between;
   gap: 20px;
   padding: 20px 24px;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--danger-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .dangerRow > div {
@@ -227,14 +227,14 @@
 
 .dangerRow h4 {
   margin: 0 0 6px;
-  color: #0f172a;
+  color: var(--foreground);
   font-size: 14px;
   font-weight: 650;
 }
 
 .dangerRow p {
   margin: 0;
-  color: #64748b;
+  color: var(--muted);
   font-size: 12px;
   line-height: 20px;
 }
@@ -253,23 +253,23 @@
 }
 
 .secondaryDangerButton {
-  border: 1px solid #fecaca;
-  background: #fff;
-  color: #b91c1c;
+  border: 1px solid var(--danger-border);
+  background: var(--surface);
+  color: var(--danger);
 }
 
 .secondaryDangerButton:hover {
-  background: #fef2f2;
+  background: var(--danger-background);
 }
 
 .deleteButton {
-  border: 1px solid #dc2626;
-  background: #dc2626;
-  color: #fff;
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: var(--danger-background);
 }
 
 .deleteButton:hover {
-  background: #b91c1c;
+  background: var(--danger);
 }
 
 @media (max-width: 768px) {

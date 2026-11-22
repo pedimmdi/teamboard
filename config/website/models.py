@@ -93,6 +93,9 @@ class BlogPost(models.Model):
 
     # Markdown text; never render as untrusted raw HTML.
     content = models.TextField(max_length=50000)
+    title_fa = models.CharField(max_length=200, blank=True)
+    excerpt_fa = models.CharField(max_length=400, blank=True)
+    content_fa = models.TextField(max_length=50000, blank=True)
 
     status = models.CharField(
         max_length=12,
@@ -133,6 +136,10 @@ class BlogPost(models.Model):
                 name="website_post_publish_date",
             ),
         ]
+
+    @property
+    def has_persian_translation(self):
+        return bool(self.title_fa and self.content_fa)
 
     def __str__(self):
         return self.title

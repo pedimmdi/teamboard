@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import WorkspaceOverview from "../workspace-overview";
 
 import { useTransientMessage } from "@/hooks/use-transient-message";
@@ -25,6 +26,7 @@ import SettingsTransferModal from "./settings-transfer-modal";
 import styles from "./settings.module.css";
 
 export default function SettingsPage() {
+  const { ui } = useWorkspaceLocale();
   const { accessToken } = useAuth();
   const { workspace, updateWorkspace: updateContext } =
     useWorkspaceContext();
@@ -147,21 +149,19 @@ export default function SettingsPage() {
   return (
     <section className={styles.page}>
       <div className={styles.heading}>
-        <h2>Settings</h2>
-        <p>Manage your workspace settings.</p>
+        <h2>{ui("Settings")}</h2>
+        <p>{ui("Manage your workspace settings.")}</p>
       </div>
 
       <WorkspaceOverview />
 
       <div className={styles.card}>
-        <h3>General</h3>
+        <h3>{ui("General")}</h3>
 
         <form onSubmit={handleSave}>
           <div className={styles.fields}>
             <div className={styles.field}>
-              <label htmlFor="workspace-name">
-                Workspace name
-              </label>
+              <label htmlFor="workspace-name">{ui("Workspace name")}</label>
 
               <input
                 id="workspace-name"
@@ -179,15 +179,13 @@ export default function SettingsPage() {
 
               <span className={styles.helper}>
                 {canEdit
-                  ? "This name is visible to workspace members."
-                  : "Only owners and admins can change this name."}
+                  ? ui("This name is visible to workspace members.")
+                  : ui("Only owners and admins can change this name.")}
               </span>
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="workspace-id">
-                Workspace ID
-              </label>
+              <label htmlFor="workspace-id">{ui("Workspace ID")}</label>
 
               <div className={styles.idField}>
                 <input
@@ -201,28 +199,26 @@ export default function SettingsPage() {
                   type="button"
                   className={styles.copyButton}
                   onClick={() => void handleCopyId()}
-                  aria-label="Copy workspace ID"
-                  title="Copy workspace ID"
+                  aria-label={ui("Copy workspace ID")}
+                  title={ui("Copy workspace ID")}
                 >
-                  {isCopied ? "Copied" : "Copy"}
+                  {isCopied ? ui("Copied") : ui("Copy")}
                 </button>
               </div>
 
-              <span className={styles.helper}>
-                Used to identify this workspace.
-              </span>
+              <span className={styles.helper}>{ui("Used to identify this workspace.")}</span>
             </div>
           </div>
 
           {error && (
             <p className={styles.error} role="alert">
-              {error}
+              {ui(error)}
             </p>
           )}
 
           {success && (
             <p className={styles.success} role="status">
-              {success}
+              {ui(success)}
             </p>
           )}
 
@@ -238,7 +234,7 @@ export default function SettingsPage() {
                   normalizedName.length > 255
                 }
               >
-                {isSaving ? "Saving..." : "Save changes"}
+                {isSaving ? ui("Saving...") : ui("Save changes")}
               </button>
             </div>
           )}
@@ -249,7 +245,7 @@ export default function SettingsPage() {
         <ResourceAvatarEditor
           name={workspace.name}
           avatar={workspace.avatar}
-          label="Workspace image"
+          label={ui("Workspace image")}
           onSave={async (image) => {
             const updated = await updateResourceAvatar(accessToken, workspace.slug, image);
             updateContext(updated);
@@ -258,62 +254,50 @@ export default function SettingsPage() {
         />
       )}
       <div className={styles.dangerZone}>
-        <h3>Danger zone</h3>
+        <h3>{ui("Danger zone")}</h3>
 
         {workspace.role === "owner" && (
           <div className={styles.dangerRow}>
             <div>
-              <h4>Transfer ownership</h4>
-              <p>
-                Transfer ownership of this workspace to another member.
-              </p>
+              <h4>{ui("Transfer ownership")}</h4>
+              <p>{ui("Transfer ownership of this workspace to another member.")}</p>
             </div>
 
             <button
               type="button"
               className={styles.secondaryDangerButton}
               onClick={() => setActiveModal("transfer")}
-            >
-              Transfer ownership
-            </button>
+            >{ui("Transfer ownership")}</button>
           </div>
         )}
 
         {workspace.role !== "owner" && (
           <div className={styles.dangerRow}>
             <div>
-              <h4>Leave workspace</h4>
-              <p>
-                You will lose access to this workspace and its resources.
-              </p>
+              <h4>{ui("Leave workspace")}</h4>
+              <p>{ui("You will lose access to this workspace and its resources.")}</p>
             </div>
 
             <button
               type="button"
               className={styles.secondaryDangerButton}
               onClick={() => setActiveModal("leave")}
-            >
-              Leave workspace
-            </button>
+            >{ui("Leave workspace")}</button>
           </div>
         )}
 
         {workspace.role === "owner" && (
           <div className={`${styles.dangerRow} ${styles.deleteRow}`}>
             <div>
-              <h4>Delete workspace</h4>
-              <p>
-                Permanently delete this workspace and its associated data.
-              </p>
+              <h4>{ui("Delete workspace")}</h4>
+              <p>{ui("Permanently delete this workspace and its associated data.")}</p>
             </div>
 
             <button
               type="button"
               className={styles.deleteButton}
               onClick={() => setActiveModal("delete")}
-            >
-              Delete workspace
-            </button>
+            >{ui("Delete workspace")}</button>
           </div>
         )}
       </div>
@@ -329,9 +313,9 @@ export default function SettingsPage() {
 
       {activeModal === "leave" && (
         <ConfirmActionModal
-          title={`Leave ${workspace.name}?`}
-          description="You will lose access to this workspace. You can only rejoin if you are invited again."
-          confirmLabel="Leave workspace"
+          title={ui("Leave {0}?", workspace.name)}
+          description={ui("You will lose access to this workspace. You can only rejoin if you are invited again.")}
+          confirmLabel={ui("Leave workspace")}
           pendingLabel="Leaving..."
           onClose={() => setActiveModal(null)}
           onConfirm={handleLeave}
@@ -340,9 +324,9 @@ export default function SettingsPage() {
 
       {activeModal === "delete" && (
         <ConfirmActionModal
-          title={`Delete ${workspace.name}?`}
-          description="This action permanently deletes the workspace and its associated data. It cannot be undone."
-          confirmLabel="Delete workspace"
+          title={ui("Delete {0}?", workspace.name)}
+          description={ui("This action permanently deletes the workspace and its associated data. It cannot be undone.")}
+          confirmLabel={ui("Delete workspace")}
           pendingLabel="Deleting..."
           workspaceName={workspace.name}
           onClose={() => setActiveModal(null)}

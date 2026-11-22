@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -26,6 +27,7 @@ export default function TransferOwnershipModal({
   onClose,
   onTransferred,
 }: Props) {
+  const { ui } = useWorkspaceLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -122,18 +124,14 @@ export default function TransferOwnershipModal({
         aria-describedby="transfer-description"
         tabIndex={-1}
       >
-        <h2 id="transfer-title">Transfer ownership</h2>
+        <h2 id="transfer-title">{ui("Transfer ownership")}</h2>
 
         <p id="transfer-description" className={styles.description}>
-          You are about to transfer ownership of this workspace to
+          {ui("You are about to transfer ownership of this workspace to")}
           <strong> {member.user_email}</strong>.
         </p>
 
-        <div className={styles.warning}>
-          The selected member will become the new owner.
-          Your role will change to Admin, and you will lose
-          owner-only permissions.
-        </div>
+        <div className={styles.warning}>{ui("The selected member will become the new owner. Your role will change to Admin, and you will lose owner-only permissions.")}</div>
 
         <label className={styles.confirmation}>
           <input
@@ -142,12 +140,12 @@ export default function TransferOwnershipModal({
             disabled={isSubmitting}
             onChange={(event) => setConfirmed(event.target.checked)}
           />
-          <span>I understand the consequences of this transfer.</span>
+          <span>{ui("I understand the consequences of this transfer.")}</span>
         </label>
 
         {error && (
           <p className={styles.error} role="alert">
-            {error}
+            {ui(error)}
           </p>
         )}
 
@@ -157,9 +155,7 @@ export default function TransferOwnershipModal({
             className={styles.cancelButton}
             disabled={isSubmitting}
             onClick={onClose}
-          >
-            Cancel
-          </button>
+          >{ui("Cancel")}</button>
 
           <button
             type="button"
@@ -167,7 +163,7 @@ export default function TransferOwnershipModal({
             disabled={!confirmed || isSubmitting}
             onClick={handleTransfer}
           >
-            {isSubmitting ? "Transferring..." : "Transfer ownership"}
+            {isSubmitting ? ui("Transferring...") : ui("Transfer ownership")}
           </button>
         </div>
       </div>

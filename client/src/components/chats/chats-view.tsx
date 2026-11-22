@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useState } from "react";
 import {
   ApiError, getDirectChats, getProjectChat, getProjects, getWorkspaceMembers, startDirectChat,
@@ -12,6 +13,7 @@ import ChatIcon from "./chat-icon";
 import styles from "./chats.module.css";
 
 export default function ChatsView({ slug, projectId }: { slug: string; projectId?: string }) {
+  const { ui } = useWorkspaceLocale();
   const { accessToken, user } = useAuth();
   const {summary, failed, refresh} = useChatUnread();
   const [result, setResult] = useState<{ key: string; projects: Project[]; members: WorkspaceMember[]; direct: ChatConversation[]; projectChat?: ChatConversation }>();
@@ -77,23 +79,23 @@ export default function ChatsView({ slug, projectId }: { slug: string; projectId
     } finally { setOpening(false); }
   }
 
-  const thread = projectId && data?.projectChat ? { conversation: data.projectChat, title: "Project chat" } : selected;
+  const thread = projectId && data?.projectChat ? { conversation: data.projectChat, title: ui("Project chat") } : selected;
   const query = search.toLowerCase();
   return (
-    <section className={styles.chats} aria-label="Chats">
-      <header className={styles.heading}><span className={styles.icon}><ChatIcon /></span><div><h2>Chats</h2><p>Conversations with your team</p></div></header>
-      {failed && <p className={styles.error} role="alert">Unable to refresh unread counts. <button onClick={refresh}>Retry unread counts</button></p>}
-      {error && <div role="alert" className={styles.error}><p>{error}</p><button onClick={() => setRevision((value) => value + 1)}>Try again</button></div>}
-      {!data ? !error && <p role="status">Loading chats…</p> : (
+    <section className={styles.chats} aria-label={ui("Chats")}>
+      <header className={styles.heading}><span className={styles.icon}><ChatIcon /></span><div><h2>{ui("Chats")}</h2><p>{ui("Conversations with your team")}</p></div></header>
+      {failed && <p className={styles.error} role="alert">{ui("Unable to refresh unread counts.")} <button onClick={refresh}>{ui("Retry unread counts")}</button></p>}
+      {error && <div role="alert" className={styles.error}><p>{ui(error)}</p><button onClick={() => setRevision((value) => value + 1)}>{ui("Try again")}</button></div>}
+      {!data ? !error && <p role="status">{ui("Loading chats…")}</p> : (
         <div className={projectId ? undefined : styles.layout} data-selected={Boolean(thread)}>
-          {!projectId && <aside className={styles.sidebar} aria-label="Conversations">
-            <label>Find a conversation<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Project or teammate…" /></label>
-            <h3>Projects</h3>
-            {!data.projects.length && <p>No accessible projects.</p>}
+          {!projectId && <aside className={styles.sidebar} aria-label={ui("Conversations")}>
+            <label>{ui("Find a conversation")}<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={ui("Project or teammate…")} /></label>
+            <h3>{ui("Projects")}</h3>
+            {!data.projects.length && <p>{ui("No accessible projects.")}</p>}
             {data.projects.filter((project) => project.name.toLowerCase().includes(query)).map((project) => <button
               key={project.id} disabled={opening} aria-pressed={thread?.conversation.project === project.id}
               onClick={() => void openProject(project)}><span>{project.name}</span><ChatUnreadBadge count={summary.conversations.find((item) => item.project === project.id)?.unread_count ?? 0} /></button>)}
-            <h3>Direct messages</h3>
+            <h3>{ui("Direct messages")}</h3>
             {data.members.filter((member) => member.user_id !== user?.id && member.user_email.toLowerCase().includes(query)).map((member) =>
               <button key={member.id} disabled={opening}
                 aria-pressed={Boolean(thread?.conversation.type === "direct" &&
@@ -107,14 +109,14 @@ export default function ChatsView({ slug, projectId }: { slug: string; projectId
             {data.direct.filter((conversation) => {
               const recipient = conversation.direct_user_low === user?.id ? conversation.direct_user_high : conversation.direct_user_low;
               return !data.members.some((member) => member.user_id === recipient);
-            }).filter(() => "former member".includes(query)).map((conversation) =>
+            }).filter(() => ui("Former member").toLowerCase().includes(query)).map((conversation) =>
               <button key={conversation.id} aria-pressed={thread?.conversation.id === conversation.id}
-                onClick={() => setSelected({conversation, title: "Former member"})}><span>Former member</span><ChatUnreadBadge count={summary.conversations.find((item) => item.id === conversation.id)?.unread_count ?? 0} /></button>)}
+                onClick={() => setSelected({conversation, title: ui("Former member")})}><span>{ui("Former member")}</span><ChatUnreadBadge count={summary.conversations.find((item) => item.id === conversation.id)?.unread_count ?? 0} /></button>)}
           </aside>}
           <div className={styles.threadArea}>
-            {!projectId && thread && <button className={styles.back} onClick={() => setSelected(null)}>← Conversations</button>}
+            {!projectId && thread && <button className={styles.back} onClick={() => setSelected(null)}>{ui("← Conversations")}</button>}
             {thread ? <ChatThread key={thread.conversation.id} slug={slug} conversation={thread.conversation.id} title={thread.title} members={data.members} /> : (
-              <div className={styles.empty}><ChatIcon /><h3>Your team conversations</h3><p>Choose a project or start a direct message with a teammate.</p></div>
+              <div className={styles.empty}><ChatIcon /><h3>{ui("Your team conversations")}</h3><p>{ui("Choose a project or start a direct message with a teammate.")}</p></div>
             )}
           </div>
         </div>

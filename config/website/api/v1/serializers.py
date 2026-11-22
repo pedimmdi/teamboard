@@ -55,7 +55,21 @@ class ContactMessageSubmitResponseSerializer(serializers.Serializer):
     detail = serializers.CharField(read_only=True)
 
 
-class PublicBlogPostListSerializer(serializers.ModelSerializer):
+class PublicBlogPostSerializer(serializers.ModelSerializer):
+    has_persian_translation = serializers.BooleanField(read_only=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request and request.query_params.get("lang") == "fa" and instance.has_persian_translation:
+            data["title"] = instance.title_fa
+            data["excerpt"] = instance.excerpt_fa
+            if "content" in data:
+                data["content"] = instance.content_fa
+        return data
+
+
+class PublicBlogPostListSerializer(PublicBlogPostSerializer):
     """
     A lightweight article representation for blog listings.
     """
@@ -69,12 +83,14 @@ class PublicBlogPostListSerializer(serializers.ModelSerializer):
             "slug",
             "excerpt",
             "published_at",
+            "updated_at",
+            "has_persian_translation",
         )
 
         read_only_fields = fields
 
 
-class PublicBlogPostDetailSerializer(serializers.ModelSerializer):
+class PublicBlogPostDetailSerializer(PublicBlogPostSerializer):
     """
     Public article details, including Markdown content.
     """
@@ -90,6 +106,7 @@ class PublicBlogPostDetailSerializer(serializers.ModelSerializer):
             "content",
             "published_at",
             "updated_at",
+            "has_persian_translation",
         )
 
         read_only_fields = fields

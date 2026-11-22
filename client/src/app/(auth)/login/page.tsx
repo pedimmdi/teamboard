@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,6 +24,7 @@ import {
 import styles from "./login.module.css";
 
 export default function LoginPage() {
+  const { locale, t } = useLocale();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -64,7 +67,7 @@ export default function LoginPage() {
       setError(
         err instanceof ApiError || err instanceof Error
           ? err.message
-          : "Unable to sign in. Please try again.",
+          : t("Unable to sign in. Please try again.", "ورود انجام نشد. دوباره تلاش کنید."),
       );
     } finally {
       setLoading(false);
@@ -82,20 +85,22 @@ export default function LoginPage() {
     return getInvitationAuthUrl("/register", returnPath);
   }
 
-  if (isLoading || isAuthenticated) return <p role="status">Restoring your session…</p>;
+  if (isLoading || isAuthenticated) return (
+    <AuthShell><p role="status">{t("Restoring your session…", "در حال بازیابی نشست شما…")}</p></AuthShell>
+  );
 
   return (
     <AuthShell>
       <div className={styles.header}>
-        <h2>Welcome back</h2>
-        <p>Sign in to your TeamBoard account.</p>
+        <h1>{t("Welcome back", "خوش برگشتید")}</h1>
+        <p>{t("Sign in to your TeamBoard account.", "وارد حساب تیم‌بورد خود شوید.")}</p>
       </div>
 
       <form className={styles.form} onSubmit={handleSubmit}>
         {error && (
           <div className={styles.errorBanner} role="alert">
             <span aria-hidden="true">!</span>
-            <p>{error}</p>
+            <p>{localizeAccountMessage(locale, error, "ورود انجام نشد. دوباره تلاش کنید.")}</p>
           </div>
         )}
 
@@ -103,7 +108,7 @@ export default function LoginPage() {
           id="email"
           name="email"
           type="email"
-          label="Email address"
+          label={t("Email address", "نشانی ایمیل")}
           placeholder="you@example.com"
           autoComplete="email"
           value={email}
@@ -114,12 +119,12 @@ export default function LoginPage() {
         <PasswordField
           id="password"
           name="password"
-          label="Password"
-          placeholder="Enter your password"
+          label={t("Password", "گذرواژه")}
+          placeholder={t("Enter your password", "گذرواژه خود را وارد کنید")}
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          action={<Link href="/forgot-password">Forgot password?</Link>}
+          action={<Link href="/forgot-password">{t("Forgot password?", "گذرواژه را فراموش کرده‌اید؟")}</Link>}
           required
         />
 
@@ -128,12 +133,12 @@ export default function LoginPage() {
           loading={loading}
           className={styles.submit}
         >
-          Sign in
+          {t("Sign in", "ورود")}
         </Button>
       </form>
 
       <p className={styles.footer}>
-        Don&apos;t have an account?{" "}
+        {t("Don't have an account?", "حساب کاربری ندارید؟")}{" "}
         <Link
           href="/register"
           onClick={(event) => {
@@ -141,7 +146,7 @@ export default function LoginPage() {
             router.push(getRegisterPath());
           }}
         >
-          Create one
+          {t("Create one", "ثبت‌نام")}
         </Link>
       </p>
     </AuthShell>

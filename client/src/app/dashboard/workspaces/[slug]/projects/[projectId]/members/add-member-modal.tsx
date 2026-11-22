@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
@@ -32,6 +33,7 @@ export default function AddMemberModal({
   onClose: () => void;
   onAdded: () => void;
 }) {
+  const { ui } = useWorkspaceLocale();
   const id = useId();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [userId, setUserId] = useState("");
@@ -105,46 +107,37 @@ export default function AddMemberModal({
   }
   return (
     <ProjectDialog
-      title="Add a member"
-      description={`Choose someone from ${workspaceName} to give access to ${projectName}.`}
+      title={ui("Add a member")}
+      description={ui("Choose someone from {0} to give access to {1}.", workspaceName, projectName)}
       busy={busy}
       onClose={onClose}
     >
       {loading ? (
-        <p role="status" className={styles.muted}>
-          Loading workspace members…
-        </p>
+        <p role="status" className={styles.muted}>{ui("Loading workspace members…")}</p>
       ) : (
         <form className={styles.form} onSubmit={submit}>
           {error && (
             <p className={styles.alert} role="alert">
-              {error}
+              {ui(error)}
             </p>
           )}
           {!members.length ? (
             <>
-              <p className={styles.muted}>
-                No available workspace members. Everyone is already in this
-                project, or workspace members could not be loaded.
-              </p>
+              <p className={styles.muted}>{ui("No available workspace members. Everyone is already in this project, or workspace members could not be loaded.")}</p>
               <Link
                 href={`/dashboard/workspaces/${encodeURIComponent(slug)}/members`}
                 className={styles.secondaryButton}
-              >
-                View workspace people
-              </Link>
+              >{ui("View workspace people")}</Link>
               <button
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => setReload((value) => value + 1)}
-              >
-                Reload members
-              </button>
+              >{ui("Reload members")}</button>
             </>
           ) : (
             <>
               <div className={styles.field}>
-                <label htmlFor={`${id}-member`}>Workspace member</label>
+                <label htmlFor={`${id}-member`}>{ui("Workspace member")}</label>
                 <select
                   id={`${id}-member`}
                   value={userId}
@@ -152,7 +145,7 @@ export default function AddMemberModal({
                   onChange={(event) => setUserId(event.target.value)}
                   required
                 >
-                  <option value="">Select a workspace member</option>
+                  <option value="">{ui("Select a workspace member")}</option>
                   {members.map((member) => (
                     <option key={member.id} value={member.user_id}>
                       {member.user_email}
@@ -161,7 +154,7 @@ export default function AddMemberModal({
                 </select>
               </div>
               <fieldset className={styles.roles} disabled={busy}>
-                <legend>Role</legend>
+                <legend>{ui("Role")}</legend>
                 {(["member", "manager"] as const).map((value) => (
                   <label
                     key={value}
@@ -177,12 +170,12 @@ export default function AddMemberModal({
                     />
                     <span>
                       <strong>
-                        {value === "manager" ? "Manager" : "Member"}
+                        {value === "manager" ? ui("Manager") : ui("Member")}
                       </strong>
                       <small>
                         {value === "manager"
-                          ? "Can manage details and members. Only workspace owners and admins can assign this role."
-                          : "Can view the project and its members."}
+                          ? ui("Can manage details and members. Only workspace owners and admins can assign this role.")
+                          : ui("Can view the project and its members.")}
                       </small>
                     </span>
                   </label>
@@ -196,15 +189,13 @@ export default function AddMemberModal({
               className={styles.secondaryButton}
               disabled={busy}
               onClick={onClose}
-            >
-              Cancel
-            </button>
+            >{ui("Cancel")}</button>
             {members.length > 0 && (
               <button
                 className={styles.primaryButton}
                 disabled={busy || !userId}
               >
-                {busy ? "Adding…" : "Add member"}
+                {busy ? ui("Adding…") : ui("Add member")}
               </button>
             )}
           </div>

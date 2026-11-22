@@ -1,12 +1,12 @@
 .card {
   padding: 20px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
 }
 .card h2 { margin: 0 0 12px; font-size: 16px; }
-.card p { margin: 8px 0 0; color: #475569; font-size: 13px; }
-.card .error { color: #b91c1c; }
+.card p { margin: 8px 0 0; color: var(--text-secondary); font-size: 13px; }
+.card .error { color: var(--danger); }
 .controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .avatar {
   display: grid;
@@ -14,19 +14,19 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--primary-soft);
+  color: var(--primary-hover);
 }
 .controls button {
   min-height: 36px;
   padding: 6px 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: white;
-  color: #334155;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
 }
-.controls button:hover:enabled { background: #f1f5f9; }
+.controls button:hover:enabled { background: var(--surface-subtle); }
 .controls button:disabled { opacity: 0.6; }

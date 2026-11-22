@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useId, useRef, useState } from "react";
 import type { ProjectMember } from "@/lib/api";
 import styles from "../../projects.module.css";
@@ -17,6 +18,7 @@ export default function MemberActions({
   onRole: () => void;
   onRemove: () => void;
 }) {
+  const { ui } = useWorkspaceLocale();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -85,7 +87,7 @@ export default function MemberActions({
       <button
         className={styles.iconButton}
         ref={button}
-        aria-label={`Actions for ${member.user_email}`}
+        aria-label={ui("Actions for {0}", member.user_email)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? id : undefined}
@@ -100,7 +102,7 @@ export default function MemberActions({
             className={styles.actionMenu}
             role="menu"
             id={id}
-            aria-label={`Actions for ${member.user_email}`}
+            aria-label={ui("Actions for {0}", member.user_email)}
             onBlur={(event) => {
               if (
                 !event.currentTarget.contains(event.relatedTarget as Node) &&
@@ -118,7 +120,7 @@ export default function MemberActions({
                   onRole();
                 }}
               >
-                {member.role === "manager" ? "Make member" : "Make manager"}
+                {member.role === "manager" ? ui("Make member") : ui("Make manager")}
               </button>
             )}
             {canRemove && (
@@ -129,9 +131,7 @@ export default function MemberActions({
                   setOpen(false);
                   onRemove();
                 }}
-              >
-                Remove from project
-              </button>
+              >{ui("Remove from project")}</button>
             )}
             <button
               className={styles.mobileMenuClose}
@@ -140,9 +140,7 @@ export default function MemberActions({
                 setOpen(false);
                 button.current?.focus();
               }}
-            >
-              Cancel
-            </button>
+            >{ui("Cancel")}</button>
           </div>
         </>
       )}

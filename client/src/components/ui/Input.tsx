@@ -19,11 +19,13 @@ export default function Input({
 
       <input
         id={id}
+        dir={props.type === "email" ? "ltr" : undefined}
         aria-invalid={Boolean(error)}
+        aria-describedby={id && error ? `${id}-error` : undefined}
         {...props}
       />
 
-      {error && <p className="input-error">{error}</p>}
+      {error && <p id={id ? `${id}-error` : undefined} className="input-error">{error}</p>}
     </div>
   );
 }

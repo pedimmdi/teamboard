@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import styles from "./projects.module.css";
 
@@ -16,6 +17,7 @@ export default function ProjectDialog({
   onClose: () => void;
   busy?: boolean;
 }) {
+  const { ui } = useWorkspaceLocale();
   const titleId = useId();
   const descriptionId = useId();
   const ref = useRef<HTMLDivElement>(null);
@@ -82,11 +84,11 @@ export default function ProjectDialog({
         tabIndex={-1}
       >
         <div className={styles.dialogHeader}>
-          <h2 id={titleId}>{title}</h2>
+          <h2 id={titleId}>{ui(title)}</h2>
           <button
             className={styles.iconButton}
             type="button"
-            aria-label="Close dialog"
+            aria-label={ui("Close dialog")}
             disabled={busy}
             onClick={onClose}
           >

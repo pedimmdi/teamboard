@@ -1,3 +1,4 @@
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useRef, useState, type TextareaHTMLAttributes } from "react";
 import type { ProjectMember } from "@/lib/api";
 import styles from "./task-comments.module.css";
@@ -12,6 +13,7 @@ export default function CommentInput({
   onValueChange: (value: string) => void;
   members: ProjectMember[];
 }) {
+  const { ui } = useWorkspaceLocale();
   const input = useRef<HTMLTextAreaElement>(null);
   const [caret, setCaret] = useState(0);
   const [dismissed, setDismissed] = useState(false);
@@ -40,7 +42,7 @@ export default function CommentInput({
         }}
       />
       {match && suggestions.length > 0 && (
-        <div className={styles.mentions} role="group" aria-label="Mention a project member">
+        <div className={styles.mentions} role="group" aria-label={ui("Mention a project member")}>
           {suggestions.map((member) => (
             <button key={member.id} type="button" onClick={() => {
               const start = caret - match[1].length - 1;

@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Locally supplied, licensed font files
+/public/fonts/iransansx/

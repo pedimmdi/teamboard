@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useLocale } from "@/lib/preferences";
 
 export default function Avatar({
   src,
@@ -14,6 +15,7 @@ export default function Avatar({
   className?: string;
   size?: number;
 }) {
+  const { t } = useLocale();
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   return (
@@ -21,7 +23,7 @@ export default function Avatar({
       {src && failedSrc !== src ? (
         <Image
           src={src}
-          alt="Profile picture"
+          alt={t("Profile picture", "عکس نمایه")}
           width={size}
           height={size}
           unoptimized

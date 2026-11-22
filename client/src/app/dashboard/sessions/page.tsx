@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { useEffect, useState } from "react";
 
 import {
@@ -9,6 +11,7 @@ import {
   UserSession,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { regionalLocale } from "@/lib/locale";
 
 import styles from "../dashboard.module.css";
 
@@ -56,92 +59,101 @@ function PhoneIcon() {
   );
 }
 
-function getDeviceInfo(userAgent: string) {
+type Translator = ReturnType<typeof useLocale>["t"];
+
+function getDeviceInfo(userAgent: string, t: Translator) {
   const ua = userAgent.toLowerCase();
 
   const isIPhone = ua.includes("iphone");
   const isIPad = ua.includes("ipad");
   const isAndroid = ua.includes("android");
 
-  let browser = "Browser";
+  let browser = t("Browser", "مرورگر");
 
   if (ua.includes("edg/")) {
-    browser = "Edge";
+    browser = t("Edge", "اج");
   } else if (ua.includes("chrome") && !ua.includes("edg/")) {
-    browser = "Chrome";
+    browser = t("Chrome", "کروم");
   } else if (ua.includes("firefox")) {
-    browser = "Firefox";
+    browser = t("Firefox", "فایرفاکس");
   } else if (ua.includes("safari") && !ua.includes("chrome")) {
-    browser = "Safari";
+    browser = t("Safari", "سافاری");
   }
+
+  const deviceLabel = (english: string, persian: string) => t(
+    `${browser} on ${english}`,
+    `${browser} در ${persian}`,
+  );
 
   if (isIPhone) {
     return {
-      name: `${browser} on iPhone`,
+      name: deviceLabel("iPhone", "آیفون"),
       type: "phone" as const,
     };
   }
 
   if (isIPad) {
     return {
-      name: `${browser} on iPad`,
+      name: deviceLabel("iPad", "آیپد"),
       type: "phone" as const,
     };
   }
 
   if (isAndroid) {
     return {
-      name: `${browser} on Android`,
+      name: deviceLabel("Android", "اندروید"),
       type: "phone" as const,
     };
   }
 
-  let operatingSystem = "Desktop";
+  let name = deviceLabel("Desktop", "رایانه");
 
   if (ua.includes("mac os")) {
-    operatingSystem = "macOS";
+    name = deviceLabel("macOS", "مک");
   } else if (ua.includes("windows")) {
-    operatingSystem = "Windows";
+    name = deviceLabel("Windows", "ویندوز");
   } else if (ua.includes("linux")) {
-    operatingSystem = "Linux";
+    name = deviceLabel("Linux", "لینوکس");
   }
 
   return {
-    name: `${browser} on ${operatingSystem}`,
+    name,
     type: "desktop" as const,
   };
 }
 
-function formatRelativeTime(dateString: string) {
+function formatRelativeTime(dateString: string, locale: ReturnType<typeof useLocale>["locale"], t: Translator) {
   const timestamp = new Date(dateString).getTime();
 
   if (Number.isNaN(timestamp)) {
-    return "Unknown";
+    return t("Unknown", "نامشخص");
   }
 
   const diff = Math.max(0, Date.now() - timestamp);
   const minutes = Math.floor(diff / 60000);
 
   if (minutes < 1) {
-    return "just now";
+    return t("just now", "همین حالا");
   }
 
+  const formatter = new Intl.RelativeTimeFormat(regionalLocale(locale));
   if (minutes < 60) {
-    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+    return formatter.format(-minutes, "minute");
   }
 
   const hours = Math.floor(minutes / 60);
 
   if (hours < 24) {
-    return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+    return formatter.format(-hours, "hour");
   }
 
   const days = Math.floor(hours / 24);
 
-  return `${days} ${days === 1 ? "day" : "days"} ago`;
+  return formatter.format(-days, "day");
 }
 
 export default function SessionsPage() {
+  const { locale, t } = useLocale();
   const { accessToken, isAuthenticated, isLoading } = useAuth();
 
   const [sessions, setSessions] = useState<UserSession[]>([]);
@@ -172,7 +184,7 @@ export default function SessionsPage() {
           setErrorMessage(
             error instanceof Error
               ? error.message
-              : "Unable to load active sessions.",
+              : t("Unable to load active sessions.", "نشست‌های فعال بارگیری نشدند."),
           );
         }
       } finally {
@@ -187,7 +199,7 @@ export default function SessionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, isAuthenticated, isLoading]);
+  }, [accessToken, isAuthenticated, isLoading, t]);
 
   if (isLoading || !isAuthenticated || !accessToken) {
     return null;
@@ -206,7 +218,7 @@ export default function SessionsPage() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Unable to revoke this session.",
+          : t("Unable to revoke this session.", "پایان دادن به این نشست انجام نشد."),
       );
     } finally {
       setRevokingId(null);
@@ -226,7 +238,7 @@ export default function SessionsPage() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Unable to sign out of other devices.",
+          : t("Unable to sign out of other devices.", "خروج از حساب در سایر دستگاه‌ها انجام نشد."),
       );
     } finally {
       setIsRevokingOthers(false);
@@ -240,8 +252,8 @@ export default function SessionsPage() {
       <div className={styles.content}>
         <header className={styles.pageHeaderWithAction}>
           <div>
-            <h1>Active sessions</h1>
-            <p>Devices that are currently signed in to your account.</p>
+            <h1>{t("Active sessions", "نشست‌های فعال")}</h1>
+            <p>{t("Devices that are currently signed in to your account.", "دستگاه‌هایی که اکنون به حساب شما وارد شده‌اند.")}</p>
           </div>
 
           <button
@@ -251,23 +263,23 @@ export default function SessionsPage() {
             disabled={isRevokingOthers || otherSessions.length === 0}
           >
             {isRevokingOthers
-              ? "Signing out..."
-              : "Sign out of other devices"}
+              ? t("Signing out...", "در حال خروج…")
+              : t("Sign out of other devices", "خروج از حساب در سایر دستگاه‌ها")}
           </button>
         </header>
 
         {errorMessage && (
-          <p className={styles.errorMessage}>{errorMessage}</p>
+          <p className={styles.errorMessage}>{localizeAccountMessage(locale, errorMessage, "عملیات نشست انجام نشد. دوباره تلاش کنید.")}</p>
         )}
 
         <div className={styles.sessionsList}>
           {isLoadingSessions ? (
-            <div className={styles.emptyState}>Loading sessions...</div>
+            <div className={styles.emptyState}>{t("Loading sessions...", "در حال بارگیری نشست‌ها…")}</div>
           ) : sessions.length === 0 ? (
-            <div className={styles.emptyState}>No active sessions found.</div>
+            <div className={styles.emptyState}>{t("No active sessions found.", "نشست فعالی پیدا نشد.")}</div>
           ) : (
             sessions.map((session) => {
-              const device = getDeviceInfo(session.user_agent);
+              const device = getDeviceInfo(session.user_agent, t);
 
               return (
                 <div
@@ -290,14 +302,15 @@ export default function SessionsPage() {
 
                       {session.is_current && (
                         <span className={styles.successBadge}>
-                          This device
+                          {t("This device", "این دستگاه")}
                         </span>
                       )}
                     </div>
 
                     <p>
-                      IP {session.ip_address ?? "Unavailable"} · Last active{" "}
-                      {formatRelativeTime(session.last_seen_at)}
+                      {t("IP", "نشانی IP")} <bdi>{session.ip_address ?? t("Unavailable", "در دسترس نیست")}</bdi>
+                      {" · "}{t("Last active", "آخرین فعالیت")}{" "}
+                      {formatRelativeTime(session.last_seen_at, locale, t)}
                     </p>
                   </div>
 
@@ -308,7 +321,7 @@ export default function SessionsPage() {
                       onClick={() => handleRevoke(session.id)}
                       disabled={revokingId === session.id}
                     >
-                      {revokingId === session.id ? "Revoking..." : "Revoke"}
+                      {revokingId === session.id ? t("Revoking...", "در حال پایان دادن…") : t("Revoke", "پایان دادن به نشست")}
                     </button>
                   )}
                 </div>
@@ -318,7 +331,7 @@ export default function SessionsPage() {
         </div>
 
         <p className={styles.sessionHint}>
-          Revoking a session signs that device out immediately.
+          {t("Revoking a session signs that device out immediately.", "پایان دادن به نشست بلافاصله آن دستگاه را از حسابتان خارج می‌کند.")}
         </p>
       </div>
     </section>

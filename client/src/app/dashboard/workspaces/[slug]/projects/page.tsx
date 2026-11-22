@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createProject, getProjects, type PaginatedProjects } from "@/lib/api";
@@ -20,6 +21,7 @@ function subscribeToMobile(callback: () => void) {
 }
 
 export default function ProjectsPage() {
+  const { ui, locale, formatNumber } = useWorkspaceLocale();
   const workspace = useWorkspace();
   const { accessToken } = useAuth();
   const [result, setResult] = useState<PaginatedProjects | null>(null);
@@ -61,7 +63,7 @@ export default function ProjectsPage() {
     <span
       className={`${styles.badge} ${role === "manager" ? styles.manager : ""}`} data-role-tone={role === "member" ? "member" : role === null ? "admin" : undefined}
     >
-      {projectRoleLabel(role)}
+      {ui(projectRoleLabel(role))}
     </span>
   );
   const start = result?.results.length ? (page - 1) * 20 + 1 : 0;
@@ -70,9 +72,9 @@ export default function ProjectsPage() {
       <div className={styles.content}>
         <header className={styles.header}>
           <div>
-            <h1>Projects</h1>
+            <h1>{ui("Projects")}</h1>
             <p>
-              {canCreate ? "All projects in" : "Projects you’re a member of in"}{" "}
+              {canCreate ? ui("All projects in") : ui("Projects you’re a member of in")}{" "}
               {workspace.name}.
             </p>
           </div>
@@ -80,12 +82,10 @@ export default function ProjectsPage() {
             <button
               className={styles.primaryButton}
               onClick={() => setCreating(true)}
-            >
-              New project
-            </button>
+            >{ui("New project")}</button>
           )}
         </header>
-        <div hidden={mobile} className={mobile ? undefined : styles.projectView} role="group" aria-label="Project view">
+        <div hidden={mobile} className={mobile ? undefined : styles.projectView} role="group" aria-label={ui("Project view")}>
           {(["board", "list"] as const).map((option) => (
             <button
               type="button"
@@ -98,25 +98,21 @@ export default function ProjectsPage() {
               }}
             >
               <TaskIcon name={option} />
-              {option === "board" ? "Board" : "List"}
+              {option === "board" ? ui("Board") : ui("List")}
             </button>
           ))}
         </div>
         {loading ? (
-          <div className={styles.status} role="status">
-            Loading projects…
-          </div>
+          <div className={styles.status} role="status">{ui("Loading projects…")}</div>
         ) : error ? (
           <div className={styles.status}>
             <p role="alert" className={styles.alert}>
-              {error}
+              {ui(error)}
             </p>
             <button
               className={styles.secondaryButton}
               onClick={() => setReload((value) => value + 1)}
-            >
-              Try again
-            </button>
+            >{ui("Try again")}</button>
           </div>
         ) : result?.results.length ? (
           <div className={styles.tableCard}>
@@ -131,7 +127,7 @@ export default function ProjectsPage() {
                     <p className={styles.rowDescription}>{project.description}</p>
                     <div className={styles.mobileFooter}>
                       {badge(project.role)}
-                      <span>{formatProjectDate(project.created_at)}</span>
+                      <span>{formatProjectDate(project.created_at, locale)}</span>
                     </div>
                   </Link>
                 ))}
@@ -141,10 +137,10 @@ export default function ProjectsPage() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>PROJECT</th>
-                    <th>YOUR ROLE</th>
-                    <th>CREATED</th>
-                    <th aria-label="Open project" />
+                    <th>{ui("PROJECT")}</th>
+                    <th>{ui("YOUR ROLE")}</th>
+                    <th>{ui("CREATED")}</th>
+                    <th aria-label={ui("Open project")} />
                   </tr>
                 </thead>
                 <tbody>
@@ -163,11 +159,11 @@ export default function ProjectsPage() {
                         </p>
                       </td>
                       <td>{badge(project.role)}</td>
-                      <td>{formatProjectDate(project.created_at)}</td>
+                      <td>{formatProjectDate(project.created_at, locale)}</td>
                       <td>
                         <Link
                           href={`${base}/${project.id}/tasks`}
-                          aria-label={`Open ${project.name}`}
+                          aria-label={ui("Open {0}", project.name)}
                         >
                           <DesignIcon name="chevron-right" />
                         </Link>
@@ -192,10 +188,10 @@ export default function ProjectsPage() {
                   </div>
                   <p className={styles.rowDescription}>{project.description}</p>
                   <div className={styles.mobileFooter}>
-                    <span>Created {formatProjectDate(project.created_at)}</span>
+                    <span>{ui("Created")} {formatProjectDate(project.created_at, locale)}</span>
                     <Link
                       href={`${base}/${project.id}/tasks`}
-                      aria-label={`Open ${project.name}`}
+                      aria-label={ui("Open {0}", project.name)}
                     >
                       <DesignIcon name="chevron-right" />
                     </Link>
@@ -206,24 +202,20 @@ export default function ProjectsPage() {
             </>}
             <div className={styles.pagination}>
               <span>
-                Showing {start}–{start ? start + result.results.length - 1 : 0}{" "}
-                of {result.count}
+                {ui("Showing")} {formatNumber(start)}–{start ? start + result.results.length - 1 : 0}{" "}
+                {ui("of")} {result.count}
               </span>
               <div className={styles.paginationButtons}>
                 <button
                   className={styles.secondaryButton}
                   disabled={!result.previous}
                   onClick={() => setPage((value) => value - 1)}
-                >
-                  Previous
-                </button>
+                >{ui("Previous")}</button>
                 <button
                   className={styles.secondaryButton}
                   disabled={!result.next}
                   onClick={() => setPage((value) => value + 1)}
-                >
-                  Next
-                </button>
+                >{ui("Next")}</button>
               </div>
             </div>
           </div>
@@ -233,25 +225,22 @@ export default function ProjectsPage() {
               <DesignIcon name="folder" />
             </span>
             <h2>
-              {canCreate ? "No projects yet" : "You’re not in any project yet"}
+              {canCreate ? ui("No projects yet") : ui("You’re not in any project yet")}
             </h2>
             <p className={styles.muted}>
               {canCreate
-                ? "Create your first project to start organizing your team’s work."
-                : "Ask a project manager or a workspace admin to add you to a project."}
+                ? ui("Create your first project to start organizing your team’s work.")
+                : ui("Ask a project manager or a workspace admin to add you to a project.")}
             </p>
           </section>
         )}
         {!canCreate && Boolean(result?.results.length) && (
-          <p className={styles.hint}>
-            You only see projects you’ve been added to. Ask a workspace admin if
-            one is missing.
-          </p>
+          <p className={styles.hint}>{ui("You only see projects you’ve been added to. Ask a workspace admin if one is missing.")}</p>
         )}
         {creating && accessToken && (
           <ProjectDialog
-            title="New project"
-            description={`Projects group a team’s work inside ${workspace.name}. You’ll be its first manager.`}
+            title={ui("New project")}
+            description={ui("Projects group a team’s work inside {0}. You’ll be its first manager.", workspace.name)}
             busy={saving}
             onClose={() => setCreating(false)}
           >

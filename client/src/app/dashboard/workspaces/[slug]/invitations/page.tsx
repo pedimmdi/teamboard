@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useTransientMessage } from "@/hooks/use-transient-message";
 
 import { useEffect, useState } from "react";
@@ -19,19 +20,12 @@ import InvitationActions from "./invitation-actions";
 import RevokeInvitationModal from "./revoke-invitation-modal";
 import styles from "./invitations.module.css";
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
 function formatStatus(status: string) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 export default function InvitationsPage() {
+  const { ui, formatDate, formatNumber } = useWorkspaceLocale();
   const { accessToken } = useAuth();
   const workspace = useWorkspace();
 
@@ -129,7 +123,7 @@ export default function InvitationsPage() {
         invitation.id,
       );
 
-      setActionSuccess(`Invitation resent to ${invitation.email}.`);
+      setActionSuccess(ui("Invitation resent to {0}.", invitation.email));
       setReloadKey((value) => value + 1);
     } catch (err) {
       setActionError(
@@ -145,10 +139,8 @@ export default function InvitationsPage() {
   if (!canManageInvitations) {
     return (
       <section className={styles.section}>
-        <h2>Invitations</h2>
-        <div className={styles.status}>
-          Only workspace owners and admins can manage invitations.
-        </div>
+        <h2>{ui("Invitations")}</h2>
+        <div className={styles.status}>{ui("Only workspace owners and admins can manage invitations.")}</div>
       </section>
     );
   }
@@ -157,13 +149,13 @@ export default function InvitationsPage() {
     <section className={styles.section}>
       <div className={styles.heading}>
         <div>
-          <h2>Invitations</h2>
-          <p>Manage invitations to your workspace.</p>
+          <h2>{ui("Invitations")}</h2>
+          <p>{ui("Manage invitations to your workspace.")}</p>
         </div>
 
         <div className={styles.headingActions}>
           <span className={styles.count}>
-            {count} invitations
+            {formatNumber(count)} {ui("invitations")}
           </span>
 
           <button
@@ -174,55 +166,47 @@ export default function InvitationsPage() {
               setActionSuccess(null);
               setIsInviteModalOpen(true);
             }}
-          >
-            + Invite member
-          </button>
+          >{ui("+ Invite member")}</button>
         </div>
       </div>
 
       {actionError && (
         <div className={styles.actionError} role="alert">
-          {actionError}
+          {ui(actionError)}
         </div>
       )}
 
       {actionSuccess && (
         <div className={styles.actionSuccess} role="status">
-          {actionSuccess}
+          {ui(actionSuccess)}
         </div>
       )}
 
       {isLoading ? (
-        <div className={styles.status}>
-          Loading invitations...
-        </div>
+        <div className={styles.status}>{ui("Loading invitations...")}</div>
       ) : error ? (
         <div className={styles.status} role="alert">
-          <p>{error}</p>
+          <p>{ui(error)}</p>
           <button
             type="button"
             onClick={() =>
               setReloadKey((value) => value + 1)
             }
-          >
-            Try again
-          </button>
+          >{ui("Try again")}</button>
         </div>
       ) : invitations.length === 0 ? (
-        <div className={styles.status}>
-          No invitations found.
-        </div>
+        <div className={styles.status}>{ui("No invitations found.")}</div>
       ) : (
         <div className={styles.card}>
           <div className={styles.desktopTable}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Email</th>
-                  <th>Status</th>
-                  <th>Sent</th>
-                  <th>Expires</th>
-                  <th aria-label="Actions" />
+                  <th>{ui("Email")}</th>
+                  <th>{ui("Status")}</th>
+                  <th>{ui("Sent")}</th>
+                  <th>{ui("Expires")}</th>
+                  <th aria-label={ui("Actions")} />
                 </tr>
               </thead>
 
@@ -238,15 +222,15 @@ export default function InvitationsPage() {
                           styles[invitation.status]
                         }`}
                       >
-                        {formatStatus(invitation.status)}
+                        {ui(formatStatus(invitation.status))}
                       </span>
                     </td>
-                    <td>{formatDate(invitation.created_at)}</td>
-                    <td>{formatDate(invitation.expires_at)}</td>
+                    <td>{formatDate(invitation.created_at, { month: "short", day: "2-digit", year: "numeric" })}</td>
+                    <td>{formatDate(invitation.expires_at, { month: "short", day: "2-digit", year: "numeric" })}</td>
                     <td className={styles.actionCell}>
                       {resendingInvitationId ? (
                         <span className={styles.actionLoading}>
-                          {resendingInvitationId === invitation.id ? "Sending..." : ""}
+                          {resendingInvitationId === invitation.id ? ui("Sending...") : ""}
                         </span>
                       ) : (
                         <InvitationActions
@@ -282,22 +266,22 @@ export default function InvitationsPage() {
                       styles[invitation.status]
                     }`}
                   >
-                    {formatStatus(invitation.status)}
+                    {ui(formatStatus(invitation.status))}
                   </span>
                 </div>
 
                 <div className={styles.mobileDates}>
                   <span>
-                    Sent: {formatDate(invitation.created_at)}
+                    {ui("Sent:")} {formatDate(invitation.created_at, { month: "short", day: "2-digit", year: "numeric" })}
                   </span>
                   <span>
-                    Expires: {formatDate(invitation.expires_at)}
+                    {ui("Expires:")} {formatDate(invitation.expires_at, { month: "short", day: "2-digit", year: "numeric" })}
                   </span>
                 </div>
                 <div className={styles.mobileActions}>
                   {resendingInvitationId ? (
                     <span className={styles.actionLoading}>
-                      {resendingInvitationId === invitation.id ? "Sending..." : ""}
+                      {resendingInvitationId === invitation.id ? ui("Sending...") : ""}
                     </span>
                   ) : (
                     <InvitationActions
@@ -316,7 +300,7 @@ export default function InvitationsPage() {
           </div>
 
           <div className={styles.footer}>
-            <span>{count} invitations total</span>
+            <span>{formatNumber(count)} {ui("invitations total")}</span>
 
             <div className={styles.pagination}>
               <button
@@ -325,9 +309,7 @@ export default function InvitationsPage() {
                 onClick={() =>
                   setPage((value) => Math.max(1, value - 1))
                 }
-              >
-                Previous
-              </button>
+              >{ui("Previous")}</button>
 
               <button
                 type="button"
@@ -335,9 +317,7 @@ export default function InvitationsPage() {
                 onClick={() =>
                   setPage((value) => value + 1)
                 }
-              >
-                Next
-              </button>
+              >{ui("Next")}</button>
             </div>
           </div>
         </div>

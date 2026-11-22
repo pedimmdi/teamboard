@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useRef, useState } from "react";
 
 import type {
@@ -25,6 +26,7 @@ export default function MemberActions({
   onTransferOwnership,
   onRemoveMember,
 }: Props) {
+  const { ui } = useWorkspaceLocale();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -76,7 +78,7 @@ export default function MemberActions({
       <button
         type="button"
         className={styles.trigger}
-        aria-label={`Actions for ${member.user_email}`}
+        aria-label={ui("Actions for {0}", member.user_email)}
         aria-expanded={isOpen}
         aria-haspopup="true"
         onClick={() => setIsOpen((value) => !value)}
@@ -94,9 +96,7 @@ export default function MemberActions({
                   setIsOpen(false);
                   onChangeRole();
                 }}
-              >
-                Change member role
-              </button>
+              >{ui("Change member role")}</button>
 
               <button
                 type="button"
@@ -104,9 +104,7 @@ export default function MemberActions({
                   setIsOpen(false);
                   onTransferOwnership();
                 }}
-              >
-                Transfer ownership
-              </button>
+              >{ui("Transfer ownership")}</button>
             </>
           )}
 
@@ -118,9 +116,7 @@ export default function MemberActions({
                 setIsOpen(false);
                 onRemoveMember();
               }}
-            >
-              Remove from workspace
-            </button>
+            >{ui("Remove from workspace")}</button>
           )}
         </div>
       )}

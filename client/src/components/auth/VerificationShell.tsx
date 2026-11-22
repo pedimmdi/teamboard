@@ -1,6 +1,11 @@
 
+"use client";
+
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { PreferencesControls } from "@/components/preferences-controls";
+import BrandMark from "@/components/ui/BrandMark";
+import { useLocale } from "@/lib/preferences";
 import styles from "./VerificationShell.module.css";
 
 type VerificationShellProps = {
@@ -10,19 +15,20 @@ type VerificationShellProps = {
 export default function VerificationShell({
   children,
 }: VerificationShellProps) {
+  const { locale, t } = useLocale();
   return (
     <main className={styles.page}>
       <div className={styles.container}>
-        <Link href="/" className={styles.brand}>
-          <span className={styles.brandMark}>T</span>
-          <span>TeamBoard</span>
-        </Link>
+        <header className={styles.header}>
+          <Link href={locale === "fa" ? "/fa" : "/"} className={styles.brand}>
+            <span className={styles.brandMark}><BrandMark /></span>
+            <span>{t("TeamBoard", "تیم‌برد")}</span>
+          </Link>
+          <PreferencesControls compact />
+        </header>
 
         <section className={styles.card}>{children}</section>
 
-        <p className={styles.copyright}>
-          © {new Date().getFullYear()} TeamBoard
-        </p>
       </div>
     </main>
   );

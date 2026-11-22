@@ -15,7 +15,7 @@ test("private reminders support timezone-aware CRUD, due date changes, mobile an
   await expect(reminders).toBeHidden();
   await expect(drawer.getByRole("button",{name:/^Comments/})).toHaveAttribute("aria-pressed","true");
   await drawer.getByRole("button",{name:"Reminders",exact:true}).click();
-  await expect(reminders.getByText(/sent/)).toBeVisible();
+  await expect(reminders.getByText(/\bsent\b/i)).toBeVisible();
   await reminders.getByRole("button",{name:"New reminder",exact:true}).click();
   await reminders.getByLabel("Timezone (IANA)").fill("Asia/Tehran");
   await reminders.getByLabel("Reminder date and time",{exact:true}).fill("2030-05-20T09:00");

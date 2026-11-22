@@ -1,28 +1,25 @@
 import Link from "next/link";
-import type { Post } from "@/lib/website";
+import { WebsiteIcon } from "@/components/website/website-icons";
+import { websiteDate, websitePath, type Post, type WebsiteLocale } from "@/lib/website";
+import { websiteCopy } from "@/lib/website-copy";
 import styles from "@/app/(public)/website.module.css";
-export default function PostList({ items }: { items: Post[] }) {
+
+export default function PostList({ items, locale, headingLevel = 2 }: {
+  items: Post[];
+  locale: WebsiteLocale;
+  headingLevel?: 2 | 3;
+}) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   return (
     <div className={styles.cards}>
       {items.map((item) => (
         <article className={styles.card} key={item.id}>
-          <time dateTime={item.published_at}>
-            {new Date(item.published_at).toLocaleDateString("en", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              timeZone: "UTC",
-            })}
-          </time>
-          <h2>
-            <Link href={`/blog/${encodeURIComponent(item.slug)}`}>
-              {item.title}
-            </Link>
-          </h2>
-          <p>{item.excerpt}</p>
-          <Link href={`/blog/${encodeURIComponent(item.slug)}`}>
-            Read article →
-          </Link>
+          <time dateTime={item.published_at}>{websiteDate(item.published_at, locale)}</time>
+          <Heading>
+            <Link className={styles.cardLink} href={websitePath(`/blog/${encodeURIComponent(item.slug)}`, locale)}>{item.title}</Link>
+          </Heading>
+          {item.excerpt && <p>{item.excerpt}</p>}
+          <span className={styles.cardPrompt} aria-hidden="true">{websiteCopy[locale].readArticle}<WebsiteIcon name="arrow" className={styles.arrow} /></span>
         </article>
       ))}
     </div>

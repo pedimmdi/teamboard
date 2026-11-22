@@ -30,6 +30,13 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
     getTaskComments: async () => ({ results: [parent, reply], count: 2, next: null }),
   };
   const styles = new Proxy({}, { get: (_, name) => name === "__esModule" ? false : String(name) });
+  const workspaceLocale = {
+    useWorkspaceLocale: () => ({
+      ui: (message) => message,
+      formatDate: (value, options) => new Intl.DateTimeFormat("en-US", options).format(new Date(value)),
+      formatNumber: (value) => String(value),
+    }),
+  };
   const component = (name, modules) => {
     const source = readFileSync(new URL("../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/" + name + ".tsx", import.meta.url), "utf8");
     const { outputText } = ts.transpileModule(source, {
@@ -38,7 +45,7 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
     const exports = {};
     runInNewContext(outputText, {
       exports, React, document, window, Intl, Date,
-      require: (path) => path.endsWith(".css") ? styles : modules[path],
+      require: (path) => path.endsWith(".css") ? styles : path === "@/lib/workspace-locale" ? workspaceLocale : modules[path],
     });
     return exports.default;
   };

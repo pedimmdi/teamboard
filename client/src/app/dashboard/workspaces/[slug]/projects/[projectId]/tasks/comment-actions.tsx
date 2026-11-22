@@ -1,3 +1,4 @@
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import Image from "next/image";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import styles from "./task-comments.module.css";
@@ -13,7 +14,8 @@ export default function CommentActions({
   onEdit?: () => void;
   onDelete: () => void;
 }) {
-  const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
+  const { ui, locale } = useWorkspaceLocale();
+  const [position, setPosition] = useState<{ top: number; inlineEnd: number } | null>(null);
   const open = position !== null;
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -60,7 +62,7 @@ export default function CommentActions({
       <button
         type="button"
         className={styles.more}
-        aria-label={`Comment actions for ${author}`}
+        aria-label={ui("Comment actions for {0}", author)}
         aria-expanded={open}
         disabled={disabled}
         ref={trigger}
@@ -75,7 +77,7 @@ export default function CommentActions({
             top: rect.bottom + menuHeight <= window.innerHeight
               ? rect.bottom
               : rect.top - menuHeight,
-            right: window.innerWidth - rect.right,
+            inlineEnd: locale === "fa" ? rect.left : window.innerWidth - rect.right,
           });
         }}
       >
@@ -89,21 +91,21 @@ export default function CommentActions({
             className={styles.actionPanel}
             style={{
               "--comment-menu-top": `${position.top}px`,
-              "--comment-menu-right": `${position.right}px`,
+              "--comment-menu-inline-end": `${position.inlineEnd}px`,
             } as CSSProperties}
           >
-            <p className={styles.actionHeading}>Comment by {author}</p>
+            <p className={styles.actionHeading}>{ui("Comment by")} {author}</p>
             {onEdit && (
               <button type="button" onClick={() => { close(); onEdit(); }}>
                 <Image src="/icons/comments/edit.svg" alt="" width={20} height={20} />
-                Edit comment
+                {ui("Edit comment")}
               </button>
             )}
             <button type="button" className={styles.remove} onClick={() => { close(); onDelete(); }}>
               <Image src="/icons/comments/delete.svg" alt="" width={20} height={20} />
-              Delete comment
+              {ui("Delete comment")}
             </button>
-            <button type="button" className={styles.actionCancel} onClick={close}>Cancel</button>
+            <button type="button" className={styles.actionCancel} onClick={close}>{ui("Cancel")}</button>
           </div>
         </>
       )}

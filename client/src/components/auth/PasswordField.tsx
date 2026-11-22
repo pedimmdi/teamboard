@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useLocale } from "@/lib/preferences";
 import { useState } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import styles from "./PasswordField.module.css";
@@ -21,6 +22,7 @@ export default function PasswordField({
   id,
   ...props
 }: PasswordFieldProps) {
+  const { t } = useLocale();
   const [visible, setVisible] = useState(false);
 
   return (
@@ -43,7 +45,7 @@ export default function PasswordField({
           type="button"
           className={styles.toggle}
           onClick={() => setVisible((current) => !current)}
-          aria-label={visible ? "Hide password" : "Show password"}
+          aria-label={visible ? t("Hide password", "پنهان کردن گذرواژه") : t("Show password", "نمایش گذرواژه")}
           aria-pressed={visible}
         >
           {visible ? (

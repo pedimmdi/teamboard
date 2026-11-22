@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useTransientMessage } from "@/hooks/use-transient-message";
 
 import Link from "next/link";
@@ -22,6 +23,7 @@ import ProjectDialog from "../../project-dialog";
 import styles from "../../projects.module.css";
 
 export default function ProjectSettingsPage() {
+  const { ui } = useWorkspaceLocale();
   const { project, updateProject: updateContext } = useProjectContext();
   const workspace = useWorkspace();
   const { accessToken } = useAuth();
@@ -74,10 +76,10 @@ export default function ProjectSettingsPage() {
     <div className={styles.overview}>
       {permissions.canManage ? (
         <section className={styles.card}>
-          <h2>Project details</h2>
+          <h2>{ui("Project details")}</h2>
           {success && (
             <p className={styles.success} role="status">
-              {success}
+              {ui(success)}
             </p>
           )}
           <ProjectForm
@@ -100,17 +102,15 @@ export default function ProjectSettingsPage() {
         </section>
       ) : (
         <section className={styles.card}>
-          <h2>Project details</h2>
-          <p className={styles.muted}>
-            Only project managers and workspace admins can edit project details.
-          </p>
+          <h2>{ui("Project details")}</h2>
+          <p className={styles.muted}>{ui("Only project managers and workspace admins can edit project details.")}</p>
         </section>
       )}
       {permissions.canManage && accessToken && (
         <ResourceAvatarEditor
           name={project.name}
           avatar={project.avatar}
-          label="Project image"
+          label={ui("Project image")}
           onSave={async (image) => {
             updateContext(await updateResourceAvatar(accessToken, workspace.slug, image, project.id));
           }}
@@ -119,19 +119,17 @@ export default function ProjectSettingsPage() {
       {permissions.canLeave && (
         <section className={`${styles.card} ${styles.dangerRow}`}>
           <div>
-            <h2>Leave project</h2>
+            <h2>{ui("Leave project")}</h2>
             <p className={styles.hint}>
               {permissions.canDelete
-                ? "Leave your personal project membership. Your workspace admin access will remain."
-                : "You’ll lose access to this project. The last manager can’t leave."}
+                ? ui("Leave your personal project membership. Your workspace admin access will remain.")
+                : ui("You’ll lose access to this project. The last manager can’t leave.")}
             </p>
           </div>
           <button
             className={styles.dangerOutline}
             onClick={() => open("leave")}
-          >
-            Leave project
-          </button>
+          >{ui("Leave project")}</button>
         </section>
       )}
       {permissions.canDelete && (
@@ -140,44 +138,37 @@ export default function ProjectSettingsPage() {
         >
           <div>
             <h2>
-              Delete project{" "}
-              <span className={styles.badge}>Workspace admins only</span>
+              {ui("Delete project")}{" "}
+              <span className={styles.badge}>{ui("Workspace admins only")}</span>
             </h2>
-            <p className={styles.hint}>
-              Permanently delete this project and its memberships. This can’t be
-              undone.
-            </p>
+            <p className={styles.hint}>{ui("Permanently delete this project and its memberships. This can’t be undone.")}</p>
           </div>
           <button
             className={styles.dangerButton}
             onClick={() => open("delete")}
-          >
-            Delete project
-          </button>
+          >{ui("Delete project")}</button>
         </section>
       )}
       {action && (
         <ProjectDialog
           title={
             blocked
-              ? "Can’t leave this project"
-              : `${action === "delete" ? "Delete" : "Leave"} ${project.name}?`
+              ? ui("Can’t leave this project")
+              : `${action === "delete" ? ui("Delete") : ui("Leave")} ${project.name}?`
           }
           description={
             action === "delete"
-              ? "This permanently deletes the project and its memberships. This can’t be undone."
+              ? ui("This permanently deletes the project and its memberships. This can’t be undone.")
               : permissions.canDelete
-                ? "This removes your personal membership. You’ll still have workspace admin access."
-                : "You’ll lose access to this project. A manager or workspace admin can add you again."
+                ? ui("This removes your personal membership. You’ll still have workspace admin access.")
+                : ui("You’ll lose access to this project. A manager or workspace admin can add you again.")
           }
           busy={busy}
           onClose={() => setAction(null)}
         >
           {action === "delete" && (
             <div className={styles.field}>
-              <label htmlFor="confirm-project-name">
-                Type the project name to confirm
-              </label>
+              <label htmlFor="confirm-project-name">{ui("Type the project name to confirm")}</label>
               <input
                 id="confirm-project-name"
                 value={confirmation}
@@ -190,7 +181,7 @@ export default function ProjectSettingsPage() {
           )}
           {error && (
             <p className={styles.alert} role="alert">
-              {error}
+              {ui(error)}
             </p>
           )}
           <div className={styles.actions}>
@@ -199,15 +190,13 @@ export default function ProjectSettingsPage() {
               disabled={busy}
               onClick={() => setAction(null)}
             >
-              {blocked ? "Close" : "Cancel"}
+              {blocked ? ui("Close") : ui("Cancel")}
             </button>
             {blocked ? (
               <Link
                 className={styles.primaryButton}
                 href={`${base}/${project.id}/members`}
-              >
-                Manage members
-              </Link>
+              >{ui("Manage members")}</Link>
             ) : (
               <button
                 className={styles.dangerButton}
@@ -217,10 +206,10 @@ export default function ProjectSettingsPage() {
                 onClick={() => void confirm()}
               >
                 {busy
-                  ? "Working…"
+                  ? ui("Working…")
                   : action === "delete"
-                    ? "Delete project"
-                    : "Leave project"}
+                    ? ui("Delete project")
+                    : ui("Leave project")}
               </button>
             )}
           </div>

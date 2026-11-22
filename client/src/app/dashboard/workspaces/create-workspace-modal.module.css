@@ -15,9 +15,9 @@
   max-width: 440px;
   box-sizing: border-box;
   padding: 24px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--surface);
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16);
 }
 
@@ -31,7 +31,7 @@
 
 .heading h2 {
   margin: 0;
-  color: #0f172a;
+  color: var(--foreground);
   font-size: 18px;
   font-weight: 600;
   line-height: 28px;
@@ -39,7 +39,7 @@
 
 .heading p {
   margin: 4px 0 0;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 20px;
 }
@@ -48,10 +48,10 @@
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #ffffff;
-  color: #475569;
+  background: var(--surface);
+  color: var(--text-secondary);
   font-size: 22px;
   cursor: pointer;
 }
@@ -63,7 +63,7 @@
 }
 
 .field label {
-  color: #0f172a;
+  color: var(--foreground);
   font-size: 13px;
   font-weight: 500;
 }
@@ -73,27 +73,27 @@
   height: 40px;
   box-sizing: border-box;
   padding: 10px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   outline: none;
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 14px;
 }
 
 .field input:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px #eef2ff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 .field input[aria-invalid="true"] {
-  border-color: #dc2626;
+  border-color: var(--danger);
 }
 
 .error {
   margin: 0;
-  color: #b91c1c;
+  color: var(--danger);
   font-size: 12px;
   line-height: 18px;
 }
@@ -117,15 +117,15 @@
 }
 
 .cancelButton {
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #0f172a;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--foreground);
 }
 
 .submitButton {
-  border: 1px solid #4f46e5;
-  background: #4f46e5;
-  color: #ffffff;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .cancelButton:disabled,

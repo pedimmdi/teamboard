@@ -1,3 +1,4 @@
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import Image from "next/image";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Avatar from "@/components/ui/Avatar";
@@ -18,13 +19,6 @@ import styles from "./task-comments.module.css";
 import taskStyles from "./tasks.module.css";
 
 const commentLimit = 5000;
-const timestamp = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
 function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((word) => word.charAt(0).toUpperCase()).join("");
 }
@@ -52,6 +46,7 @@ export default function TaskComments({
   onCountChange: (count: number) => void;
   onBusyChange: (busy: boolean) => void;
 }) {
+  const { ui, formatDate, formatNumber } = useWorkspaceLocale();
   const [comments, setComments] = useState<TaskComment[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -230,21 +225,19 @@ export default function TaskComments({
   return (
     <div className={styles.thread} data-comment-thread hidden={!active}>
       <div className={styles.entries} ref={entries} aria-busy={loading || loadingMore}>
-        {downloadError && <p role="alert" className={taskStyles.alert}>{downloadError}</p>}
-        {loading && <p role="status" className={taskStyles.muted}>Loading comments…</p>}
+        {downloadError && <p role="alert" className={taskStyles.alert}>{ui(downloadError)}</p>}
+        {loading && <p role="status" className={taskStyles.muted}>{ui("Loading comments…")}</p>}
         {loadError && (
           <>
-            <p className={taskStyles.alert} role="alert">{loadError}</p>
-            <button type="button" className={taskStyles.secondaryButton} onClick={() => setReload((value) => value + 1)}>
-              Try again
-            </button>
+            <p className={taskStyles.alert} role="alert">{ui(loadError)}</p>
+            <button type="button" className={taskStyles.secondaryButton} onClick={() => setReload((value) => value + 1)}>{ui("Try again")}</button>
           </>
         )}
         {!loading && !loadError && !comments.length && (
           <div className={styles.empty}>
             <span><Image src="/icons/comments/empty.svg" alt="" width={20} height={20} /></span>
-            <h3>No comments yet</h3>
-            <p>Start the conversation about this task.</p>
+            <h3>{ui("No comments yet")}</h3>
+            <p>{ui("Start the conversation about this task.")}</p>
           </div>
         )}
         {comments.map((comment) => {
@@ -264,17 +257,17 @@ export default function TaskComments({
               <div className={styles.commentContent}>
                 <div className={styles.byline}>
                   <strong>{comment.author_name}</strong>
-                  {own && <span className={styles.you}>You</span>}
+                  {own && <span className={styles.you}>{ui("You")}</span>}
                   <span className={styles.date}>
-                    <time dateTime={comment.created_at}>{timestamp.format(new Date(comment.created_at))}</time>
-                    {edited && " · edited"}
+                    <time dateTime={comment.created_at}>{formatDate(comment.created_at, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</time>
+                      {edited && <> · {ui("edited")}</>}
                   </span>
                 </div>
                 {editing?.id === comment.id ? (
                   <form className={styles.editor} onSubmit={save}>
                     <CommentInput
                       members={members}
-                      aria-label="Edit comment"
+                      aria-label={ui("Edit comment")}
                       aria-invalid={editLength > commentLimit || Boolean(editError)}
                       autoFocus
                       disabled={pending === "edit"}
@@ -286,14 +279,14 @@ export default function TaskComments({
                     />
                     {(editLength > commentLimit || editError) && (
                       <p className={styles.fieldError} role="alert">
-                        {editLength > commentLimit ? "Comment cannot exceed 5000 characters." : editError}
+                        {editLength > commentLimit ? ui("Comment cannot exceed 5000 characters.") : ui(editError)}
                       </p>
                     )}
                     <div className={styles.editorFooter}>
-                      <span className={taskStyles.counter}>{editLength} / {commentLimit}</span>
-                      <button type="button" className={taskStyles.secondaryButton} disabled={Boolean(pending)} onClick={() => setEditing(null)}>Cancel</button>
+                      <span className={taskStyles.counter}>{formatNumber(editLength)} / {formatNumber(commentLimit)}</span>
+                      <button type="button" className={taskStyles.secondaryButton} disabled={Boolean(pending)} onClick={() => setEditing(null)}>{ui("Cancel")}</button>
                       <button className={taskStyles.primaryButton} disabled={busy || (!editing.body.trim() && !comment.attachment) || editLength > commentLimit || editing.body.trim() === comment.body}>
-                        {pending === "edit" ? "Saving…" : "Save"}
+                        {pending === "edit" ? ui("Saving…") : ui("Save")}
                       </button>
                     </div>
                   </form>
@@ -310,12 +303,12 @@ export default function TaskComments({
                             { duration: 1000 },
                           );
                         }}>
-                          Reply to {commentsById.get(comment.reply_to)?.author_name}
+                          {ui("Reply to")} {commentsById.get(comment.reply_to)?.author_name}
                         </button>
-                      ) : <p className={styles.replyContext}>Reply to an earlier comment</p>
+                      ) : <p className={styles.replyContext}>{ui("Reply to an earlier comment")}</p>
                     )}
                     {comment.body && (
-                      <p className={styles.body}>{comment.body.split(/(@[\w.+-]+@[\w-]+(?:\.[\w-]+)+)/).map((part, index) =>
+                      <p className={styles.body} dir="auto">{comment.body.split(/(@[\w.+-]+@[\w-]+(?:\.[\w-]+)+)/).map((part, index) =>
                         comment.mentions.some((email) => "@" + email.toLowerCase() === part.toLowerCase())
                           ? <span className={styles.mention} key={index}>{part}</span>
                           : part,
@@ -323,7 +316,7 @@ export default function TaskComments({
                     )}
                     {comment.attachment && (
                       <button className={styles.attachment} type="button" onClick={() => void download(comment)}>
-                        Download {comment.attachment.filename}
+                        {ui("Download")} {comment.attachment.filename}
                       </button>
                     )}
                     <button
@@ -335,9 +328,7 @@ export default function TaskComments({
                         setPostError("");
                         document.getElementById(composerId)?.focus();
                       }}
-                    >
-                      Reply
-                    </button>
+                    >{ui("Reply")}</button>
                   </>
                 )}
               </div>
@@ -352,28 +343,28 @@ export default function TaskComments({
             </article>
           );
         })}
-        {pageError && <p className={taskStyles.alert} role="alert">{pageError}</p>}
+        {pageError && <p className={taskStyles.alert} role="alert">{ui(pageError)}</p>}
         {hasMore && !loadError && (
           <button type="button" className={styles.loadMore} onClick={loadMore} disabled={busy}>
             {loadingMore
-              ? "Loading…"
+              ? ui("Loading…")
               : pageError
-                ? "Retry loading comments"
+                ? ui("Retry loading comments")
                 : count > comments.length
-                  ? `Load ${count - comments.length} more ${count - comments.length === 1 ? "comment" : "comments"}`
-                  : "Load more comments"}
+                  ? ui("Load {0} more {1}", count - comments.length, ui(count - comments.length === 1 ? "comment" : "comments"))
+                  : ui("Load more comments")}
           </button>
         )}
         {!canModerate && comments.length > 0 && (
-          <p className={styles.permissionHint}>You can edit or delete your own comments.</p>
+          <p className={styles.permissionHint}>{ui("You can edit or delete your own comments.")}</p>
         )}
       </div>
       <div className={styles.composerArea}>
-        {postError && <p className={taskStyles.alert} role="alert">{postError}</p>}
+        {postError && <p className={taskStyles.alert} role="alert">{ui(postError)}</p>}
         {replyTo && (
           <div className={styles.replyDraft}>
-            <span>Replying to {replyTo.author_name}</span>
-            <button type="button" onClick={() => setReplyTo(null)} disabled={pending === "post"} aria-label="Cancel reply">×</button>
+            <span>{ui("Replying to")} {replyTo.author_name}</span>
+            <button type="button" onClick={() => setReplyTo(null)} disabled={pending === "post"} aria-label={ui("Cancel reply")}>×</button>
           </div>
         )}
         <form className={styles.composer} onSubmit={post}>
@@ -381,24 +372,24 @@ export default function TaskComments({
           <CommentInput
             id={composerId}
             members={members}
-            aria-label="Write a comment"
-            placeholder="Write a comment…"
+            aria-label={ui("Write a comment")}
+            placeholder={ui("Write a comment…")}
             aria-invalid={draftLength > commentLimit}
             rows={2}
             value={draft}
             disabled={pending === "post"}
             onValueChange={(body) => { setDraft(body); setPostError(""); }}
           />
-          <span className={`${taskStyles.counter} ${styles.composerCounter}`}>{draftLength} / {commentLimit}</span>
-          <button className={`${taskStyles.primaryButton} ${styles.send}`} aria-label="Post comment" disabled={!canPost}>
-            <span>Comment</span>
+          <span className={`${taskStyles.counter} ${styles.composerCounter}`}>{formatNumber(draftLength)} / {formatNumber(commentLimit)}</span>
+          <button className={`${taskStyles.primaryButton} ${styles.send}`} aria-label={ui("Post comment")} disabled={!canPost}>
+            <span>{ui("Comment")}</span>
             <Image src="/icons/comments/send.svg" alt="" width={20} height={20} />
           </button>
           <div className={styles.attachmentControls}>
             <label className={`${styles.attachment} ${styles.attachButton}`}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m21 11-8.5 8.5a6 6 0 0 1-8.5-8.5l9-9a4 4 0 0 1 5.7 5.7l-9 9a2 2 0 0 1-2.9-2.9l8.5-8.5"/></svg>
-              <span className={styles.attachText}>Attach file</span>
-              <input type="file" aria-label="Attach file" accept=".png,.jpg,.jpeg,.txt" disabled={pending === "post"} onChange={(event) => {
+              <span className={styles.attachText}>{ui("Attach file")}</span>
+              <input type="file" aria-label={ui("Attach file")} accept=".png,.jpg,.jpeg,.txt" disabled={pending === "post"} onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
                 if (!file) return;
@@ -412,12 +403,12 @@ export default function TaskComments({
             </label>
             {attachment && (
               <button type="button" className={`${styles.attachment} ${styles.selectedAttachment}`} onClick={() => setAttachment(undefined)} disabled={pending === "post"}>
-                Remove {attachment.name}
+                {ui("Remove")} {attachment.name}
               </button>
             )}
           </div>
         </form>
-        {draftLength > commentLimit && <p className={styles.fieldError} role="alert">Comment cannot exceed 5000 characters.</p>}
+        {draftLength > commentLimit && <p className={styles.fieldError} role="alert">{ui("Comment cannot exceed 5000 characters.")}</p>}
       </div>
       {deleting && (
         <dialog
@@ -434,17 +425,17 @@ export default function TaskComments({
           }}
         >
           <div className={styles.confirmContent}>
-            <h3 id={dialogTitle}>Delete this comment?</h3>
-            <p id={dialogDescription}>{deleting.author_name}’s comment will be permanently deleted. This can’t be undone.</p>
+            <h3 id={dialogTitle}>{ui("Delete this comment?")}</h3>
+            <p id={dialogDescription}>{deleting.author_name}{ui("’s comment will be permanently deleted. This can’t be undone.")}</p>
             <blockquote>
               <strong>{deleting.author_name}</strong>
               <p className={styles.body}>{deleting.body}</p>
             </blockquote>
-            {deleteError && <p className={taskStyles.alert} role="alert">{deleteError}</p>}
+            {deleteError && <p className={taskStyles.alert} role="alert">{ui(deleteError)}</p>}
             <div className={styles.confirmActions}>
-              <button type="button" autoFocus className={taskStyles.secondaryButton} disabled={Boolean(pending)} onClick={closeDeleteDialog}>Cancel</button>
+              <button type="button" autoFocus className={taskStyles.secondaryButton} disabled={Boolean(pending)} onClick={closeDeleteDialog}>{ui("Cancel")}</button>
               <button type="button" className={taskStyles.dangerButton} disabled={Boolean(pending)} onClick={remove}>
-                {pending === "delete" ? "Deleting…" : "Delete comment"}
+                {pending === "delete" ? ui("Deleting…") : ui("Delete comment")}
               </button>
             </div>
           </div>

@@ -2,11 +2,13 @@
 import os
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 os.environ.setdefault("FRONTEND_URL", "http://localhost:3100")
+os.environ["CACHE_KEY_PREFIX"] = f"teamboard:e2e:{uuid4()}"
 
 import django
 from django.core.management import call_command
@@ -14,6 +16,11 @@ from django.core.management import call_command
 if os.environ.get("POSTGRES_DB") != "teamboard_e2e":
     raise SystemExit("Set POSTGRES_DB=teamboard_e2e for browser tests.")
 password = os.environ["E2E_PASSWORD"]
+from django.conf import settings
+
+# The browser matrix shares one loopback IP and restores sessions on full reloads.
+# Production auth limits are exercised by the API suites.
+settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"].update({"login": "120/min", "token_refresh": "240/min"})
 django.setup()
 call_command("migrate", interactive=False)
 from django.contrib.auth import get_user_model
@@ -110,4 +117,9 @@ WorkspaceMembership.objects.get_or_create(workspace=dashboard_empty, user=remind
 from website.models import BlogPost
 for number in range(11):
     BlogPost.objects.update_or_create(slug=f"website-{number}", defaults={"title":f"Website article {number}", "excerpt":"Ideas for better teamwork.", "content":"## A clearer workflow\n\nWork together.\n\n<script>window.websiteUnsafe=true</script>\n\n[Unsafe](javascript:alert(1))", "status":"published", "published_at":timezone.now()-timedelta(days=number+1)})
+BlogPost.objects.filter(slug="website-0").update(
+    title_fa="اولین نوشته تیم‌برد",
+    excerpt_fa="ایده‌هایی برای کار تیمی بهتر.",
+    content_fa="## روالی روشن‌تر\n\nبا هم کار کنید.",
+)
 call_command("runserver", "127.0.0.1:" + os.environ.get("E2E_BACKEND_PORT", "8100"), use_reloader=False)

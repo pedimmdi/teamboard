@@ -77,7 +77,8 @@ print(Probe().allow_request(SimpleNamespace(user=SimpleNamespace(is_authenticate
 
 
 def test_redis_cache_outage_does_not_silently_bypass_throttles():
-    from redis.exceptions import ConnectionError
+    from redis.exceptions import ConnectionError, TimeoutError
     cache = RedisCache("redis://127.0.0.1:1/0", {"OPTIONS": {"socket_connect_timeout": 0.2, "socket_timeout": 0.2}})
-    with pytest.raises(ConnectionError):
+    # A host firewall can drop the connection instead of rejecting it.
+    with pytest.raises((ConnectionError, TimeoutError)):
         cache.get("unreachable")

@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 
@@ -12,6 +14,7 @@ import { confirmPasswordReset } from "@/lib/api";
 import styles from "./reset-password.module.css";
 
 export default function ResetPasswordPage() {
+  const { locale, t } = useLocale();
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
@@ -20,15 +23,15 @@ export default function ResetPasswordPage() {
 
   const requirements = [
     {
-      label: "At least 8 characters",
+      label: t("At least 8 characters", "حداقل ۸ نویسه"),
       met: password.length >= 8,
     },
     {
-      label: "Not entirely numeric",
+      label: t("Not entirely numeric", "شامل چیزی بیش از اعداد"),
       met: password.length > 0 && !/^\d+$/.test(password),
     },
     {
-      label: "Passwords match",
+      label: t("Passwords match", "گذرواژه‌ها یکسان‌اند"),
       met: passwordConfirm.length > 0 && password === passwordConfirm,
     },
   ];
@@ -39,7 +42,7 @@ export default function ResetPasswordPage() {
     setMessage("");
 
     if (password !== passwordConfirm) {
-      setError("Passwords do not match.");
+      setError(t("Passwords do not match.", "گذرواژه‌ها یکسان نیستند."));
       return;
     }
 
@@ -48,7 +51,7 @@ export default function ResetPasswordPage() {
     const token = params.get("token");
 
     if (!uid || !token) {
-      setError("This password reset link is invalid or incomplete.");
+      setError(t("This password reset link is invalid or incomplete.", "پیوند بازنشانی گذرواژه نامعتبر یا ناقص است."));
       return;
     }
 
@@ -63,7 +66,7 @@ export default function ResetPasswordPage() {
       );
 
       setMessage(
-        result.detail || "Your password has been reset successfully.",
+        (locale === "en" && result.detail) || t("Your password has been reset successfully.", "گذرواژه‌تان بازنشانی شد."),
       );
       setPassword("");
       setPasswordConfirm("");
@@ -71,7 +74,7 @@ export default function ResetPasswordPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to reset your password. Please try again.",
+          : t("Unable to reset your password. Please try again.", "گذرواژه بازنشانی نشد. دوباره تلاش کنید."),
       );
     } finally {
       setLoading(false);
@@ -81,10 +84,9 @@ export default function ResetPasswordPage() {
   return (
     <AuthShell>
       <div className={styles.header}>
-        <h2>Set a new password</h2>
+        <h1>{t("Set a new password", "گذرواژه جدید تعیین کنید")}</h1>
         <p>
-          Create a strong password for your account.
-          It should be different from your previous password.
+          {t("Create a strong password for your account. It should be different from your previous password.", "برای حسابتان گذرواژه‌ای قوی و متفاوت از گذرواژه قبلی انتخاب کنید.")}
         </p>
       </div>
 
@@ -94,7 +96,7 @@ export default function ResetPasswordPage() {
             {message}
           </p>
           <Link href="/login" className={styles.submitLink}>
-            Continue to sign in
+            {t("Continue to sign in", "رفتن به صفحه ورود")}
           </Link>
         </div>
       ) : (
@@ -102,8 +104,8 @@ export default function ResetPasswordPage() {
           <PasswordField
             id="new-password"
             name="new-password"
-            label="New password"
-            placeholder="Enter a new password"
+            label={t("New password", "گذرواژه جدید")}
+            placeholder={t("Enter a new password", "گذرواژه جدید را وارد کنید")}
             autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -113,8 +115,8 @@ export default function ResetPasswordPage() {
           <PasswordField
             id="confirm-password"
             name="confirm-password"
-            label="Confirm new password"
-            placeholder="Repeat your new password"
+            label={t("Confirm new password", "تکرار گذرواژه جدید")}
+            placeholder={t("Repeat your new password", "گذرواژه جدید را دوباره وارد کنید")}
             autoComplete="new-password"
             value={passwordConfirm}
             onChange={(event) => setPasswordConfirm(event.target.value)}
@@ -139,7 +141,7 @@ export default function ResetPasswordPage() {
 
           {error && (
             <div className={styles.error} role="alert">
-              {error}
+              {localizeAccountMessage(locale, error, "گذرواژه بازنشانی نشد. دوباره تلاش کنید.")}
             </div>
           )}
 
@@ -148,15 +150,15 @@ export default function ResetPasswordPage() {
             className={styles.submit}
             loading={loading}
           >
-            Reset password
+            {t("Reset password", "بازنشانی گذرواژه")}
           </Button>
         </form>
       )}
 
       {!message && (
         <Link href="/login" className={styles.backLink}>
-          <span aria-hidden="true">←</span>
-          Back to sign in
+          <span aria-hidden="true">{t("←", "→")}</span>
+          {t("Back to sign in", "بازگشت به ورود")}
         </Link>
       )}
     </AuthShell>

@@ -1,3 +1,4 @@
+import { regionalLocale, type Locale } from "@/lib/locale";
 import type {
   Task,
   TaskInput,
@@ -165,8 +166,8 @@ export function overdueDays(
     Math.floor((start - Date.parse(`${dueDate}T00:00:00Z`)) / 86400000),
   );
 }
-export function taskDate(value: string, withYear = false) {
-  return new Intl.DateTimeFormat("en-US", {
+export function taskDate(value: string, withYear = false, locale: Locale = "en") {
+  return new Intl.DateTimeFormat(regionalLocale(locale), {
     month: "short",
     day: "2-digit",
     ...(withYear ? { year: "numeric" } : {}),

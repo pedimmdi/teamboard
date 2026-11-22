@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -88,6 +90,7 @@ const commonPasswords = new Set([
 ]);
 
 export default function SecurityPage() {
+  const { locale, t } = useLocale();
   const router = useRouter();
   const { accessToken, isAuthenticated, isLoading, logout } = useAuth();
 
@@ -123,12 +126,12 @@ export default function SecurityPage() {
     setErrorMessage("");
 
     if (!currentPassword || !newPassword || !passwordConfirm) {
-      setErrorMessage("All password fields are required.");
+      setErrorMessage(t("All password fields are required.", "همه فیلدهای گذرواژه را پر کنید."));
       return;
     }
 
     if (newPassword !== passwordConfirm) {
-      setErrorMessage("New password and confirmation do not match.");
+      setErrorMessage(t("New password and confirmation do not match.", "گذرواژه جدید با تکرار آن یکسان نیست."));
       return;
     }
 
@@ -147,7 +150,7 @@ export default function SecurityPage() {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Unable to change your password.",
+          : t("Unable to change your password.", "تغییر گذرواژه انجام نشد."),
       );
     } finally {
       setIsSaving(false);
@@ -159,8 +162,8 @@ export default function SecurityPage() {
       <div className={styles.content}>
         <header className={styles.pageHeader}>
           <div>
-            <h1>Security</h1>
-            <p>Update your password to keep your account secure.</p>
+            <h1>{t("Security", "امنیت")}</h1>
+            <p>{t("Update your password to keep your account secure.", "برای حفظ امنیت حسابتان، گذرواژه خود را به‌روز کنید.")}</p>
           </div>
         </header>
 
@@ -170,14 +173,13 @@ export default function SecurityPage() {
               <AlertIcon />
             </span>
             <p>
-              You&apos;ll be signed out on all devices after changing your
-              password.
+              {t("You'll be signed out on all devices after changing your password.", "پس از تغییر گذرواژه، از حساب خود در همه دستگاه‌ها خارج می‌شوید.")}
             </p>
           </div>
 
           <div className={styles.passwordFields}>
             <label className={styles.field}>
-              <span>Current password</span>
+              <span>{t("Current password", "گذرواژه فعلی")}</span>
 
               <div className={styles.passwordInput}>
                 <input
@@ -197,8 +199,8 @@ export default function SecurityPage() {
                   }
                   aria-label={
                     showCurrentPassword
-                      ? "Hide current password"
-                      : "Show current password"
+                      ? t("Hide current password", "پنهان کردن گذرواژه فعلی")
+                      : t("Show current password", "نمایش گذرواژه فعلی")
                   }
                 >
                   <EyeIcon visible={showCurrentPassword} />
@@ -207,7 +209,7 @@ export default function SecurityPage() {
             </label>
 
             <label className={styles.field}>
-              <span>New password</span>
+              <span>{t("New password", "گذرواژه جدید")}</span>
 
               <div className={styles.passwordInput}>
                 <input
@@ -223,8 +225,8 @@ export default function SecurityPage() {
                   onClick={() => setShowNewPassword((current) => !current)}
                   aria-label={
                     showNewPassword
-                      ? "Hide new password"
-                      : "Show new password"
+                      ? t("Hide new password", "پنهان کردن گذرواژه جدید")
+                      : t("Show new password", "نمایش گذرواژه جدید")
                   }
                 >
                   <EyeIcon visible={showNewPassword} />
@@ -233,7 +235,7 @@ export default function SecurityPage() {
             </label>
 
             <label className={styles.field}>
-              <span>Confirm new password</span>
+              <span>{t("Confirm new password", "تکرار گذرواژه جدید")}</span>
 
               <div className={styles.passwordInput}>
                 <input
@@ -253,8 +255,8 @@ export default function SecurityPage() {
                   }
                   aria-label={
                     showPasswordConfirm
-                      ? "Hide password confirmation"
-                      : "Show password confirmation"
+                      ? t("Hide password confirmation", "پنهان کردن تکرار گذرواژه")
+                      : t("Show password confirmation", "نمایش تکرار گذرواژه")
                   }
                 >
                   <EyeIcon visible={showPasswordConfirm} />
@@ -272,7 +274,7 @@ export default function SecurityPage() {
               <span className={styles.requirementIcon}>
                 <CheckIcon />
               </span>
-              <span>At least 8 characters</span>
+              <span>{t("At least 8 characters", "حداقل ۸ نویسه")}</span>
             </div>
 
             <div
@@ -283,7 +285,7 @@ export default function SecurityPage() {
               <span className={styles.requirementIcon}>
                 <CheckIcon />
               </span>
-              <span>Not entirely numeric</span>
+              <span>{t("Not entirely numeric", "شامل چیزی بیش از اعداد")}</span>
             </div>
 
             <div
@@ -294,12 +296,12 @@ export default function SecurityPage() {
               <span className={styles.requirementIcon}>
                 <CheckIcon />
               </span>
-              <span>Not a commonly used password</span>
+              <span>{t("Not a commonly used password", "گذرواژه‌ای غیرمتداول")}</span>
             </div>
           </div>
 
           {errorMessage && (
-            <p className={styles.errorMessage}>{errorMessage}</p>
+            <p className={styles.errorMessage}>{localizeAccountMessage(locale, errorMessage, "تغییر گذرواژه انجام نشد.")}</p>
           )}
 
           <div className={styles.actions}>
@@ -308,7 +310,7 @@ export default function SecurityPage() {
               className={styles.primaryButton}
               disabled={isSaving}
             >
-              {isSaving ? "Updating..." : "Update password"}
+              {isSaving ? t("Updating...", "در حال به‌روزرسانی…") : t("Update password", "تغییر گذرواژه")}
             </button>
           </div>
         </form>

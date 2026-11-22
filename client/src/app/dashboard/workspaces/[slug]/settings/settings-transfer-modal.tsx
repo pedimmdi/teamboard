@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -25,6 +26,7 @@ export default function SettingsTransferModal({
   onClose,
   onTransferred,
 }: Props) {
+  const { ui } = useWorkspaceLocale();
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [confirmed, setConfirmed] = useState(false);
@@ -183,25 +185,17 @@ export default function SettingsTransferModal({
         aria-labelledby="settings-transfer-title"
         tabIndex={-1}
       >
-        <h2 id="settings-transfer-title">
-          Transfer ownership
-        </h2>
+        <h2 id="settings-transfer-title">{ui("Transfer ownership")}</h2>
 
-        <p className={styles.description}>
-          Select a member to become the new workspace owner.
-        </p>
+        <p className={styles.description}>{ui("Select a member to become the new workspace owner.")}</p>
 
         {isLoading ? (
-          <p className={styles.status}>Loading members...</p>
+          <p className={styles.status}>{ui("Loading members...")}</p>
         ) : members.length === 0 ? (
-          <p className={styles.status}>
-            No eligible members are available.
-          </p>
+          <p className={styles.status}>{ui("No eligible members are available.")}</p>
         ) : (
           <>
-            <label htmlFor="transfer-member">
-              New owner
-            </label>
+            <label htmlFor="transfer-member">{ui("New owner")}</label>
 
             <select
               id="transfer-member"
@@ -209,7 +203,7 @@ export default function SettingsTransferModal({
               disabled={isSubmitting}
               onChange={(event) => setSelectedId(event.target.value)}
             >
-              <option value="">Select a member</option>
+              <option value="">{ui("Select a member")}</option>
 
               {members.map((member) => (
                 <option key={member.id} value={member.id}>
@@ -220,8 +214,7 @@ export default function SettingsTransferModal({
 
             {selectedMember && (
               <div className={styles.warning}>
-                {selectedMember.user_email} will become the owner.
-                Your role will change to Admin.
+                {selectedMember.user_email} {ui("will become the owner. Your role will change to Admin.")}
               </div>
             )}
 
@@ -232,16 +225,14 @@ export default function SettingsTransferModal({
                 disabled={isSubmitting}
                 onChange={(event) => setConfirmed(event.target.checked)}
               />
-              <span>
-                I understand that I will lose owner-only permissions.
-              </span>
+              <span>{ui("I understand that I will lose owner-only permissions.")}</span>
             </label>
           </>
         )}
 
         {error && (
           <p className={styles.error} role="alert">
-            {error}
+            {ui(error)}
           </p>
         )}
 
@@ -251,9 +242,7 @@ export default function SettingsTransferModal({
             className={styles.cancelButton}
             disabled={isSubmitting}
             onClick={onClose}
-          >
-            Cancel
-          </button>
+          >{ui("Cancel")}</button>
 
           <button
             type="button"
@@ -261,7 +250,7 @@ export default function SettingsTransferModal({
             disabled={!selectedId || !confirmed || isSubmitting || isLoading}
             onClick={() => void handleTransfer()}
           >
-            {isSubmitting ? "Transferring..." : "Transfer ownership"}
+            {isSubmitting ? ui("Transferring...") : ui("Transfer ownership")}
           </button>
         </div>
       </div>

@@ -23,6 +23,17 @@ test("calendar uses UTC days, Monday weeks and an exclusive overlap end", () => 
   assert.equal(itemsForDay([item], days[7]).length, 0);
 });
 
+test("Persian calendar starts on Saturday and moves between Solar Hijri months", () => {
+  const { dayOfMonth, monthDays, monthStart, adjacentMonth } = load("../src/components/calendar/calendar-dates.ts");
+  const nowruz = new Date("2026-03-21T00:00:00Z");
+  const month = monthDays(nowruz, "persian", 6);
+  assert.equal(month[0].toISOString(), nowruz.toISOString());
+  assert.equal(dayOfMonth(nowruz, "persian"), 1);
+  assert.equal(monthStart(month[14], "persian").toISOString(), nowruz.toISOString());
+  assert.equal(adjacentMonth(nowruz, 1, "persian").toISOString(), "2026-04-21T00:00:00.000Z");
+  assert.equal(adjacentMonth(nowruz, -1, "persian").toISOString(), "2026-02-20T00:00:00.000Z");
+});
+
 test("calendar API uses the workspace and project URLs and event methods", async () => {
   const requests = [];
   const api = load("../src/lib/api.ts", {

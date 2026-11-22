@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/lib/preferences";
 import type { ButtonHTMLAttributes } from "react";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -12,12 +13,13 @@ export default function Button({
   disabled,
   ...props
 }: ButtonProps) {
+  const { t } = useLocale();
   return (
     <button
       disabled={disabled || loading}
       {...props}
     >
-      {loading ? "Loading..." : children}
+      {loading ? t("Loading...", "در حال بارگیری…") : children}
     </button>
   );
 }

@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import {
   useEffect,
   useRef,
@@ -28,6 +29,7 @@ export default function InviteMemberModal({
   onClose,
   onInvited,
 }: Props) {
+  const { ui } = useWorkspaceLocale();
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,12 +146,12 @@ export default function InviteMemberModal({
         tabIndex={-1}
       >
         <div className={styles.header}>
-          <h2 id="invite-title">Invite member</h2>
+          <h2 id="invite-title">{ui("Invite member")}</h2>
 
           <button
             type="button"
             className={styles.closeButton}
-            aria-label="Close"
+            aria-label={ui("Close")}
             disabled={isSubmitting}
             onClick={onClose}
           >
@@ -157,14 +159,10 @@ export default function InviteMemberModal({
           </button>
         </div>
 
-        <p id="invite-description" className={styles.description}>
-          Send an invitation to join your workspace.
-        </p>
+        <p id="invite-description" className={styles.description}>{ui("Send an invitation to join your workspace.")}</p>
 
         <form onSubmit={handleSubmit}>
-          <label htmlFor="invitation-email" className={styles.label}>
-            Email address
-          </label>
+          <label htmlFor="invitation-email" className={styles.label}>{ui("Email address")}</label>
 
           <input
             ref={emailRef}
@@ -185,7 +183,7 @@ export default function InviteMemberModal({
 
           {error && (
             <p className={styles.error} role="alert">
-              {error}
+              {ui(error)}
             </p>
           )}
 
@@ -195,16 +193,14 @@ export default function InviteMemberModal({
               className={styles.cancelButton}
               disabled={isSubmitting}
               onClick={onClose}
-            >
-              Cancel
-            </button>
+            >{ui("Cancel")}</button>
 
             <button
               type="submit"
               className={styles.submitButton}
               disabled={isSubmitting || !email.trim()}
             >
-              {isSubmitting ? "Sending..." : "Send invitation"}
+              {isSubmitting ? ui("Sending...") : ui("Send invitation")}
             </button>
           </div>
         </form>

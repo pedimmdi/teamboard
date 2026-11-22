@@ -146,6 +146,10 @@ When changing the API contract, regenerate the checked-in schema with `docker co
 
 Create an isolated PostgreSQL database named `teamboard_e2e` and set `POSTGRES_DB=teamboard_e2e` and `E2E_PASSWORD` in the test process environment. Use the matching PostgreSQL credentials and a Django environment with the project dependencies installed. Set `E2E_PYTHON` to the virtual environment's Python executable if needed. From `client/` run `npx playwright install chromium` and `npm run test:e2e`. Playwright builds and serves the production frontend on port 3100. For an installed Chrome or Edge, set `E2E_BROWSER_CHANNEL` to `chrome` or `msedge`.
 
+### Persian typography
+
+The Persian interface includes the OFL-licensed Vazirmatn font. To use IranSansX on a deployment covered by your webfont license, place `IRANSansXFaNum-Regular.woff2`, `IRANSansXFaNum-DemiBold.woff2`, and `IRANSansXFaNum-Bold.woff2` from the licensed package in `client/public/fonts/iransansx/` on that deployment and set `IRANSANSX_WEBFONT=1` for the Next.js server. The licensed directory is ignored by Git. Include the WOFF2 files in that deployment's static assets.
+
 Playwright starts Next.js on port 3100 and Django on port 8100. The test server applies migrations and seeds a verified user in the isolated database. The tests exercise the browser, API and PostgreSQL together. GitHub Actions runs the Chromium suite and saves failure traces.
 
 ## License

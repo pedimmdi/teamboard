@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  background: #f8fafc;
+  background: radial-gradient(ellipse at 15% 0, var(--primary-soft), transparent 45%), var(--background);
 }
 
 .container {
@@ -17,11 +17,20 @@
   gap: 28px;
 }
 
+.header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #111827;
+  color: var(--foreground);
   text-decoration: none;
   font-size: 15px;
   font-weight: 700;
@@ -30,11 +39,11 @@
 .brandMark {
   display: grid;
   place-items: center;
-  width: 25px;
-  height: 25px;
-  border-radius: 6px;
-  background: #4f46e5;
-  color: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
   font-size: 14px;
 }
 
@@ -44,10 +53,10 @@
   align-items: center;
   width: 100%;
   padding: 36px 32px 30px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgb(15 23 42 / 5%);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
   text-align: center;
 }
 
@@ -70,23 +79,23 @@
 }
 
 .ready {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .success {
-  background: #dcfce7;
-  color: #16a34a;
+  background: var(--success-background);
+  color: var(--success);
 }
 
 .error {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--danger-background);
+  color: var(--danger);
 }
 
 .card h1 {
   margin: 0;
-  color: #111827;
+  color: var(--foreground);
   font-size: 21px;
   font-weight: 700;
   line-height: 1.35;
@@ -95,7 +104,7 @@
 .description {
   max-width: 340px;
   margin: 10px 0 22px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -109,8 +118,8 @@
   padding: 10px 16px;
   border: 0;
   border-radius: 7px;
-  background: #4f46e5;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -119,7 +128,7 @@
 }
 
 .primaryButton:hover:not(:disabled) {
-  background: #4338ca;
+  background: var(--primary-hover);
 }
 
 .primaryButton:disabled {
@@ -129,7 +138,7 @@
 
 .secondaryLink {
   margin-top: 15px;
-  color: #4f46e5;
+  color: var(--primary);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
@@ -143,26 +152,26 @@
   width: 100%;
   margin: 0 0 18px;
   padding: 12px;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--danger-border);
   border-radius: 7px;
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--danger-background);
+  color: var(--danger);
   font-size: 12px;
   line-height: 1.6;
-  text-align: left;
+  text-align: start;
   overflow-wrap: anywhere;
 }
 
 .accountHint {
   margin: 12px 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
   overflow-wrap: anywhere;
 }
 
 .helpText {
   margin: 20px 0 0;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 11px;
   line-height: 1.6;
 }
@@ -194,7 +203,7 @@
   padding: 4px;
   border: 0;
   background: transparent;
-  color: #4f46e5;
+  color: var(--primary);
   font: inherit;
   font-size: 12px;
   font-weight: 600;

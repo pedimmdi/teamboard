@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import Image from "next/image";
 import styles from "./tasks.module.css";
@@ -21,6 +22,7 @@ export default function TaskDialog({
   drawer?: boolean;
   headerAction?: ReactNode;
 }) {
+  const { ui } = useWorkspaceLocale();
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -104,9 +106,10 @@ export default function TaskDialog({
             <button
               type="button"
               className={styles.iconButton}
+              data-drawer-back={drawer || undefined}
               onClick={onClose}
               disabled={busy}
-              aria-label={drawer ? "Back to tasks" : "Close dialog"}
+              aria-label={drawer ? ui("Back to tasks") : ui("Close dialog")}
             >
               {drawer ? (
                 <>

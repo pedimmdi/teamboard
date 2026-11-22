@@ -1,26 +1,32 @@
 .page {
-  padding: 32px;
-  color: #0f172a;
+  width: min(100%, 1340px);
+  margin-inline: auto;
+  padding: clamp(20px, 3.4vw, 48px);
+  color: var(--foreground);
   min-width: 0;
 }
 
 .header {
   margin-bottom: 24px;
+  padding: clamp(24px, 4vw, 48px);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 6px);
+  background:
+    radial-gradient(ellipse at 88% 4%, var(--primary-soft), transparent 67%),
+    var(--surface);
 }
 
 .header h1 {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: var(--workspace-tracking, -.035em);
   margin: 0 0 6px;
 }
 
 .header p {
   font-size: 14px;
-  color: #64748b;
-}
-
-.eyebrow {
-  display: none;
+  color: var(--muted);
 }
 
 .metrics {
@@ -31,26 +37,32 @@
 }
 
 .metric {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-block-start: 3px solid var(--primary);
   padding: 20px;
   display: grid;
   gap: 12px;
 }
 
+.metric:nth-child(2) { border-block-start-color: var(--danger); }
+.metric:nth-child(3) { border-block-start-color: var(--info); }
+.metric:nth-child(4) { border-block-start-color: var(--warning); }
+
 .metric span {
   font-size: 13px;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .metric strong {
   font-size: 28px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .metric:nth-child(2) strong {
-  color: #dc2626;
+  color: var(--danger);
 }
 
 .grid {
@@ -60,9 +72,10 @@
 }
 
 .card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
   padding: 20px;
   min-width: 0;
 }
@@ -81,15 +94,15 @@
 .count {
   font-size: 12px;
   font-weight: 500;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--primary-soft);
+  color: var(--primary);
   padding: 3px 8px;
   border-radius: 999px;
 }
 
 .note {
   font-size: 13px;
-  color: #64748b;
+  color: var(--muted);
   margin-top: 8px;
 }
 
@@ -100,47 +113,49 @@
 }
 
 .card li {
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
   padding: 14px 0;
   overflow-wrap: anywhere;
 }
 
+.card li:last-child { border-block-end: 0; }
+
 .card a {
-  color: #0f172a;
+  color: var(--foreground);
   text-decoration: none;
   font-size: 14px;
 }
 
 .card a:hover {
-  color: #4f46e5;
+  color: var(--primary);
 }
 
 .card small {
   display: block;
-  color: #64748b;
+  color: var(--muted);
   font-size: 12px;
   margin-top: 6px;
 }
 
 .empty {
   padding: 32px 0;
-  color: #64748b;
+  color: var(--muted);
   font-size: 14px;
 }
 
 .card .more {
   display: block;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border);
   padding-top: 16px;
-  color: #4f46e5;
+  color: var(--primary);
   font-size: 13px;
 }
 
 .card button {
   padding: 8px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: white;
+  background: var(--surface);
   cursor: pointer;
   margin-top: 12px;
 }

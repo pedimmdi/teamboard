@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -15,6 +17,7 @@ import styles from "./verify-email.module.css";
 type VerificationState = "ready" | "loading" | "success" | "error";
 
 function VerifyEmailContent() {
+  const { locale, t } = useLocale();
   const searchParams = useSearchParams();
   const uid = searchParams.get("uid");
   const token = searchParams.get("token");
@@ -59,7 +62,7 @@ function VerifyEmailContent() {
         );
       } else {
         setMessage(
-          "Unable to verify your email. Please try again.",
+          t("Unable to verify your email. Please try again.", "تأیید ایمیل انجام نشد. دوباره تلاش کنید."),
         );
       }
 
@@ -72,21 +75,21 @@ function VerifyEmailContent() {
       {status === "success" ? (
         <VerificationStatus
           tone="success"
-          title="Email verified"
-          description="Your email address is verified. Your account is ready to use."
+          title={t("Email verified", "ایمیل تأیید شد")}
+          description={t("Your email address is verified. Your account is ready to use.", "نشانی ایمیل‌تان تأیید شد. حسابتان آماده استفاده است.")}
         >
           <Link href="/login" className={styles.primaryButton}>
-            Continue to sign in
+            {t("Continue to sign in", "رفتن به صفحه ورود")}
           </Link>
         </VerificationStatus>
       ) : hasError ? (
         <VerificationStatus
           tone="error"
-          title="Unable to verify email"
+          title={t("Unable to verify email", "تأیید ایمیل انجام نشد")}
           description={
             missingParams
-              ? "This verification link is missing or invalid."
-              : message
+              ? t("This verification link is missing or invalid.", "پیوند تأیید ناقص یا نامعتبر است.")
+              : localizeAccountMessage(locale, message, "تأیید ایمیل انجام نشد. دوباره تلاش کنید.")
           }
         >
           {!missingParams && (
@@ -95,7 +98,7 @@ function VerifyEmailContent() {
               className={styles.primaryButton}
               onClick={() => setStatus("ready")}
             >
-              Try again
+              {t("Try again", "تلاش دوباره")}
             </button>
           )}
 
@@ -103,18 +106,18 @@ function VerifyEmailContent() {
             href="/resend-verification"
             className={styles.secondaryLink}
           >
-            Send a new link
+            {t("Send a new link", "ارسال پیوند جدید")}
           </Link>
 
           <Link href="/login" className={styles.secondaryLink}>
-            Back to sign in
+            {t("Back to sign in", "بازگشت به ورود")}
           </Link>
         </VerificationStatus>
       ) : (
         <VerificationStatus
           tone="info"
-          title="Verify your email"
-          description="Confirm your email address to activate your TeamBoard account."
+          title={t("Verify your email", "ایمیل‌تان را تأیید کنید")}
+          description={t("Confirm your email address to activate your TeamBoard account.", "نشانی ایمیل‌تان را تأیید کنید تا حساب تیم‌بورد شما فعال شود.")}
         >
           <button
             type="button"
@@ -122,11 +125,11 @@ function VerifyEmailContent() {
             onClick={() => void handleVerify()}
             disabled={status === "loading"}
           >
-            {status === "loading" ? "Verifying..." : "Verify email"}
+            {status === "loading" ? t("Verifying...", "در حال تأیید…") : t("Verify email", "تأیید ایمیل")}
           </button>
 
           <Link href="/login" className={styles.secondaryLink}>
-            Back to sign in
+            {t("Back to sign in", "بازگشت به ورود")}
           </Link>
         </VerificationStatus>
       )}

@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   ApiError,
@@ -21,6 +23,7 @@ export default function CreateWorkspaceModal({
   onClose,
   onCreated,
 }: Props) {
+  const { locale, t } = useLocale();
   const titleId = useId();
   const descriptionId = useId();
   const nameId = useId();
@@ -79,13 +82,13 @@ export default function CreateWorkspaceModal({
     const trimmedName = name.trim();
 
     if (!trimmedName) {
-      setError("Workspace name is required.");
+      setError(t("Workspace name is required.", "نام فضای کاری را وارد کنید."));
       inputRef.current?.focus();
       return;
     }
 
     if (trimmedName.length > 150) {
-      setError("Workspace name must be 150 characters or fewer.");
+      setError(t("Workspace name must be 150 characters or fewer.", "نام فضای کاری باید حداکثر ۱۵۰ نویسه باشد."));
       return;
     }
 
@@ -107,7 +110,7 @@ export default function CreateWorkspaceModal({
 
         setError(message || err.message);
       } else {
-        setError("Unable to create workspace. Please try again.");
+        setError(t("Unable to create workspace. Please try again.", "فضای کاری ایجاد نشد. دوباره تلاش کنید."));
       }
     } finally {
       setIsSubmitting(false);
@@ -133,17 +136,16 @@ export default function CreateWorkspaceModal({
       >
         <div className={styles.heading}>
           <div>
-            <h2 id={titleId}>Create workspace</h2>
+            <h2 id={titleId}>{t("Create workspace", "ایجاد فضای کاری")}</h2>
             <p id={descriptionId}>
-              Workspaces help you organize your work and collaborate
-              with your team.
+              {t("Workspaces help you organize your work and collaborate with your team.", "با فضای کاری کارها را مرتب کنید و با تیمتان همکاری کنید.")}
             </p>
           </div>
 
           <button
             type="button"
             className={styles.closeButton}
-            aria-label="Close dialog"
+            aria-label={t("Close dialog", "بستن پنجره")}
             onClick={onClose}
             disabled={isSubmitting}
           >
@@ -153,14 +155,14 @@ export default function CreateWorkspaceModal({
 
         <form onSubmit={handleSubmit} noValidate>
           <div className={styles.field}>
-            <label htmlFor={nameId}>Workspace name</label>
+            <label htmlFor={nameId}>{t("Workspace name", "نام فضای کاری")}</label>
             <input
               ref={inputRef}
               id={nameId}
               type="text"
               value={name}
               maxLength={150}
-              placeholder="e.g. Acme Inc."
+              placeholder={t("e.g. Acme Inc.", "برای نمونه، تیم طراحی")}
               autoComplete="off"
               aria-invalid={Boolean(error)}
               aria-describedby={error ? `${nameId}-error` : undefined}
@@ -172,7 +174,7 @@ export default function CreateWorkspaceModal({
             />
             {error && (
               <p id={`${nameId}-error`} className={styles.error} role="alert">
-                {error}
+                {localizeAccountMessage(locale, error, "فضای کاری ایجاد نشد. دوباره تلاش کنید.")}
               </p>
             )}
           </div>
@@ -184,7 +186,7 @@ export default function CreateWorkspaceModal({
               onClick={onClose}
               disabled={isSubmitting}
             >
-              Cancel
+              {t("Cancel", "انصراف")}
             </button>
 
             <button
@@ -192,7 +194,7 @@ export default function CreateWorkspaceModal({
               className={styles.submitButton}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Creating..." : "Create workspace"}
+              {isSubmitting ? t("Creating...", "در حال ایجاد…") : t("Create workspace", "ایجاد فضای کاری")}
             </button>
           </div>
         </form>

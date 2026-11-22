@@ -23,11 +23,16 @@ const permissionsSource = readFileSync(
   "utf8",
 );
 const permissionExports = {};
+const locale = {};
+runInNewContext(ts.transpileModule(
+  readFileSync(new URL("../src/lib/locale.ts", import.meta.url), "utf8"),
+  { compilerOptions: { module: ts.ModuleKind.CommonJS } },
+).outputText, { exports: locale });
 runInNewContext(
   ts.transpileModule(permissionsSource, {
     compilerOptions: { module: ts.ModuleKind.CommonJS },
   }).outputText,
-  { exports: permissionExports, Intl, Date },
+  { exports: permissionExports, Intl, Date, require: () => locale },
 );
 
 test("workspace owners and admins retain all management rights for every project role", () => {

@@ -16,12 +16,14 @@ function compile(path) {
   ).outputText;
 }
 const apiCode = compile("../src/lib/api.ts");
+const locale = {};
+runInNewContext(compile("../src/lib/locale.ts"), { exports: locale });
 const utils = {};
 runInNewContext(
   compile(
     "../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/task-utils.ts",
   ),
-  { exports: utils, URLSearchParams, Date, Intl },
+  { exports: utils, URLSearchParams, Date, Intl, require: () => locale },
 );
 
 function moveClient() {

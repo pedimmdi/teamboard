@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useId, useState, type FormEvent } from "react";
 import { ApiError, type ProjectInput } from "@/lib/api";
 import styles from "./projects.module.css";
@@ -17,6 +18,7 @@ export default function ProjectForm({
   onCancel?: () => void;
   onBusyChange?: (busy: boolean) => void;
 }) {
+  const { ui, formatNumber } = useWorkspaceLocale();
   const id = useId();
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
@@ -59,11 +61,11 @@ export default function ProjectForm({
     <form className={styles.form} onSubmit={submit}>
       {error && (
         <p className={styles.alert} role="alert">
-          {error}
+          {ui(error)}
         </p>
       )}
       <div className={styles.field}>
-        <label htmlFor={`${id}-name`}>Project name</label>
+        <label htmlFor={`${id}-name`}>{ui("Project name")}</label>
         <input
           id={`${id}-name`}
           value={name}
@@ -76,13 +78,13 @@ export default function ProjectForm({
         />
         {fields.name && (
           <p id={`${id}-name-error`} className={styles.error} role="alert">
-            {fields.name}
+            {ui(fields.name)}
           </p>
         )}
       </div>
       <div className={styles.field}>
         <label htmlFor={`${id}-description`}>
-          Description {submitLabel === "Create project" && "(optional)"}
+          {ui("Description")} {submitLabel === "Create project" && ui("(optional)")}
         </label>
         <textarea
           id={`${id}-description`}
@@ -90,16 +92,16 @@ export default function ProjectForm({
           onChange={(event) => setDescription(event.target.value)}
           maxLength={5000}
           disabled={busy}
-          placeholder="What is this project about?"
+          placeholder={ui("What is this project about?")}
           aria-invalid={Boolean(fields.description)}
           aria-describedby={`${id}-count`}
         />
         <span id={`${id}-count`} className={styles.counter}>
-          {description.length} / 5000
+          {formatNumber(description.length)} / {formatNumber(5000)}
         </span>
         {fields.description && (
           <p className={styles.error} role="alert">
-            {fields.description}
+            {ui(fields.description)}
           </p>
         )}
       </div>
@@ -110,9 +112,7 @@ export default function ProjectForm({
             className={styles.secondaryButton}
             disabled={busy}
             onClick={onCancel}
-          >
-            Cancel
-          </button>
+          >{ui("Cancel")}</button>
         )}
         <button
           className={styles.primaryButton}
@@ -123,7 +123,7 @@ export default function ProjectForm({
               description === initial.description)
           }
         >
-          {busy ? "Saving…" : submitLabel}
+          {busy ? ui("Saving…") : ui(submitLabel)}
         </button>
       </div>
     </form>

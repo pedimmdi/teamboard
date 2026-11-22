@@ -1,13 +1,26 @@
 "use client";
+
 import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import styles from "@/app/(public)/website.module.css";
-export default function ContactForm() {
+import { websitePath, type WebsiteLocale } from "@/lib/website";
+import { websiteCopy } from "@/lib/website-copy";
+
+const fields = [
+  { name: "name", maxLength: 120, autoComplete: "name" },
+  { name: "email", maxLength: 254, autoComplete: "email" },
+  { name: "subject", maxLength: 180, autoComplete: "off" },
+  { name: "message", maxLength: 5000 },
+] as const;
+
+export default function ContactForm({ locale }: { locale: WebsiteLocale }) {
+  const copy = websiteCopy[locale];
   const busy = useRef(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy.current) return;
@@ -16,7 +29,7 @@ export default function ContactForm() {
     busy.current = true;
     setPending(true);
     setError("");
-    setFields({});
+    setFieldErrors({});
     setSuccess(false);
     try {
       const response = await fetch(
@@ -28,111 +41,82 @@ export default function ContactForm() {
           credentials: "omit",
         },
       );
-      if (response.status === 413)
-        throw new Error(
-          "Your message is too large. Please shorten it and try again.",
-        );
-      if (response.status === 429) {
-        const delay = response.headers.get("Retry-After");
-        throw new Error(
-          `Too many messages. Please ${delay ? `wait ${delay} seconds` : `wait a little`} before trying again.`,
-        );
+      if (response.status === 413) {
+        setError(copy.form.large);
+      } else if (response.status === 429) {
+        const delay = Number(response.headers.get("Retry-After"));
+        const seconds = new Intl.NumberFormat(locale).format(delay);
+        setError(delay > 0 && Number.isFinite(delay)
+          ? locale === "fa"
+            ? `تعداد پیام‌ها زیاد است. لطفاً ${seconds} ثانیه صبر کنید و دوباره تلاش کنید.`
+            : `Too many messages. Please wait ${seconds} seconds before trying again.`
+          : copy.form.rate);
+      } else if (response.status === 400) {
+        const body = await response.json().catch(() => ({}));
+        const errors = body?.errors ?? body ?? {};
+        const matchingErrors = fields.flatMap(({ name }) => {
+          const value = errors[name];
+          return value
+            ? [[name, locale === "fa" ? copy.form.field : Array.isArray(value) ? value.join(" ") : String(value)]]
+            : [];
+        });
+        setFieldErrors(Object.fromEntries(matchingErrors));
+        setError(matchingErrors.length ? copy.form.check : copy.form.failed);
+      } else if (!response.ok) {
+        setError(copy.form.failed);
+      } else {
+        setSuccess(true);
+        form.reset();
       }
-      if (response.status === 400) {
-        const body = await response.json();
-        setFields(
-          Object.fromEntries(
-            Object.entries(body.errors ?? body)
-              .filter(([key]) =>
-                ["name", "email", "subject", "message"].includes(key),
-              )
-              .map(([key, value]) => [
-                key,
-                Array.isArray(value) ? value.join(" ") : String(value),
-              ]),
-          ),
-        );
-        throw new Error("Please check the highlighted fields and try again.");
-      }
-      if (!response.ok)
-        throw new Error("Unable to send your message. Please try again later.");
-      setSuccess(true);
-      form.reset();
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to connect. Please try again.",
-      );
+    } catch {
+      setError(copy.form.network);
     } finally {
       busy.current = false;
       setPending(false);
     }
   }
+
+  function localizeValidation(event: FormEvent<HTMLFormElement>) {
+    if (locale !== "fa") return;
+    const field = event.target;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    const message = field.validity.valueMissing ? "لطفاً این فیلد را پر کنید."
+      : field.validity.typeMismatch ? "لطفاً یک نشانی ایمیل معتبر وارد کنید."
+      : copy.form.field;
+    field.setCustomValidity(message);
+  }
+
   return (
-    <form className={styles.form} onSubmit={submit}>
-      {success && (
-        <p role="status">
-          Your message has been received. Thank you for getting in touch.
-        </p>
-      )}
-      {error && (
-        <p role="alert" id="contact-error">
-          {error}
-        </p>
-      )}
-      {[
-        ["name", "Your name", 120],
-        ["email", "Email address", 254],
-        ["subject", "Subject", 180],
-        ["message", "Message", 5000],
-      ].map(([name, label, max]) => (
-        <div key={name}>
-          <label htmlFor={`contact-${name}`}>{label}</label>
-          {name === "message" ? (
-            <textarea
-              id={`contact-${name}`}
-              name={String(name)}
-              required
-              maxLength={Number(max)}
-              rows={7}
-              disabled={pending}
-              aria-invalid={Boolean(fields[name])}
-              aria-describedby={fields[name] ? `${name}-error` : undefined}
-            />
-          ) : (
-            <input
-              id={`contact-${name}`}
-              name={String(name)}
-              type={name === "email" ? "email" : "text"}
-              autoComplete={
-                name === "name" ? "name" : name === "email" ? "email" : "off"
-              }
-              required
-              maxLength={Number(max)}
-              disabled={pending}
-              aria-invalid={Boolean(fields[name])}
-              aria-describedby={fields[name] ? `${name}-error` : undefined}
-            />
-          )}{" "}
-          {fields[name] && <small id={`${name}-error`}>{fields[name]}</small>}
-        </div>
-      ))}
+    <form className={styles.form} onSubmit={submit} onInvalid={localizeValidation} onInput={(event) => {
+      const field = event.target;
+      if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) field.setCustomValidity("");
+    }}>
+      {success && <p role="status">{copy.form.success}</p>}
+      {error && <p role="alert">{error}</p>}
+      {fields.map(({ name, ...options }) => {
+        const field = {
+          id: `contact-${name}`, name, required: true, maxLength: options.maxLength, disabled: pending,
+          "aria-invalid": Boolean(fieldErrors[name]),
+          "aria-describedby": fieldErrors[name] ? `${name}-error` : undefined,
+        };
+        return (
+          <div className={name === "name" || name === "email" ? styles.formSplit : undefined} key={name}>
+            <label htmlFor={field.id}>{copy.form[name]}</label>
+            {name === "message" ? <textarea {...field} dir="auto" rows={6} /> : (
+              <input {...field} dir={name === "email" ? "ltr" : "auto"} type={name === "email" ? "email" : "text"}
+                autoComplete={"autoComplete" in options ? options.autoComplete : undefined} />
+            )}
+            {fieldErrors[name] && <small id={`${name}-error`}>{fieldErrors[name]}</small>}
+          </div>
+        );
+      })}
       <div className={styles.honeypot} aria-hidden="true">
-        <label htmlFor="website-url">Website URL</label>
-        <input
-          id="website-url"
-          name="website_url"
-          tabIndex={-1}
-          autoComplete="off"
-        />
+        <label htmlFor="website-url">{copy.form.trap}</label>
+        <input id="website-url" name="website_url" tabIndex={-1} autoComplete="off" />
       </div>
-      <p>
-        Contact messages are kept for up to 180 days. Read our{" "}
-        <Link href="/privacy">Privacy policy</Link>.
-      </p>
-      <button className={styles.primary} disabled={pending}>
-        {pending ? "Sending…" : "Send message"}
+      <p>{copy.form.retention} <Link href={websitePath("/privacy", locale)}>{copy.privacyTitle}</Link></p>
+      <button type="submit" className={styles.primary} disabled={pending}>
+        {pending ? copy.form.pending : copy.form.submit}
       </button>
     </form>
   );

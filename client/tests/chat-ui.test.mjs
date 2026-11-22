@@ -7,12 +7,23 @@ import React, {act} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import ts from "typescript";
 
-function component(name, modules, globals = {}) {
+function component(name, modules, globals = {}, locale = "en") {
   const exports = {};
   const styles = new Proxy({}, {get: (_, name) => name === "__esModule" ? false : String(name)});
+  const copy = {};
+  const region = locale === "fa" ? "fa-IR" : "en-US";
+  runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/workspace-locale.ts", import.meta.url), "utf8"), {
+    compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022},
+  }).outputText, {exports: copy, require: () => ({
+    useLocale: () => ({
+      locale,
+      formatDate: (value, options) => new Intl.DateTimeFormat(region, options).format(new Date(value)),
+      formatNumber: (value) => new Intl.NumberFormat(region).format(value),
+    }),
+  })});
   runInNewContext(ts.transpileModule(readFileSync(new URL("../src/components/chats/" + name + ".tsx", import.meta.url), "utf8"), {
     compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true},
-  }).outputText, {exports, React, ...globals, require: (path) => path.endsWith(".css") ? styles : path === "react" ? React : modules[path]});
+  }).outputText, {exports, React, ...globals, require: (path) => path.endsWith(".css") ? styles : path === "react" ? React : path === "@/lib/workspace-locale" ? copy : modules[path]});
   return exports;
 }
 
@@ -24,6 +35,13 @@ test("chat unread badges hide zero and show exact values through ten, then +10",
     assert.ok(html.includes(`aria-label="${count} unread messages"`));
     assert.ok(html.includes(`>${count > 10 ? "+10" : count}</span>`));
   }
+});
+
+test("Persian chat unread badges display Persian numbers and a localized accessible name", () => {
+  const {ChatUnreadBadge} = component("chat-unread", {}, {}, "fa");
+  const html = renderToStaticMarkup(React.createElement(ChatUnreadBadge, {count: 12}));
+  assert.ok(html.includes('aria-label="۱۲ پیام خوانده‌نشده"'));
+  assert.ok(html.includes(">+۱۰</span>"));
 });
 
 test("reply navigation fetches an unloaded parent, scrolls and briefly highlights it, then reuses the loaded message", async () => {

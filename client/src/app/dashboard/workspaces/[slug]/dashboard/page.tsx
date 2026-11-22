@@ -1,4 +1,5 @@
 "use client";
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,6 +15,7 @@ const sections = [
   ["follow_up", "Follow Up", "Tasks you created for teammates"],
 ] as const;
 export default function WorkspaceDashboardPage() {
+  const { ui, formatDate, formatNumber } = useWorkspaceLocale();
   const { slug } = useParams<{
     slug: string;
   }>();
@@ -58,44 +60,37 @@ export default function WorkspaceDashboardPage() {
     return `${base}/projects/${item.project}/tasks?task=${encodeURIComponent(item.task ?? item.id)}`;
   }
   return (
-    <section className={styles.page} aria-label="Workspace dashboard">
+    <section className={styles.page} aria-label={ui("Workspace dashboard")}>
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>WORKSPACE OVERVIEW</p>
-          <h1>Dashboard</h1>
-          <p>
-            {data?.workspace_name ?? "Your workspace"} · Your work, at a glance.
-          </p>
+          <h1>{ui("Dashboard")}</h1>
+          <p><bdi>{data?.workspace_name ?? ui("Your workspace")}</bdi></p>
         </div>
       </header>
       {error ? (
         <div role="alert" className={styles.card}>
-          <p>{error}</p>
+          <p>{ui(error)}</p>
           <button
             onClick={() => {
               setFailure(null);
               setRetry((v) => v + 1);
             }}
-          >
-            Try again
-          </button>
+          >{ui("Try again")}</button>
         </div>
       ) : !data ? (
-        <p role="status" className={styles.card}>
-          Loading your dashboard…
-        </p>
+        <p role="status" className={styles.card}>{ui("Loading your dashboard…")}</p>
       ) : (
         <>
-          <div className={styles.metrics} aria-label="Task summary">
-            {[
+          <div className={styles.metrics} aria-label={ui("Task summary")}>
+            {([
               ["My tasks today", data.today_tasks_count],
               ["Overdue", data.overdue_tasks.count],
               ["Follow up", data.follow_up.count],
               ["Due in 7 days", data.due_soon_tasks.count],
-            ].map(([label, count]) => (
+            ] as const).map(([label, count]) => (
               <div className={styles.metric} key={label}>
-                <span>{label}</span>
-                <strong>{count}</strong>
+                <span>{ui(label)}</span>
+                <strong>{formatNumber(count)}</strong>
               </div>
             ))}
           </div>
@@ -103,30 +98,30 @@ export default function WorkspaceDashboardPage() {
             {sections.map(([key, title, description]) => {
               const section = data[key];
               return (
-                <article className={styles.card} key={key} aria-label={title}>
+                <article className={styles.card} key={key} aria-label={ui(title)}>
                   <header>
-                    <h2>{title}</h2>
+                    <h2>{ui(title)}</h2>
                     <strong className={styles.count}>
-                      {section.count.toLocaleString()}
+                      {formatNumber(section.count)}
                     </strong>
                   </header>
-                  <p className={styles.note}>{description}</p>
+                  <p className={styles.note}>{ui(description)}</p>
                   {section.items.length ? (
                     <ul>
                       {section.items.slice(0, 5).map((item) => (
                         <li key={item.id}>
                           <Link href={itemLink(key, item)}>
-                            {item.title ?? item.task_title ?? item.name}
+                            <bdi>{item.title ?? item.task_title ?? item.name}</bdi>
                           </Link>
                           <small>
                             {[
                               item.project_name,
-                              item.due_date ? `Due ${item.due_date}` : null,
+                              item.due_date ? ui("Due {0}", formatDate(item.due_date, { dateStyle: "medium" })) : null,
                               item.run_at
-                                ? new Date(item.run_at).toLocaleString()
+                                ? formatDate(item.run_at, { dateStyle: "medium", timeStyle: "short" })
                                 : null,
                               item.starts_at
-                                ? new Date(item.starts_at).toLocaleString()
+                                ? formatDate(item.starts_at, { dateStyle: "medium", timeStyle: "short" })
                                 : null,
                             ]
                               .filter(Boolean)
@@ -136,7 +131,7 @@ export default function WorkspaceDashboardPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className={styles.empty}>Nothing here right now.</p>
+                    <p className={styles.empty}>{ui("Nothing here right now.")}</p>
                   )}
                 </article>
               );

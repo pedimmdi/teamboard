@@ -1,3 +1,4 @@
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
@@ -19,6 +20,7 @@ export default function ProjectSummary({
   membersError: string;
   onRetryMembers: () => void;
 }) {
+  const { ui, formatNumber } = useWorkspaceLocale();
   const [expanded, setExpanded] = useState(false);
   const characters = Array.from(description);
   const truncated = characters.length > 240;
@@ -27,11 +29,11 @@ export default function ProjectSummary({
   return (
     <div className={styles.overviewGrid}>
       <section className={`${styles.card} ${styles.summaryCard}`}>
-        <h2>About</h2>
+        <h2>{ui("About")}</h2>
         <p className={styles.aboutText}>
           {truncated && !expanded
             ? `${characters.slice(0, 240).join("").trimEnd()}…`
-            : description || "No description has been added yet."}
+            : description || ui("No description has been added yet.")}
         </p>
         {truncated && (
           <button
@@ -40,25 +42,21 @@ export default function ProjectSummary({
             aria-expanded={expanded}
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? "Show less" : "Read more"}
+            {expanded ? ui("Show less") : ui("Read more")}
           </button>
         )}
       </section>
       <section className={`${styles.card} ${styles.summaryCard}`}>
         <div className={styles.header}>
-          <h2>Team</h2>
-          <Link className={styles.summaryLink} href={membersHref}>
-            View members
-          </Link>
+          <h2>{ui("Team")}</h2>
+          <Link className={styles.summaryLink} href={membersHref}>{ui("View members")}</Link>
         </div>
         {membersLoading ? (
-          <p className={styles.muted} role="status">Loading team…</p>
+          <p className={styles.muted} role="status">{ui("Loading team…")}</p>
         ) : membersError ? (
           <>
-            <p className={styles.error} role="alert">{membersError}</p>
-            <button type="button" className={styles.summaryLink} onClick={onRetryMembers}>
-              Try again
-            </button>
+            <p className={styles.error} role="alert">{ui(membersError)}</p>
+            <button type="button" className={styles.summaryLink} onClick={onRetryMembers}>{ui("Try again")}</button>
           </>
         ) : (
           <>
@@ -75,8 +73,8 @@ export default function ProjectSummary({
               ))}
             </div>
             <p className={styles.hint}>
-              {members.length} {members.length === 1 ? "member" : "members"} ·{" "}
-              {managers} {managers === 1 ? "manager" : "managers"}
+              {formatNumber(members.length)} {ui(members.length === 1 ? "member" : "members")} ·{" "}
+              {formatNumber(managers)} {ui(managers === 1 ? "manager" : "managers")}
             </p>
           </>
         )}

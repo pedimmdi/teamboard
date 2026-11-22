@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import Avatar from "@/components/ui/Avatar";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -12,6 +13,7 @@ import { ProjectProvider } from "./project-context";
 import styles from "../projects.module.css";
 
 export default function ProjectLayout({ children }: { children: ReactNode }) {
+  const { ui, locale } = useWorkspaceLocale();
   const { projectId } = useParams<{ projectId: string }>();
   const pathname = usePathname();
   const workspace = useWorkspace();
@@ -58,53 +60,49 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
   return (
     <div className={styles.page}>
       <div className={`${styles.content} ${isTasks ? styles.taskContent : ""}`}>
-        <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
-          <Link href={projectsPath}>← Projects</Link>
+        <nav aria-label={ui("Breadcrumb")} className={styles.breadcrumb}>
+          <Link href={projectsPath}>{ui("← Projects")}</Link>
           {project && (
-            <span className={styles.breadcrumbName}>› {project.name}</span>
+            <span className={styles.breadcrumbName}><span aria-hidden="true">{locale === "fa" ? "‹" : "›"}</span> <bdi>{project.name}</bdi></span>
           )}
         </nav>
         {loading ? (
-          <div className={styles.status} role="status">
-            Loading project…
-          </div>
+          <div className={styles.status} role="status">{ui("Loading project…")}</div>
         ) : error ? (
           <div className={styles.status}>
             <p role="alert" className={styles.alert}>
-              {error}
+              {ui(error)}
             </p>
             <button
               className={styles.secondaryButton}
               onClick={() => setReload((value) => value + 1)}
-            >
-              Try again
-            </button>
+            >{ui("Try again")}</button>
           </div>
         ) : project && project.id === projectId ? (
           <>
-            <header className={styles.header}>
+            <header className={`${styles.header} ${styles.projectHeader}`}>
               <div className={styles.titleRow}>
                 <Avatar className={styles.avatar} src={project.avatar} fallback={project.name.charAt(0).toUpperCase()} size={32} />
-                <h1>{project.name}</h1>
+                <h1><bdi>{project.name}</bdi></h1>
                 <span
                   className={`${styles.badge} ${project.role === "manager" ? styles.manager : ""}`} data-role-tone={project.role === "member" ? "member" : project.role === null ? "admin" : undefined}
                 >
-                  {projectRoleLabel(project.role)}
+                  {ui(projectRoleLabel(project.role))}
                 </span>
               </div>
             </header>
             {project.description && !isTasks && (
-              <p className={styles.projectDescription}>{project.description}</p>
+              <p className={styles.projectDescription} dir="auto">{project.description}</p>
             )}
-            <nav className={styles.tabs} aria-label="Project navigation">
+            <nav className={styles.tabs} aria-label={ui("Project navigation")}>
               {[
-                { title: "Tasks", href: `${base}/tasks` },
-                { title: "Calendar", href: `${base}/calendar` },
-                { title: "Chat", href: `${base}/chat` },
-                { title: "Reports", href: `${base}/reports` },
-                { title: "Members", href: `${base}/members` },
+                { title: ui("Tasks"), href: `${base}/tasks` },
+                { title: ui("Calendar"), href: `${base}/calendar` },
+                { title: ui("Chat"), href: `${base}/chat` },
+                { title: ui("Reports"), href: `${base}/reports` },
+                { title: ui("Members"), href: `${base}/members` },
                 ...(permissions.canManage || permissions.canLeave
-                  ? [{ title: "Settings", href: `${base}/settings` }]
+                  ? [{ title: ui("Settings"), href: `${base}/settings` }]
                   : []),
               ].map((tab) => (
                 <Link
@@ -113,7 +111,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
                   aria-current={pathname === tab.href ? "page" : undefined}
                   className={pathname === tab.href ? styles.activeTab : ""}
                 >
-                  {tab.title}
+                  {ui(tab.title)}
                 </Link>
               ))}
             </nav>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useState } from "react";
 import {
   ApiError,
@@ -22,6 +23,7 @@ import styles from "../../projects.module.css";
 type Action = { kind: "role" | "remove"; member: ProjectMember };
 
 export default function ProjectMembersPage() {
+  const { ui, locale, formatNumber } = useWorkspaceLocale();
   const workspace = useWorkspace();
   const { project, updateProject } = useProjectContext();
   const { accessToken } = useAuth();
@@ -140,7 +142,7 @@ export default function ProjectMembersPage() {
       />
       <span className={styles.email}>
         {member.user_email}
-        {member.is_current_user && <small className={styles.you}>You</small>}
+        {member.is_current_user && <small className={styles.you}>{ui("You")}</small>}
       </span>
     </div>
   );
@@ -148,33 +150,27 @@ export default function ProjectMembersPage() {
     <div className={styles.overview}>
       <header className={styles.sectionHeader}>
         <div>
-          <h2>Members</h2>
-          <p className={styles.muted}>People who can work on this project.</p>
+          <h2>{ui("Members")}</h2>
+          <p className={styles.muted}>{ui("People who can work on this project.")}</p>
         </div>
         {permissions.canManage && (
           <button
             className={styles.primaryButton}
             onClick={() => setAdding(true)}
-          >
-            Add member
-          </button>
+          >{ui("Add member")}</button>
         )}
       </header>
       {loading ? (
-        <div className={styles.status} role="status">
-          Loading members…
-        </div>
+        <div className={styles.status} role="status">{ui("Loading members…")}</div>
       ) : error ? (
         <div className={styles.status}>
           <p className={styles.alert} role="alert">
-            {error}
+            {ui(error)}
           </p>
           <button
             className={styles.secondaryButton}
             onClick={() => setReload((value) => value + 1)}
-          >
-            Try again
-          </button>
+          >{ui("Try again")}</button>
         </div>
       ) : (
         <div className={styles.tableCard}>
@@ -182,10 +178,10 @@ export default function ProjectMembersPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>MEMBER</th>
-                  <th>ROLE</th>
-                  <th>JOINED</th>
-                  <th aria-label="Actions" />
+                  <th>{ui("MEMBER")}</th>
+                  <th>{ui("ROLE")}</th>
+                  <th>{ui("JOINED")}</th>
+                  <th aria-label={ui("Actions")} />
                 </tr>
               </thead>
               <tbody>
@@ -196,10 +192,10 @@ export default function ProjectMembersPage() {
                       <span
                         className={`${styles.badge} ${member.role === "manager" ? styles.manager : ""}`} data-role-tone={member.role === "member" ? "member" : undefined}
                       >
-                        {member.role === "manager" ? "Manager" : "Member"}
+                        {member.role === "manager" ? ui("Manager") : ui("Member")}
                       </span>
                     </td>
-                    <td>{formatProjectDate(member.joined_at)}</td>
+                    <td>{formatProjectDate(member.joined_at, locale)}</td>
                     <td>{actions(member)}</td>
                   </tr>
                 ))}
@@ -217,36 +213,32 @@ export default function ProjectMembersPage() {
                   <span
                     className={`${styles.badge} ${member.role === "manager" ? styles.manager : ""}`} data-role-tone={member.role === "member" ? "member" : undefined}
                   >
-                    {member.role === "manager" ? "Manager" : "Member"}
+                    {member.role === "manager" ? ui("Manager") : ui("Member")}
                   </span>
-                  <small>Joined {formatProjectDate(member.joined_at)}</small>
+                  <small>{ui("Joined")} {formatProjectDate(member.joined_at, locale)}</small>
                 </div>
               </article>
             ))}
           </div>
           <div className={styles.pagination}>
-            <span>
-              Showing {result?.results.length ? (page - 1) * 20 + 1 : 0}–
-              {result?.results.length
+              <span>
+              {ui("Showing")} {formatNumber(result?.results.length ? (page - 1) * 20 + 1 : 0)}–
+              {formatNumber(result?.results.length
                 ? (page - 1) * 20 + result.results.length
-                : 0}{" "}
-              of {result?.count ?? 0}
+                : 0)}{" "}
+              {ui("of")} {formatNumber(result?.count ?? 0)}
             </span>
             <div className={styles.paginationButtons}>
               <button
                 className={styles.secondaryButton}
                 disabled={!result?.previous}
                 onClick={() => setPage((value) => value - 1)}
-              >
-                Previous
-              </button>
+              >{ui("Previous")}</button>
               <button
                 className={styles.secondaryButton}
                 disabled={!result?.next}
                 onClick={() => setPage((value) => value + 1)}
-              >
-                Next
-              </button>
+              >{ui("Next")}</button>
             </div>
           </div>
         </div>
@@ -271,23 +263,23 @@ export default function ProjectMembersPage() {
           title={
             blocked
               ? action.kind === "role"
-                ? "Can’t change this role"
-                : "Can’t remove this member"
+                ? ui("Can’t change this role")
+                : ui("Can’t remove this member")
               : action.kind === "role"
-                ? `Make ${action.member.role === "manager" ? "member" : "manager"}?`
-                : `Remove ${action.member.user_email}?`
+                ? ui("Make {0}?", action.member.role === "manager" ? "member" : "manager")
+                : ui("Remove {0}?", action.member.user_email)
           }
           description={
             action.kind === "remove"
-              ? `They’ll lose access to ${project.name} right away. They’ll stay in the workspace.`
-              : `Update the project role for ${action.member.user_email}.`
+              ? ui("They’ll lose access to {0} right away. They’ll stay in the workspace.", project.name)
+              : ui("Update the project role for {0}.", action.member.user_email)
           }
           busy={busy}
           onClose={() => setAction(null)}
         >
           {actionError && (
             <p className={styles.alert} role="alert">
-              {actionError}
+              {ui(actionError)}
             </p>
           )}
           <div className={styles.actions}>
@@ -296,7 +288,7 @@ export default function ProjectMembersPage() {
               disabled={busy}
               onClick={() => setAction(null)}
             >
-              {blocked ? "Close" : "Cancel"}
+              {blocked ? ui("Close") : ui("Cancel")}
             </button>
             {!blocked && (
               <button
@@ -309,10 +301,10 @@ export default function ProjectMembersPage() {
                 onClick={() => void confirm()}
               >
                 {busy
-                  ? "Saving…"
+                  ? ui("Saving…")
                   : action.kind === "remove"
-                    ? "Remove member"
-                    : "Change role"}
+                    ? ui("Remove member")
+                    : ui("Change role")}
               </button>
             )}
           </div>

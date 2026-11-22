@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useState, type ReactNode } from "react";
 import Avatar from "@/components/ui/Avatar";
 import Link from "next/link";
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export default function WorkspaceLayout({ children }: Props) {
+  const { ui } = useWorkspaceLocale();
   const { slug } = useParams<{ slug: string }>();
   const pathname = usePathname();
   const isProjects = pathname === `/dashboard/workspaces/${encodeURIComponent(slug)}/dashboard` || pathname.startsWith(
@@ -73,23 +75,19 @@ export default function WorkspaceLayout({ children }: Props) {
     <div className={isProjects ? undefined : styles.page}>
       <div className={isProjects ? undefined : styles.content}>
         {!isProjects && (
-          <Link href="/dashboard/workspaces" className={styles.backLink}>
-            ← Back to workspaces
-          </Link>
+          <Link href="/dashboard/workspaces" className={styles.backLink}>{ui("← Back to workspaces")}</Link>
         )}
 
         {isLoading ? (
-          <div className={styles.statusCard}>Loading workspace...</div>
+          <div className={styles.statusCard}>{ui("Loading workspace...")}</div>
         ) : error ? (
           <div className={styles.statusCard} role="alert">
-            <p className={styles.error}>{error}</p>
+            <p className={styles.error}>{ui(error)}</p>
             <button
               type="button"
               className={styles.retryButton}
               onClick={() => setReloadKey((value) => value + 1)}
-            >
-              Try again
-            </button>
+            >{ui("Try again")}</button>
           </div>
         ) : workspace ? (
           <>
@@ -115,9 +113,7 @@ export default function WorkspaceLayout({ children }: Props) {
             </WorkspaceProvider>
           </>
         ) : (
-          <div className={styles.statusCard}>
-            Workspace information is unavailable.
-          </div>
+          <div className={styles.statusCard}>{ui("Workspace information is unavailable.")}</div>
         )}
       </div>
     </div>

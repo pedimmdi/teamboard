@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { useTransientMessage } from "@/hooks/use-transient-message";
 
 import { useRef, useState } from "react";
@@ -18,6 +20,7 @@ export default function ResourceAvatarEditor({
   label: string;
   onSave: (image: File | null) => Promise<void>;
 }) {
+  const { locale, t } = useLocale();
   const input = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -30,11 +33,11 @@ export default function ResourceAvatarEditor({
     setFeedback("");
     try {
       await onSave(image);
-      setFeedback(image ? "Image saved." : "Image removed.");
+      setFeedback(image ? t("Image saved.", "تصویر ذخیره شد.") : t("Image removed.", "تصویر حذف شد."));
     } catch (error) {
       const detail = error instanceof ApiError ? error.errors?.avatar : undefined;
       setError(Array.isArray(detail) ? detail.join(" ") : detail || (
-        error instanceof Error ? error.message : "Unable to save the image."
+        error instanceof Error ? error.message : t("Unable to save the image.", "ذخیره تصویر انجام نشد.")
       ));
     } finally {
       setPending(false);
@@ -58,12 +61,12 @@ export default function ResourceAvatarEditor({
           }}
         />
         <button type="button" disabled={pending} onClick={() => input.current?.click()}>
-          {pending ? "Saving…" : "Upload image"}
+          {pending ? t("Saving…", "در حال ذخیره…") : t("Upload image", "بارگذاری تصویر")}
         </button>
-        {avatar && <button type="button" disabled={pending} onClick={() => void save(null)}>Remove image</button>}
+        {avatar && <button type="button" disabled={pending} onClick={() => void save(null)}>{t("Remove image", "حذف تصویر")}</button>}
       </div>
-      <p>JPEG, PNG or WebP up to 5 MB.</p>
-      {error && <p className={styles.error} role="alert">{error}</p>}
+      <p>{t("JPEG, PNG or WebP up to 5 MB.", "JPEG، PNG یا WebP تا ۵ مگابایت.")}</p>
+      {error && <p className={styles.error} role="alert">{localizeAccountMessage(locale, error, "ذخیره تصویر انجام نشد.")}</p>}
       {feedback && <p role="status">{feedback}</p>}
     </section>
   );

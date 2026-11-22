@@ -1,5 +1,6 @@
 
 from drf_spectacular.utils import (
+    OpenApiParameter,
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
@@ -27,6 +28,12 @@ from .serializers import (
     ContactMessageSubmitSerializer,
     PublicBlogPostDetailSerializer,
     PublicBlogPostListSerializer,
+)
+
+
+BLOG_LANGUAGE = OpenApiParameter(
+    "lang", str, enum=["en", "fa"], default="en",
+    description="Language of the article content.",
 )
 
 
@@ -100,8 +107,10 @@ class ContactMessageSubmitView(generics.GenericAPIView):
         description=(
             "Returns paginated public blog posts ordered "
             "by publication date, newest first. "
-            "Drafts and future scheduled posts are excluded."
+            "Drafts and future scheduled posts are excluded. "
+            "The Persian list includes only articles with a translation."
         ),
+        parameters=[BLOG_LANGUAGE],
         auth=[],
     ),
 )
@@ -120,7 +129,10 @@ class PublicBlogPostListView(generics.ListAPIView):
     http_method_names = ["get", "head", "options"]
 
     def get_queryset(self):
-        return get_public_blog_posts()
+        posts = get_public_blog_posts().defer("content")
+        if self.request.query_params.get("lang") == "fa":
+            return posts.exclude(title_fa="").exclude(content_fa="")
+        return posts
 
 
 @extend_schema_view(
@@ -131,8 +143,10 @@ class PublicBlogPostListView(generics.ListAPIView):
         description=(
             "Returns a published article by its slug. "
             "Drafts, unpublished posts, and future "
-            "scheduled posts return 404."
+            "scheduled posts return 404. "
+            "The original article is returned if no Persian translation is available."
         ),
+        parameters=[BLOG_LANGUAGE],
         auth=[],
         responses={
             200: PublicBlogPostDetailSerializer,

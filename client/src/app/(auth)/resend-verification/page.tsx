@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -14,6 +16,7 @@ import { resendVerificationEmail } from "@/lib/api";
 import styles from "./resend-verification.module.css";
 
 function ResendVerificationContent() {
+  const { locale, t } = useLocale();
   const searchParams = useSearchParams();
 
   const [email, setEmail] = useState(
@@ -36,7 +39,7 @@ function ResendVerificationContent() {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to send a verification email. Please try again.",
+          : t("Unable to send a verification email. Please try again.", "ایمیل تأیید ارسال نشد. دوباره تلاش کنید."),
       );
     } finally {
       setLoading(false);
@@ -48,23 +51,23 @@ function ResendVerificationContent() {
       {success ? (
         <VerificationStatus
           tone="info"
-          title="Check your inbox"
+          title={t("Check your inbox", "صندوق ایمیل خود را بررسی کنید")}
           description={
             <>
-              If your account is eligible, a verification email
-              has been sent to <strong>{email}</strong>.
+              {t("If your account is eligible, a verification email has been sent to", "اگر حساب‌تان واجد شرایط باشد، ایمیل تأیید ارسال شده است به")}{" "}
+              <strong><bdi>{email}</bdi></strong>.
             </>
           }
         >
           <Link href="/login" className={styles.primaryLink}>
-            Back to sign in
+            {t("Back to sign in", "بازگشت به ورود")}
           </Link>
         </VerificationStatus>
       ) : (
         <VerificationStatus
           tone="info"
-          title="Send a new verification link"
-          description="Enter your email address and we'll send you another verification link."
+          title={t("Send a new verification link", "پیوند تأیید جدید بگیرید")}
+          description={t("Enter your email address and we'll send you another verification link.", "نشانی ایمیل‌تان را وارد کنید تا پیوند تأیید جدیدی بفرستیم.")}
         >
           <form
             className={styles.form}
@@ -74,7 +77,7 @@ function ResendVerificationContent() {
               id="email"
               name="email"
               type="email"
-              label="Email address"
+              label={t("Email address", "نشانی ایمیل")}
               placeholder="you@example.com"
               autoComplete="email"
               value={email}
@@ -84,7 +87,7 @@ function ResendVerificationContent() {
 
             {error && (
               <div className={styles.error} role="alert">
-                {error}
+                {localizeAccountMessage(locale, error, "ایمیل تأیید ارسال نشد. دوباره تلاش کنید.")}
               </div>
             )}
 
@@ -93,7 +96,7 @@ function ResendVerificationContent() {
               className={styles.submit}
               loading={loading}
             >
-              Send verification email
+              {t("Send verification email", "ارسال ایمیل تأیید")}
             </Button>
           </form>
 
@@ -101,7 +104,7 @@ function ResendVerificationContent() {
             href="/login"
             className={styles.secondaryLink}
           >
-            Back to sign in
+            {t("Back to sign in", "بازگشت به ورود")}
           </Link>
         </VerificationStatus>
       )}

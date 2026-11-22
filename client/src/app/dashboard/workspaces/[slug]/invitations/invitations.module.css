@@ -17,45 +17,45 @@
   margin: 0;
   font-size: 22px;
   font-weight: 650;
-  color: #0f172a;
+  color: var(--foreground);
 }
 
 .heading p {
   margin: 8px 0 0;
   font-size: 14px;
-  color: #64748b;
+  color: var(--muted);
 }
 
 .count {
   flex-shrink: 0;
   font-size: 13px;
-  color: #64748b;
+  color: var(--muted);
 }
 
 .status {
   padding: 32px 20px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
   text-align: center;
-  color: #64748b;
+  color: var(--muted);
   font-size: 14px;
 }
 
 .status button {
   margin-top: 12px;
   padding: 8px 14px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   cursor: pointer;
 }
 
 .card {
   min-width: 0;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .desktopTable {
@@ -65,27 +65,27 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
+  text-align: start;
 }
 
 .table th,
 .table td {
   padding: 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
   font-size: 13px;
 }
 
 .table th {
-  color: #64748b;
+  color: var(--muted);
   font-weight: 600;
 }
 
 .table td {
-  color: #334155;
+  color: var(--foreground);
 }
 
 .email {
-  color: #0f172a;
+  color: var(--foreground);
   overflow-wrap: anywhere;
 }
 
@@ -100,23 +100,23 @@
 }
 
 .pending {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-background);
+  color: var(--warning);
 }
 
 .accepted {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-background);
+  color: var(--success);
 }
 
 .expired {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
 }
 
 .revoked {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--danger-background);
+  color: var(--danger);
 }
 
 .mobileList {
@@ -129,7 +129,7 @@
   align-items: center;
   gap: 16px;
   padding: 16px;
-  color: #64748b;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -140,10 +140,10 @@
 
 .pagination button {
   padding: 8px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: #fff;
-  color: #334155;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   cursor: pointer;
 }
@@ -169,7 +169,7 @@
 
   .mobileCard {
     padding: 16px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border);
   }
 
   .mobileCard:last-child {
@@ -189,7 +189,7 @@
     flex-direction: column;
     gap: 6px;
     margin-top: 14px;
-    color: #64748b;
+    color: var(--muted);
     font-size: 12px;
   }
 
@@ -207,10 +207,10 @@
 .inviteButton {
   min-height: 40px;
   padding: 10px 16px;
-  border: 1px solid #4f46e5;
+  border: 1px solid var(--primary);
   border-radius: 8px;
-  background: #4f46e5;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -219,7 +219,7 @@
 }
 
 .inviteButton:hover {
-  background: #4338ca;
+  background: var(--primary-hover);
 }
 
 @media (max-width: 768px) {
@@ -236,11 +236,11 @@
 
 .actionCell {
   width: 64px;
-  text-align: right;
+  text-align: end;
 }
 
 .actionLoading {
-  color: #64748b;
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -259,13 +259,13 @@
 }
 
 .actionError {
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-background);
+  color: var(--danger);
 }
 
 .actionSuccess {
-  border: 1px solid #bbf7d0;
-  background: #f0fdf4;
-  color: #166534;
+  border: 1px solid var(--success-border);
+  background: var(--success-background);
+  color: var(--success);
 }

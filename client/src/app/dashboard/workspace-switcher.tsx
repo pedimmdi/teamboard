@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/lib/preferences";
+import { localizeAccountMessage } from "@/lib/account-message";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -8,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import Avatar from "@/components/ui/Avatar";
 import DesignIcon from "@/components/ui/DesignIcon";
 import CreateWorkspaceModal from "./workspaces/create-workspace-modal";
+import { workspaceRoleLabel } from "./workspace-role";
 import styles from "./workspace-switcher.module.css";
 
 export default function WorkspaceSwitcher({
@@ -17,6 +20,7 @@ export default function WorkspaceSwitcher({
   slug?: string;
   mobile?: boolean;
 }) {
+  const { locale, t } = useLocale();
   const { accessToken } = useAuth();
   const router = useRouter();
   const [selected, setSelected] = useState<Workspace | null>(null);
@@ -60,7 +64,7 @@ export default function WorkspaceSwitcher({
       } catch (err) {
         if (!cancelled)
           setError(
-            err instanceof Error ? err.message : "Unable to load workspaces.",
+            err instanceof Error ? err.message : t("Unable to load workspaces.", "فضاهای کاری بارگیری نشدند."),
           );
       } finally {
         if (!cancelled) setLoading(false);
@@ -70,7 +74,7 @@ export default function WorkspaceSwitcher({
     return () => {
       cancelled = true;
     };
-  }, [open, accessToken, reload]);
+  }, [open, accessToken, reload, t]);
   useEffect(() => {
     if (!open) return;
     const triggerButton = trigger.current;
@@ -128,21 +132,19 @@ export default function WorkspaceSwitcher({
       <button
         ref={trigger}
         className={styles.trigger}
-        aria-label="Switch workspace"
+        aria-label={t("Switch workspace", "تغییر فضای کاری")}
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
       >
         <Avatar className={styles.tile} src={active?.avatar} fallback={active?.name.charAt(0).toUpperCase() || "W"} />
         <span className={styles.identity}>
-          <span>
-            {active?.name ?? (slug ? "Loading workspace…" : "All workspaces")}
+          <span dir="auto">
+            {active?.name ?? (slug ? t("Loading workspace…", "در حال بارگیری فضای کاری…") : t("All workspaces", "همه فضاهای کاری"))}
           </span>
           {!mobile && active && (
             <small><span data-role-tone={active.role ?? "member"}>
-              {active.role
-                ? active.role.charAt(0).toUpperCase() + active.role.slice(1)
-                : "Member"}
+              {workspaceRoleLabel(active.role ?? "member", locale)}
             </span></small>
           )}
         </span>
@@ -156,28 +158,28 @@ export default function WorkspaceSwitcher({
             className={styles.panel}
             role="dialog"
             aria-modal="true"
-            aria-label="Switch workspace"
+            aria-label={t("Switch workspace", "تغییر فضای کاری")}
             tabIndex={-1}
           >
             <header>
-              <strong>Switch workspace</strong>
+              <strong>{t("Switch workspace", "تغییر فضای کاری")}</strong>
               <button
                 onClick={() => setOpen(false)}
-                aria-label="Close workspace switcher"
+                aria-label={t("Close workspace switcher", "بستن انتخاب‌گر فضای کاری")}
               >
                 ×
               </button>
             </header>
-            <p className={styles.heading}>YOUR WORKSPACES</p>
+            <p className={styles.heading}>{t("YOUR WORKSPACES", "فضاهای کاری شما")}</p>
             {loading ? (
               <p className={styles.feedback} role="status">
-                Loading workspaces…
+                {t("Loading workspaces…", "در حال بارگیری فضاهای کاری…")}
               </p>
             ) : error ? (
               <div className={styles.feedback}>
-                <p role="alert">{error}</p>
+                <p role="alert">{localizeAccountMessage(locale, error, "فضاهای کاری بارگیری نشدند.")}</p>
                 <button onClick={() => setReload((value) => value + 1)}>
-                  Try again
+                  {t("Try again", "تلاش دوباره")}
                 </button>
               </div>
             ) : (
@@ -192,12 +194,9 @@ export default function WorkspaceSwitcher({
                   >
                     <Avatar className={styles.tile} src={workspace.avatar} fallback={workspace.name.charAt(0).toUpperCase()} />
                     <span className={styles.identity}>
-                      <span>{workspace.name}</span>
+                      <span dir="auto">{workspace.name}</span>
                       <small><span data-role-tone={workspace.role ?? "member"}>
-                        {workspace.role
-                          ? workspace.role.charAt(0).toUpperCase() +
-                            workspace.role.slice(1)
-                          : "Member"}
+                        {workspaceRoleLabel(workspace.role ?? "member", locale)}
                       </span></small>
                     </span>
                     {workspace.slug === slug && (
@@ -209,7 +208,7 @@ export default function WorkspaceSwitcher({
             )}
             <footer>
               <Link href="/dashboard/workspaces" onClick={() => setOpen(false)}>
-                All workspaces
+                {t("All workspaces", "همه فضاهای کاری")}
               </Link>
               <button
                 onClick={() => {
@@ -217,7 +216,7 @@ export default function WorkspaceSwitcher({
                   setCreating(true);
                 }}
               >
-                ＋ Create workspace
+                {t("＋ Create workspace", "＋ ایجاد فضای کاری")}
               </button>
             </footer>
           </div>

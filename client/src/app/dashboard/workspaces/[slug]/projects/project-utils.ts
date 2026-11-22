@@ -1,4 +1,5 @@
 import type { ProjectRole, WorkspaceRole } from "@/lib/api";
+import { regionalLocale, type Locale } from "@/lib/locale";
 
 export function projectRoleLabel(role: ProjectRole | null) {
   return role === "manager"
@@ -8,8 +9,8 @@ export function projectRoleLabel(role: ProjectRole | null) {
       : "Admin access";
 }
 
-export function formatProjectDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatProjectDate(value: string, locale: Locale = "en") {
+  return new Intl.DateTimeFormat(regionalLocale(locale), {
     month: "short",
     day: "2-digit",
     year: "numeric",

@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useTransientMessage } from "@/hooks/use-transient-message";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
@@ -49,6 +50,7 @@ type Column = PaginatedTasks & { page: number };
 type Move = { task: Task; status: TaskStatus; first: boolean };
 
 export default function TasksPage() {
+  const { ui, locale, formatNumber } = useWorkspaceLocale();
   const { project } = useProjectContext();
   const workspace = useWorkspace();
   const { accessToken } = useAuth();
@@ -122,7 +124,7 @@ export default function TasksPage() {
 
   function commentCount(task: Task) {
     return (
-      <span className={styles.commentCount} aria-label={task.comment_count + " comments"}>
+      <span className={styles.commentCount} aria-label={ui("{0} comments", task.comment_count)}>
         <TaskIcon name="comment" />
         {task.comment_count}
       </span>
@@ -393,7 +395,7 @@ export default function TasksPage() {
       );
       setMoving(null);
       setNotice(
-        `Moved ${task.title} to ${taskStatuses.find((item) => item.value === status)?.label}.`,
+        ui("Moved {0} to {1}.", task.title, ui(taskStatuses.find((item) => item.value === status)?.label ?? "")),
       );
     } catch (err) {
       const fields = err instanceof ApiError ? err.errors : null;
@@ -424,12 +426,12 @@ export default function TasksPage() {
   const priority = (task: Task) => (
     <span className={`${styles.priority} ${styles[task.priority]}`}>
       <span className={styles.dot} />
-      {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+      {ui(task.priority.charAt(0).toUpperCase() + task.priority.slice(1))}
     </span>
   );
   const badge = (task: Task) => (
     <span className={`${styles.badge} ${styles[task.status]}`}>
-      {taskStatuses.find((status) => status.value === task.status)?.label}
+      {ui(taskStatuses.find((status) => status.value === task.status)?.label ?? "")}
     </span>
   );
   const due = (task: Task, year = false) =>
@@ -438,15 +440,15 @@ export default function TasksPage() {
         className={`${styles.due} ${overdueDays(task.due_date, task.status) ? styles.overdue : ""}`}
       >
         <TaskIcon name="calendar" />
-        <time dateTime={task.due_date}>{taskDate(task.due_date, year)}</time>
+        <time dateTime={task.due_date}>{taskDate(task.due_date, year, locale)}</time>
       </span>
     ) : (
-      <span className={styles.hint}>{year ? "No due date" : ""}</span>
+      <span className={styles.hint}>{year ? ui("No due date") : ""}</span>
     );
   const assignee = (task: Task, email = false) => (
     <span
       className={styles.assignee}
-      title={task.assignee_email || "Project member"}
+      title={task.assignee_email || ui("Project member")}
     >
       {task.assignee !== null ? (
         <>
@@ -459,7 +461,7 @@ export default function TasksPage() {
           {email && <span>{task.assignee_email}</span>}
         </>
       ) : email ? (
-        <span className={styles.hint}>Project member</span>
+        <span className={styles.hint}>{ui("Project member")}</span>
       ) : null}
     </span>
   );
@@ -486,7 +488,7 @@ export default function TasksPage() {
   const filtered = hasTaskFilters(filters);
   const chips: { label: string; clear: () => void }[] = [
     ...filters.statuses.map((status) => ({
-      label: `Status: ${taskStatuses.find((item) => item.value === status)?.label}`,
+      label: ui("Status: {0}", ui(taskStatuses.find((item) => item.value === status)?.label ?? "")),
       clear: () =>
         applyFilters({
           ...filters,
@@ -496,7 +498,7 @@ export default function TasksPage() {
     ...(filters.assignee
       ? [
           {
-            label: `Assignee: ${filters.assignee === "me" ? "Me" : members.find((member) => String(member.user_id) === filters.assignee)?.user_email || "Member"}`,
+            label: ui("Assignee: {0}", filters.assignee === "me" ? ui("Me") : members.find((member) => String(member.user_id) === filters.assignee)?.user_email || ui("Member")),
             clear: () => applyFilters({ ...filters, assignee: "" }),
           },
         ]
@@ -504,7 +506,7 @@ export default function TasksPage() {
     ...(filters.priority
       ? [
           {
-            label: `Priority: ${filters.priority.charAt(0).toUpperCase() + filters.priority.slice(1)}`,
+            label: ui("Priority: {0}", ui(filters.priority.charAt(0).toUpperCase() + filters.priority.slice(1))),
             clear: () => applyFilters({ ...filters, priority: "" }),
           },
         ]
@@ -520,7 +522,7 @@ export default function TasksPage() {
     ...(filters.dueBefore
       ? [
           {
-            label: `Due before ${taskDate(filters.dueBefore)}`,
+            label: ui("Due before {0}", taskDate(filters.dueBefore, false, locale)),
             clear: () => applyFilters({ ...filters, dueBefore: "" }),
           },
         ]
@@ -533,17 +535,17 @@ export default function TasksPage() {
       </span>
       <h2>
         {missing
-          ? "This task no longer exists"
+          ? ui("This task no longer exists")
           : filtered
-            ? "No tasks match your filters"
-            : "No tasks yet"}
+            ? ui("No tasks match your filters")
+            : ui("No tasks yet")}
       </h2>
       <p className={styles.muted}>
         {missing
-          ? "It may have been deleted by someone else, or you may no longer have access."
+          ? ui("It may have been deleted by someone else, or you may no longer have access.")
           : filtered
-            ? "Try removing a filter or searching for something else."
-            : `Create the first task for ${project.name} and assign it to a teammate.`}
+            ? ui("Try removing a filter or searching for something else.")
+            : ui("Create the first task for {0} and assign it to a teammate.", project.name)}
       </p>
       <button
         className={
@@ -557,7 +559,7 @@ export default function TasksPage() {
               : setCreating("todo")
         }
       >
-        {missing ? "Back to tasks" : filtered ? "Clear filters" : "New task"}
+        {missing ? ui("Back to tasks") : filtered ? ui("Clear filters") : ui("New task")}
       </button>
     </section>
   );
@@ -566,17 +568,17 @@ export default function TasksPage() {
     <div className={styles.root}>
       {notice && (
         <p className={styles.notice} role="status" aria-live="polite">
-          {notice}
+          {ui(notice)}
         </p>
       )}
       {(loading || error || total > 0 || filtered) && (
         <div className={styles.toolbar}>
           <div className={styles.toolbarFilters}>
             <label className={styles.search}>
-              <span className={styles.srOnly}>Search tasks</span>
+              <span className={styles.srOnly}>{ui("Search tasks")}</span>
               <TaskIcon name="search" />
               <input
-                placeholder="Search tasks…"
+                placeholder={ui("Search tasks…")}
                 value={search}
                 maxLength={200}
                 onChange={(event) =>
@@ -599,7 +601,7 @@ export default function TasksPage() {
               />
             </div>
             <select
-              aria-label="Filter by priority"
+              aria-label={ui("Filter by priority")}
               className={`${styles.filterSelect} ${styles.desktopFilters} ${filters.priority ? styles.activeFilter : ""}`}
               value={filters.priority}
               onChange={(event) =>
@@ -609,17 +611,17 @@ export default function TasksPage() {
                 })
               }
             >
-              <option value="">Priority</option>
+              <option value="">{ui("Priority")}</option>
               {taskPriorities.map((value) => (
                 <option key={value} value={value}>
-                  {value.charAt(0).toUpperCase() + value.slice(1)}
+                  {ui(value.charAt(0).toUpperCase() + value.slice(1))}
                 </option>
               ))}
             </select>
             <button
               type="button"
               className={`${styles.iconButton} ${styles.desktopFilters}`}
-              aria-label="All task filters"
+              aria-label={ui("All task filters")}
               onClick={() => setFiltering(true)}
             >
               <TaskIcon name="filter" />
@@ -627,13 +629,13 @@ export default function TasksPage() {
           </div>
           <button
             className={`${styles.iconButton} ${styles.mobileFilter}`}
-            aria-label="Task filters and view"
+            aria-label={ui("Task filters and view")}
             onClick={() => setFiltering(true)}
           >
             <TaskIcon name="filter" />
           </button>
           <div className={styles.viewActions}>
-            <div className={styles.toggle} aria-label="Task view">
+            <div className={styles.toggle} aria-label={ui("Task view")}>
               {(["board", "list"] as const).map((mode) => (
                 <button
                   key={mode}
@@ -642,16 +644,14 @@ export default function TasksPage() {
                   onClick={() => applyFilters(filters, mode)}
                 >
                   <TaskIcon name={mode} />
-                  {mode === "board" ? "Board" : "List"}
+                  {mode === "board" ? ui("Board") : ui("List")}
                 </button>
               ))}
             </div>
             <button
               className={styles.primaryButton}
               onClick={() => setCreating("todo")}
-            >
-              New task
-            </button>
+            >{ui("New task")}</button>
           </div>
         </div>
       )}
@@ -662,9 +662,9 @@ export default function TasksPage() {
               key={chip.label}
               className={styles.chip}
               onClick={chip.clear}
-              aria-label={`Remove ${chip.label}`}
+              aria-label={ui("Remove {0}", chip.label)}
             >
-              {chip.label}
+              {ui(chip.label)}
               <span aria-hidden="true">×</span>
             </button>
           ))}
@@ -673,52 +673,44 @@ export default function TasksPage() {
               className={`${styles.chip} ${styles.mobileSort}`}
               onClick={() => setFiltering(true)}
             >
-              Sort: {orderingLabels[filters.ordering]}
+              {ui("Sort:")} {ui(orderingLabels[filters.ordering])}
             </button>
           )}
           {filtered && (
             <button
               className={styles.clearButton}
               onClick={() => applyFilters(emptyTaskFilters)}
-            >
-              Clear all
-            </button>
+            >{ui("Clear all")}</button>
           )}
         </div>
       )}
       {error && (
         <div className={styles.alert} role="alert">
-          {error}{" "}
+          {ui(error)}{" "}
           <button
             className={styles.clearButton}
             onClick={() => setReload((value) => value + 1)}
-          >
-            Try again
-          </button>
+          >{ui("Try again")}</button>
         </div>
       )}
       {actionError && !moving && !deleting && (
         <div className={styles.alert} role="alert">
-          {actionError}{" "}
+          {ui(actionError)}{" "}
           <button
             className={styles.clearButton}
             onClick={() => setActionError("")}
-          >
-            Dismiss
-          </button>
+          >{ui("Dismiss")}</button>
         </div>
       )}
       {loading ? (
-        <div className={styles.status} role="status">
-          Loading tasks…
-        </div>
+        <div className={styles.status} role="status">{ui("Loading tasks…")}</div>
       ) : error ? null : !total ? (
         empty()
       ) : view === "board" ? (
         <>
           <div
             className={styles.mobileStatusTabs}
-            aria-label="Task status columns"
+            aria-label={ui("Task status columns")}
           >
             {statuses.map((status) => (
               <button
@@ -729,8 +721,8 @@ export default function TasksPage() {
                 aria-pressed={mobileStatus === status}
                 onClick={() => setActiveStatus(status)}
               >
-                {taskStatuses.find((item) => item.value === status)?.label} ·{" "}
-                {columns[status]?.count || 0}
+                {ui(taskStatuses.find((item) => item.value === status)?.label ?? "")} ·{" "}
+                {formatNumber(columns[status]?.count || 0)}
               </button>
             ))}
           </div>
@@ -739,7 +731,7 @@ export default function TasksPage() {
               <section
                 key={status}
                 className={`${styles.column} ${mobileStatus !== status ? styles.hiddenColumn : ""} ${dropTarget === status ? styles.dropColumn : ""}`}
-                aria-label={`${taskStatuses.find((item) => item.value === status)?.label} column`}
+                aria-label={ui("{0} column", ui(taskStatuses.find((item) => item.value === status)?.label ?? ""))}
                 onDragOver={(event) => {
                   if (dragged && !mutationBusy) {
                     event.preventDefault();
@@ -751,11 +743,11 @@ export default function TasksPage() {
                 <header className={styles.columnHeader}>
                   <span className={`${styles.dot} ${styles[status]}`} />
                   <span>
-                    {taskStatuses.find((item) => item.value === status)?.label}
+                    {ui(taskStatuses.find((item) => item.value === status)?.label ?? "")}
                   </span>
-                  <small>{columns[status]?.count || 0}</small>
+                  <small>{formatNumber(columns[status]?.count || 0)}</small>
                   <button
-                    aria-label={`New task in ${taskStatuses.find((item) => item.value === status)?.label}`}
+                    aria-label={ui("New task in {0}", ui(taskStatuses.find((item) => item.value === status)?.label ?? ""))}
                     onClick={() => setCreating(status)}
                   >
                     +
@@ -811,11 +803,11 @@ export default function TasksPage() {
                   </article>
                 ))}
                 {!columns[status]?.count && (
-                  <p className={styles.columnEmpty}>No tasks in this column.</p>
+                  <p className={styles.columnEmpty}>{ui("No tasks in this column.")}</p>
                 )}
                 {columnErrors[status] && (
                   <p className={styles.alert} role="alert">
-                    {columnErrors[status]}
+                    {ui(columnErrors[status] ?? "")}
                   </p>
                 )}
                 {columns[status]?.next && (
@@ -823,17 +815,17 @@ export default function TasksPage() {
                     className={styles.showMore}
                     aria-label={
                       columnErrors[status]
-                        ? `Retry loading more ${taskStatuses.find((item) => item.value === status)?.label} tasks`
+                        ? ui("Retry loading more {0} tasks", ui(taskStatuses.find((item) => item.value === status)?.label ?? ""))
                         : undefined
                     }
                     disabled={Boolean(loadingColumn) || mutationBusy}
                     onClick={() => void showMore(status)}
                   >
                     {loadingColumn === status
-                      ? "Loading…"
+                      ? ui("Loading…")
                       : columnErrors[status]
-                        ? "Retry"
-                        : `Show ${(columns[status]?.count || 0) - (columns[status]?.results.length || 0)} more`}
+                        ? ui("Retry")
+                        : ui("Show {0} more", (columns[status]?.count || 0) - (columns[status]?.results.length || 0))}
                   </button>
                 )}
               </section>
@@ -848,11 +840,11 @@ export default function TasksPage() {
                 <thead>
                   <tr>
                     {[
-                      { name: "TASK", ordering: "title" },
-                      { name: "STATUS", ordering: "status" },
-                      { name: "PRIORITY", ordering: "priority" },
-                      { name: "ASSIGNEE", ordering: null },
-                      { name: "DUE", ordering: "due_date" },
+                      { name: ui("TASK"), ordering: "title" },
+                      { name: ui("STATUS"), ordering: "status" },
+                      { name: ui("PRIORITY"), ordering: "priority" },
+                      { name: ui("ASSIGNEE"), ordering: null },
+                      { name: ui("DUE"), ordering: "due_date" },
                     ].map((column) => (
                       <th
                         key={column.name}
@@ -890,7 +882,7 @@ export default function TasksPage() {
                         )}
                       </th>
                     ))}
-                    <th aria-label="Task actions" />
+                    <th aria-label={ui("Task actions")} />
                   </tr>
                 </thead>
                 <tbody>
@@ -943,27 +935,23 @@ export default function TasksPage() {
             </div>
             <div className={styles.pagination}>
               <span>
-                Showing {list.results.length ? (page - 1) * 20 + 1 : 0}–
+                {ui("Showing")} {list.results.length ? (page - 1) * 20 + 1 : 0}–
                 {list.results.length
                   ? (page - 1) * 20 + list.results.length
                   : 0}{" "}
-                of {list.count}
+                {ui("of")} {list.count}
               </span>
               <div className={styles.actions}>
                 <button
                   className={styles.secondaryButton}
                   disabled={!list.previous}
                   onClick={() => changePage(page - 1)}
-                >
-                  Previous
-                </button>
+                >{ui("Previous")}</button>
                 <button
                   className={styles.secondaryButton}
                   disabled={!list.next}
                   onClick={() => changePage(page + 1)}
-                >
-                  Next
-                </button>
+                >{ui("Next")}</button>
               </div>
             </div>
           </div>
@@ -977,7 +965,7 @@ export default function TasksPage() {
       {(total > 0 || filtered) && (
         <button
           className={styles.mobileNew}
-          aria-label="New task"
+          aria-label={ui("New task")}
           onClick={() => setCreating(view === "board" ? mobileStatus : "todo")}
         >
           +
@@ -997,8 +985,8 @@ export default function TasksPage() {
       )}
       {creating && accessToken && (
         <TaskDialog
-          title="New task"
-          description={`Add a task to ${project.name}.`}
+          title={ui("New task")}
+          description={ui("Add a task to {0}.", project.name)}
           onClose={() => setCreating(null)}
           busy={saving}
         >
@@ -1037,18 +1025,18 @@ export default function TasksPage() {
       )}
       {deleting && (
         <TaskDialog
-          title={blocked ? "Can’t delete this task" : "Delete this task?"}
+          title={blocked ? ui("Can’t delete this task") : ui("Delete this task?")}
           description={
             blocked
               ? deleting.title
-              : `“${deleting.title}” will be permanently deleted. This can’t be undone.`
+              : ui("“{0}” will be permanently deleted. This can’t be undone.", deleting.title)
           }
           onClose={closeAction}
           busy={mutationBusy}
         >
           {actionError && (
             <p className={styles.alert} role="alert">
-              {actionError}
+              {ui(actionError)}
             </p>
           )}
           <div className={styles.actions}>
@@ -1057,7 +1045,7 @@ export default function TasksPage() {
               disabled={mutationBusy}
               onClick={closeAction}
             >
-              {blocked ? "Close" : "Cancel"}
+              {blocked ? ui("Close") : ui("Cancel")}
             </button>
             {!blocked && (
               <button
@@ -1065,7 +1053,7 @@ export default function TasksPage() {
                 disabled={mutationBusy}
                 onClick={() => void confirmDelete()}
               >
-                {mutationBusy ? "Deleting…" : "Delete task"}
+                {mutationBusy ? ui("Deleting…") : ui("Delete task")}
               </button>
             )}
           </div>
@@ -1073,7 +1061,7 @@ export default function TasksPage() {
       )}
       {moving && (
         <TaskDialog
-          title="Move task"
+          title={ui("Move task")}
           description={`“${moving.task.title}”`}
           onClose={closeAction}
           busy={mutationBusy}
@@ -1086,7 +1074,7 @@ export default function TasksPage() {
             }}
           >
             <fieldset className={styles.filterGroup}>
-              <legend>Status</legend>
+              <legend>{ui("Status")}</legend>
               {taskStatuses.map((status) => (
                 <label className={styles.radioOption} key={status.value}>
                   <input
@@ -1103,14 +1091,14 @@ export default function TasksPage() {
                     }
                   />
                   <span>
-                    <strong>{status.label}</strong>
-                    <small className={styles.hint}>{status.description}</small>
+                    <strong>{ui(status.label)}</strong>
+                    <small className={styles.hint}>{ui(status.description)}</small>
                   </span>
                 </label>
               ))}
             </fieldset>
             <div className={styles.field}>
-              <label htmlFor="move-task-position">Position</label>
+              <label htmlFor="move-task-position">{ui("Position")}</label>
               <select
                 id="move-task-position"
                 value={moving.first ? "first" : "last"}
@@ -1125,13 +1113,13 @@ export default function TasksPage() {
                   )
                 }
               >
-                <option value="last">At the end of the column</option>
-                <option value="first">At the beginning of the column</option>
+                <option value="last">{ui("At the end of the column")}</option>
+                <option value="first">{ui("At the beginning of the column")}</option>
               </select>
             </div>
             {actionError && (
               <p className={styles.alert} role="alert">
-                {actionError}
+                {ui(actionError)}
               </p>
             )}
             <div className={styles.actions}>
@@ -1140,11 +1128,9 @@ export default function TasksPage() {
                 className={styles.secondaryButton}
                 disabled={mutationBusy}
                 onClick={closeAction}
-              >
-                Cancel
-              </button>
+              >{ui("Cancel")}</button>
               <button className={styles.primaryButton} disabled={mutationBusy}>
-                {mutationBusy ? "Moving…" : "Move task"}
+                {mutationBusy ? ui("Moving…") : ui("Move task")}
               </button>
             </div>
           </form>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { getUnreadChats, markChatRead, type ChatUnreadSummary } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -44,5 +45,6 @@ export function ChatUnreadProvider({slug, children}: {slug?: string; children: R
 }
 
 export function ChatUnreadBadge({count}: {count: number}) {
-  return count > 0 ? <span className={styles.unreadBadge} dir="ltr" aria-label={`${count} unread messages`}>{count > 10 ? "+10" : count}</span> : null;
+  const { ui, formatNumber } = useWorkspaceLocale();
+  return count > 0 ? <span className={styles.unreadBadge} dir="ltr" aria-label={ui("{0} unread messages", count)}>{count > 10 ? "+" + formatNumber(10) : formatNumber(count)}</span> : null;
 }

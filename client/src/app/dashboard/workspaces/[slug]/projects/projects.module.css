@@ -1,18 +1,16 @@
 .page {
-  padding: 40px 56px;
-  min-height: 100vh;
+  padding: clamp(20px, 3.4vw, 48px);
+  min-width: 0;
   box-sizing: border-box;
 }
 .content {
-  width: 860px;
-  max-width: 100%;
+  width: min(100%, 1240px);
+  margin-inline: auto;
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
-.taskContent {
-  width: 960px;
-}
+.taskContent { width: min(100%, 1360px); }
 .header,
 .sectionHeader {
   display: flex;
@@ -22,16 +20,16 @@
 }
 .header h1 {
   margin: 0;
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: var(--workspace-tracking, -0.3px);
   overflow-wrap: anywhere;
 }
 .header p,
 .muted {
   margin: 4px 0 0;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 20px;
   overflow-wrap: anywhere;
@@ -44,10 +42,10 @@
   align-items: center;
   min-height: 40px;
   padding: 10px 16px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: white;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -57,20 +55,20 @@
   white-space: nowrap;
 }
 .primaryButton {
-  background: #4f46e5;
-  border-color: #4f46e5;
-  color: white;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
 }
 .primaryButton:hover:not(:disabled) {
-  background: #4338ca;
+  background: var(--primary-hover);
 }
 .secondaryButton:hover:not(:disabled) {
-  background: #f8fafc;
+  background: var(--surface-subtle);
 }
 .dangerButton {
-  background: #dc2626;
-  border-color: #dc2626;
-  color: white;
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--danger-background);
 }
 .primaryButton:disabled,
 .secondaryButton:disabled,
@@ -79,21 +77,22 @@
   cursor: not-allowed;
 }
 .tableCard {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--shadow-card);
 }
 .table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  text-align: left;
+  text-align: start;
   font-size: 14px;
 }
 .table th {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--surface-subtle);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 500;
   padding: 10px 16px;
@@ -109,25 +108,25 @@
 }
 .table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  color: #475569;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
   vertical-align: middle;
 }
 .projectLink {
   display: block;
-  color: #0f172a;
+  color: var(--foreground);
   text-decoration: none;
   font-weight: 500;
   overflow-wrap: anywhere;
 }
 .projectLink:hover {
-  color: #4f46e5;
+  color: var(--primary);
   text-decoration: underline;
 }
 .rowDescription {
   margin: 2px 0 0;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -137,20 +136,20 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 16px;
   white-space: nowrap;
   font-weight: 500;
 }
 .manager {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-background);
+  color: var(--warning);
 }
 .admin {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--info-background);
+  color: var(--info);
 }
 .pagination {
   display: flex;
@@ -158,7 +157,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .paginationButtons,
@@ -168,8 +167,8 @@
   gap: 8px;
 }
 .empty {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 48px 24px;
   text-align: center;
@@ -181,19 +180,19 @@
 .emptyIcon {
   display: inline-flex;
   padding: 18px;
-  background: #eef2ff;
+  background: var(--primary-soft);
   border-radius: 50%;
 }
 .status {
   padding: 24px;
-  border: 1px solid #e2e8f0;
-  background: white;
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 12px;
   font-size: 14px;
 }
 .hint {
   margin: 0;
-  color: #64748b;
+  color: var(--muted);
   font-size: 12px;
   line-height: 20px;
 }
@@ -202,9 +201,9 @@
 }
 .mobileCard {
   padding: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: white;
+  background: var(--surface);
 }
 .mobileTitle {
   display: flex;
@@ -218,13 +217,13 @@
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
 }
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--workspace-scrim, rgb(4 15 19 / 64%));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -235,10 +234,10 @@
   max-width: 100%;
   max-height: calc(100dvh - 48px);
   overflow-y: auto;
-  background: white;
+  background: var(--surface);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 16px 48px #0f172a26;
+  box-shadow: var(--shadow-card);
   outline: none;
 }
 .dialogHeader {
@@ -257,13 +256,13 @@
 .iconButton {
   width: 40px;
   height: 40px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: white;
+  background: var(--surface);
   font: inherit;
   font-size: 24px;
   cursor: pointer;
-  color: #64748b;
+  color: var(--muted);
   flex-shrink: 0;
 }
 .form {
@@ -286,10 +285,10 @@
 .field select {
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: white;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   box-sizing: border-box;
 }
@@ -301,26 +300,26 @@
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
-  outline: 2px solid #c7d2fe;
-  border-color: #6366f1;
+  outline: 2px solid var(--primary-soft);
+  border-color: var(--primary);
 }
 .field [aria-invalid="true"] {
-  border-color: #dc2626;
+  border-color: var(--danger);
 }
 .counter {
-  color: #64748b;
-  text-align: right;
+  color: var(--muted);
+  text-align: end;
   font-size: 12px;
 }
 .error {
-  color: #b91c1c;
+  color: var(--danger);
   font-size: 12px;
   margin: 0;
 }
 .alert {
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
+  color: var(--danger);
+  background: var(--danger-background);
+  border: 1px solid var(--danger-border);
   padding: 12px;
   border-radius: 8px;
   font-size: 14px;
@@ -333,16 +332,16 @@
 .breadcrumb {
   display: flex;
   gap: 8px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 20px;
 }
 .breadcrumb a {
-  color: #475569;
+  color: var(--text-secondary);
   text-decoration: none;
 }
 .breadcrumb a:hover {
-  color: #4f46e5;
+  color: var(--primary);
   text-decoration: underline;
 }
 .breadcrumbName {
@@ -357,11 +356,18 @@
   gap: 12px;
   min-width: 0;
 }
+.projectHeader {
+  padding: clamp(16px, 3vw, 28px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-inline-start: 4px solid var(--primary);
+  border-radius: var(--radius);
+}
 .projectDescription {
   margin: 0;
   font-size: 14px;
   line-height: 20px;
-  color: #475569;
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   display: -webkit-box;
@@ -371,21 +377,27 @@
 }
 .tabs {
   display: flex;
-  gap: 4px;
-  border-bottom: 1px solid #e2e8f0;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
   overflow-x: auto;
+  scrollbar-width: thin;
 }
 .tabs a {
-  padding: 16px;
-  color: #475569;
+  padding: 11px 16px;
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 14px;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-md);
   white-space: nowrap;
 }
+.tabs a:hover { background: var(--surface-subtle); }
 .tabs .activeTab {
-  color: #4f46e5;
-  border-bottom-color: #4f46e5;
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 700;
 }
 .overview {
   display: flex;
@@ -399,8 +411,8 @@
 }
 .card {
   padding: 24px;
-  border: 1px solid #e2e8f0;
-  background: white;
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 16px;
   min-width: 0;
 }
@@ -415,7 +427,7 @@
   margin: 0;
   font-size: 14px;
   line-height: 20px;
-  color: #475569;
+  color: var(--text-secondary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -432,8 +444,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--primary-soft);
+  color: var(--primary);
   font-size: 12px;
 }
 .summaryCard {
@@ -449,7 +461,7 @@
 .summaryLink {
   border: 0;
   padding: 4px 0;
-  color: #4f46e5;
+  color: var(--primary);
   background: transparent;
   font: inherit;
   font-size: 13px;
@@ -476,16 +488,16 @@
   align-items: flex-start;
   gap: 12px;
   padding: 16px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   font-size: 14px;
 }
 .selectedRadio {
-  border-color: #818cf8;
-  background: #eef2ff;
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 .radioOption input {
-  accent-color: #4f46e5;
+  accent-color: var(--primary);
   margin-top: 3px;
 }
 .radioOption strong {
@@ -494,7 +506,7 @@
   margin-bottom: 4px;
 }
 .radioOption small {
-  color: #64748b;
+  color: var(--muted);
   line-height: 18px;
   font-size: 12px;
 }
@@ -508,15 +520,15 @@
   min-width: 0;
   overflow-wrap: anywhere;
   font-size: 14px;
-  color: #0f172a;
+  color: var(--foreground);
 }
 .you {
   display: inline-flex;
   padding: 2px 6px;
-  margin-left: 8px;
+  margin-inline-start: 8px;
   border-radius: 999px;
-  color: #475569;
-  background: #f1f5f9;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
   font-size: 12px;
 }
 .memberMeta {
@@ -525,7 +537,7 @@
   align-items: flex-start;
   gap: 8px;
   margin: 8px 0 0 44px;
-  color: #64748b;
+  color: var(--muted);
 }
 .memberActions {
   position: relative;
@@ -543,34 +555,34 @@
 }
 .actionMenu {
   position: absolute;
-  right: 0;
+  inset-inline-end: 0;
   top: calc(100% + 4px);
   z-index: 20;
   width: 220px;
   padding: 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: white;
-  box-shadow: 0 8px 24px #0f172a1a;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 .actionMenu button {
   display: block;
   width: 100%;
   padding: 10px 12px;
   border: 0;
-  background: white;
-  color: #334155;
-  text-align: left;
+  background: var(--surface);
+  color: var(--foreground);
+  text-align: start;
   font: inherit;
   font-size: 14px;
   cursor: pointer;
   border-radius: 4px;
 }
 .actionMenu button:hover {
-  background: #f8fafc;
+  background: var(--surface-subtle);
 }
 .actionMenu .removeAction {
-  color: #dc2626;
+  color: var(--danger);
 }
 .mobileMenuClose {
   display: none !important;
@@ -588,13 +600,13 @@
   margin-bottom: 12px;
 }
 .dangerCard {
-  border-color: #fca5a5;
+  border-color: var(--danger-border);
 }
 .dangerOutline {
-  border: 1px solid #cbd5e1;
-  color: #b91c1c;
+  border: 1px solid var(--border-strong);
+  color: var(--danger);
   border-radius: 8px;
-  background: white;
+  background: var(--surface);
   padding: 10px 16px;
   font: inherit;
   font-size: 14px;
@@ -603,7 +615,7 @@
   cursor: pointer;
 }
 .success {
-  color: #166534;
+  color: var(--success);
   font-size: 14px;
 }
 @media (min-width: 768px) and (max-width: 1100px) {
@@ -664,7 +676,7 @@
     z-index: 60;
     border-radius: 16px 16px 0 0;
     padding: 32px 20px 28px;
-    box-shadow: 0 0 0 100vmax #0f172a80;
+    box-shadow: 0 0 0 100vmax var(--workspace-scrim, rgb(4 15 19 / 64%));
   }
   .mobileMenuTitle {
     display: block;
@@ -678,7 +690,7 @@
   }
   .mobileMenuClose {
     display: block !important;
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid var(--border) !important;
     margin-top: 16px;
     text-align: center !important;
   }
@@ -709,7 +721,7 @@
     flex-wrap: wrap;
   }
   .paginationButtons {
-    margin-left: auto;
+    margin-inline-start: auto;
   }
   .overlay {
     align-items: flex-end;
@@ -727,7 +739,7 @@
     width: 36px;
     height: 4px;
     border-radius: 4px;
-    background: #cbd5e1;
+    background: var(--border-strong);
     position: absolute;
     top: 12px;
     left: calc(50% - 18px);
@@ -754,16 +766,16 @@
   overflow-wrap: anywhere;
 }
 .projectView button[aria-pressed="true"] {
-  background: #eef2ff;
-  border-color: #818cf8;
-  color: #4338ca;
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-hover);
 }
 .projectBoard {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 12px;
   padding: 12px;
-  background: #f1f5f9;
+  background: var(--surface-subtle);
 }
 .projectBoardCard {
   display: flex;
@@ -771,14 +783,14 @@
   gap: 12px;
   min-width: 0;
   padding: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 12px;
   color: inherit;
   text-decoration: none;
-  background: white;
+  background: var(--surface);
 }
 .projectBoardCard:hover {
-  border-color: #818cf8;
+  border-color: var(--primary);
 }
 .projectBoardCard .mobileFooter {
   margin-top: auto;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
@@ -26,6 +27,7 @@ export default function RemoveMemberModal({
   onClose,
   onRemoved,
 }: Props) {
+  const { ui } = useWorkspaceLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
@@ -118,21 +120,18 @@ export default function RemoveMemberModal({
         aria-describedby="remove-member-description"
         tabIndex={-1}
       >
-        <h2 id="remove-member-title">Remove member</h2>
+        <h2 id="remove-member-title">{ui("Remove member")}</h2>
 
         <p id="remove-member-description" className={styles.description}>
-          Are you sure you want to remove <strong>{member.user_email}</strong>{" "}
-          from this workspace?
+          {ui("Are you sure you want to remove")} <strong>{member.user_email}</strong>{" "}
+          {ui("from this workspace?")}
         </p>
 
-        <p className={styles.note}>
-          This person will lose access to the workspace. Their TeamBoard account
-          will not be deleted.
-        </p>
+        <p className={styles.note}>{ui("This person will lose access to the workspace. Their TeamBoard account will not be deleted.")}</p>
 
         {error && (
           <p className={styles.error} role="alert">
-            {error}
+            {ui(error)}
           </p>
         )}
 
@@ -143,16 +142,14 @@ export default function RemoveMemberModal({
             disabled={isSubmitting}
             onClick={onClose}
           >
-            {blocked ? "Close" : "Cancel"}
+            {blocked ? ui("Close") : ui("Cancel")}
           </button>
 
           {blocked ? (
             <Link
               className={styles.cancelButton}
               href={`/dashboard/workspaces/${encodeURIComponent(slug)}/projects`}
-            >
-              View projects
-            </Link>
+            >{ui("View projects")}</Link>
           ) : (
             <button
               type="button"
@@ -160,7 +157,7 @@ export default function RemoveMemberModal({
               disabled={isSubmitting}
               onClick={handleRemove}
             >
-              {isSubmitting ? "Removing..." : "Remove member"}
+              {isSubmitting ? ui("Removing...") : ui("Remove member")}
             </button>
           )}
         </div>

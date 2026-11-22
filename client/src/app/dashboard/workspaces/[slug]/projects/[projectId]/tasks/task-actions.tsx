@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useRef, useState } from "react";
 import type { Task } from "@/lib/api";
 import styles from "./tasks.module.css";
@@ -19,6 +20,7 @@ export default function TaskActions({
   onMove: () => void;
   onDelete: () => void;
 }) {
+  const { ui } = useWorkspaceLocale();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -76,7 +78,7 @@ export default function TaskActions({
         ref={trigger}
         className={styles.moreButton}
         disabled={disabled}
-        aria-label={`Actions for ${task.title}`}
+        aria-label={ui("Actions for {0}", task.title)}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
@@ -94,7 +96,7 @@ export default function TaskActions({
           />
           <div
             role="menu"
-            aria-label={`Actions for ${task.title}`}
+            aria-label={ui("Actions for {0}", task.title)}
             className={styles.actionMenu}
             onBlur={(event) => {
               if (
@@ -112,9 +114,7 @@ export default function TaskActions({
                 setOpen(false);
                 onOpen();
               }}
-            >
-              Open task
-            </button>
+            >{ui("Open task")}</button>
             <button
               type="button"
               role="menuitem"
@@ -122,9 +122,7 @@ export default function TaskActions({
                 setOpen(false);
                 onMove();
               }}
-            >
-              Move task
-            </button>
+            >{ui("Move task")}</button>
             {canDelete && (
               <button
                 type="button"
@@ -134,9 +132,7 @@ export default function TaskActions({
                   setOpen(false);
                   onDelete();
                 }}
-              >
-                Delete task
-              </button>
+              >{ui("Delete task")}</button>
             )}
             <button
               type="button"
@@ -146,9 +142,7 @@ export default function TaskActions({
                 setOpen(false);
                 trigger.current?.focus();
               }}
-            >
-              Cancel
-            </button>
+            >{ui("Cancel")}</button>
           </div>
         </>
       )}

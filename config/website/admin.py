@@ -98,6 +98,8 @@ class BlogPostAdmin(admin.ModelAdmin):
         "title",
         "slug",
         "excerpt",
+        "title_fa",
+        "excerpt_fa",
     )
 
     ordering = ("-created_at", "-id")
@@ -108,16 +110,13 @@ class BlogPostAdmin(admin.ModelAdmin):
         "updated_at",
     )
 
-    fields = (
-        "id",
-        "title",
-        "slug",
-        "excerpt",
-        "content",
-        "status",
-        "published_at",
-        "created_at",
-        "updated_at",
+    fieldsets = (
+        (None, {"fields": ("id", "title", "slug", "excerpt", "content")}),
+        ("Persian translation", {
+            "fields": ("title_fa", "excerpt_fa", "content_fa"),
+            "description": "Provide a Persian title and article body to publish this language version.",
+        }),
+        ("Publication", {"fields": ("status", "published_at", "created_at", "updated_at")}),
     )
 
     list_per_page = 25

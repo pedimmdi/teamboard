@@ -75,3 +75,18 @@ test("task reminder notifications link directly to the existing task drawer", ()
   assert.equal(content.title,"Task reminder");
   assert.equal(content.href,"/dashboard/workspaces/team/projects/project/tasks?task=task");
 });
+
+test("Persian notification titles and role changes preserve workspace names and link destinations", () => {
+  const { notificationContent } = load("../src/app/dashboard/notifications/notification-content.ts");
+  const notification = {
+    event_type: "workspace_role_changed",
+    workspace_slug: "design",
+    workspace_name: "Design team",
+    payload: { old_role: "member", new_role: "admin" },
+  };
+  assert.equal(notificationContent(notification, "en").description, "Design team · member → admin");
+  const content = notificationContent(notification, "fa");
+  assert.equal(content.title, "نقش شما در فضای کاری تغییر کرد");
+  assert.equal(content.description, "Design team · عضو ← مدیر");
+  assert.equal(content.href, "/dashboard/workspaces/design/members");
+});

@@ -1,16 +1,19 @@
 "use client";
 
+import { useLocale } from "@/lib/preferences";
 import Link from "next/link";
 import { ChatUnreadProvider, ChatUnreadBadge, useChatUnread } from "@/components/chats/chat-unread";
 import ChatIcon from "@/components/chats/chat-icon";
 import ReportIcon from "@/components/reports/report-icon";
 import CalendarIcon from "@/components/calendar/calendar-icon";
 import Avatar from "@/components/ui/Avatar";
+import BrandMark from "@/components/ui/BrandMark";
 import DesignIcon from "@/components/ui/DesignIcon";
+import { PreferencesControls } from "@/components/preferences-controls";
 import { BellIcon, NotificationCountProvider, useNotificationCount } from "./notifications/notification-count";
 import WorkspaceSwitcher from "./workspace-switcher";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import {
   dashboardWorkspaceKey,
   loadDashboardWorkspace,
@@ -24,15 +27,13 @@ type DashboardLayoutProps = {
   children: ReactNode;
 };
 
-function BrandMark() {
+function DashboardBrand() {
+  const { t } = useLocale();
   return (
-    <span className={styles.brandMark} aria-hidden="true">
-      <svg viewBox="0 0 18 18" fill="none">
-        <rect x="3" y="4" width="3" height="10" rx="1" fill="currentColor" />
-        <rect x="7.5" y="6" width="3" height="8" rx="1" fill="currentColor" />
-        <rect x="12" y="3" width="3" height="11" rx="1" fill="currentColor" />
-      </svg>
-    </span>
+    <div className={styles.brand}>
+      <span className={styles.brandMark}><BrandMark /></span>
+      <span>{t("TeamBoard", "تیم‌برد")}</span>
+    </div>
   );
 }
 
@@ -120,12 +121,14 @@ function NavItem({
   active,
   icon,
   trailing,
+  accessibleLabel,
 }: {
   href: string | null;
   label: string;
   active: boolean;
   icon: ReactNode;
   trailing?: ReactNode;
+  accessibleLabel?: string;
 }) {
   if (!href) {
     return (
@@ -141,6 +144,7 @@ function NavItem({
   return (
     <Link
       aria-current={active ? "page" : undefined}
+      aria-label={accessibleLabel}
       href={href}
       className={`${styles.navItem} ${active ? styles.navItemActive : ""}`}
     >
@@ -160,15 +164,16 @@ function WorkspaceNavigation({
   workspaceBase: string | null;
   pathname: string;
 }) {
+  const { t } = useLocale();
   const { summary } = useChatUnread();
   const dashboardItem = (<NavItem href={workspaceBase ? `${workspaceBase}/dashboard` : "/dashboard"}
-        label="Dashboard" active={pathname === `${workspaceBase}/dashboard`} icon={<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3zM12 12h5v5h-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>} />);
+        label={t("Dashboard", "داشبورد")} active={pathname === `${workspaceBase}/dashboard`} icon={<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3zM12 12h5v5h-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>} />);
   return (
     <>
       {!mobile && dashboardItem}
       <NavItem
         href={workspaceBase ? `${workspaceBase}/projects` : null}
-        label="Projects"
+        label={t("Projects", "پروژه‌ها")}
         active={pathname.startsWith(`${workspaceBase}/projects`)}
         icon={<svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path d="M2 5a2 2 0 0 1 2-2h3l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5Z"
@@ -177,34 +182,34 @@ function WorkspaceNavigation({
       />
       <NavItem
         href={workspaceBase ? `${workspaceBase}/calendar` : null}
-        label="Calendar"
+        label={t("Calendar", "تقویم")}
         active={pathname === `${workspaceBase}/calendar`}
         icon={<CalendarIcon />}
       />
       {mobile && dashboardItem}
       <NavItem href={workspaceBase ? `${workspaceBase}/chats` : null}
-        label="Chats" active={pathname === `${workspaceBase}/chats`} icon={<ChatIcon />} trailing={<span className={styles.chatBadge}><ChatUnreadBadge count={summary.unread_count} /></span>} />
-      {!mobile && <NavItem
-        href={workspaceBase ? `${workspaceBase}/reports` : null}
-        label="Reports"
-        active={pathname === `${workspaceBase}/reports`}
-        icon={<ReportIcon />}
-      />}
-      {!mobile && <NavItem
-        href={workspaceBase ? `${workspaceBase}/members` : null}
-        label="People"
-        active={
-          pathname === `${workspaceBase}/members` ||
-          pathname === `${workspaceBase}/invitations`
-        }
-        icon={<DesignIcon name="users" />}
-      />}
-      {!mobile && <NavItem
-        href={workspaceBase ? `${workspaceBase}/settings` : null}
-        label="Settings"
-        active={pathname === `${workspaceBase}/settings`}
-        icon={<DesignIcon name="settings" />}
-      />}
+        label={t("Chats", "گفت‌وگوها")} active={pathname === `${workspaceBase}/chats`} icon={<ChatIcon />} trailing={<span className={styles.chatBadge}><ChatUnreadBadge count={summary.unread_count} /></span>} />
+      {!mobile && <WorkspaceManagementNavigation workspaceBase={workspaceBase} pathname={pathname} />}
+    </>
+  );
+}
+
+function WorkspaceManagementNavigation({ workspaceBase, pathname }: {
+  workspaceBase: string | null;
+  pathname: string;
+}) {
+  const { t } = useLocale();
+  return (
+    <>
+      <NavItem href={workspaceBase ? `${workspaceBase}/reports` : null}
+        label={t("Reports", "گزارش‌ها")} active={pathname === `${workspaceBase}/reports`} icon={<ReportIcon />} />
+      <NavItem href={workspaceBase ? `${workspaceBase}/members` : null}
+        label={t("People", "اعضا")}
+        active={pathname === `${workspaceBase}/members` || pathname === `${workspaceBase}/invitations`}
+        icon={<DesignIcon name="users" />} />
+      <NavItem href={workspaceBase ? `${workspaceBase}/settings` : null}
+        label={t("Settings", "تنظیمات")} active={pathname === `${workspaceBase}/settings`}
+        icon={<DesignIcon name="settings" />} />
     </>
   );
 }
@@ -225,11 +230,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 }
 
 function DashboardShell({ children }: DashboardLayoutProps) {
+  const { t, formatNumber } = useLocale();
   const { count } = useNotificationCount();
+  const moreMenu = useRef<HTMLDetailsElement>(null);
+  const moreTrigger = useRef<HTMLElement>(null);
   const inbox = "/dashboard/notifications";
+  const unread = t(`${formatNumber(count ?? 0)} unread`, `${formatNumber(count ?? 0)} خوانده‌نشده`);
+  const notificationsLabel = count
+    ? t(`Notifications, ${unread}`, `اعلان‌ها، ${unread}`)
+    : t("Notifications", "اعلان‌ها");
   const badge = count ? (
-    <span className={styles.notificationBadge} aria-label={`${count} unread`}>
-      {count > 99 ? "99+" : count}
+    <span className={styles.notificationBadge} aria-hidden="true">
+      {count > 99 ? `${formatNumber(99)}+` : formatNumber(count)}
     </span>
   ) : null;
   const pathname = usePathname();
@@ -277,6 +289,10 @@ function DashboardShell({ children }: DashboardLayoutProps) {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  useEffect(() => {
+    if (moreMenu.current) moreMenu.current.open = false;
+  }, [pathname]);
+
   if (isLoading || !isAuthenticated || !user) {
     return null;
   }
@@ -299,15 +315,12 @@ function DashboardShell({ children }: DashboardLayoutProps) {
     <div className={styles.dashboard}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarTop}>
-          <div className={styles.brand}>
-            <BrandMark />
-            <span>TeamBoard</span>
-          </div>
+          <DashboardBrand />
 
           <WorkspaceSwitcher slug={slug} />
 
-          <nav className={styles.navigation} aria-label="Workspace">
-            <div className={styles.sectionLabel}>WORKSPACE</div>
+          <nav className={styles.navigation} aria-label={t("Workspace", "فضای کاری")}>
+            <div className={styles.sectionLabel}>{t("WORKSPACE", "فضای کاری")}</div>
 
             <WorkspaceNavigation
               workspaceBase={workspaceBase}
@@ -315,30 +328,31 @@ function DashboardShell({ children }: DashboardLayoutProps) {
             />
             <NavItem
               href={inbox}
-              label="Notifications"
+              label={t("Notifications", "اعلان‌ها")}
               active={pathname === inbox}
               icon={<BellIcon />}
               trailing={badge}
+              accessibleLabel={notificationsLabel}
             />
-            <div className={styles.sectionLabel}>ACCOUNT</div>
+            <div className={styles.sectionLabel}>{t("ACCOUNT", "حساب کاربری")}</div>
 
             <NavItem
               href="/dashboard/profile"
-              label="Profile"
+              label={t("Profile", "نمایه")}
               active={isProfile}
               icon={<UserIcon />}
             />
 
             <NavItem
               href="/dashboard/security"
-              label="Security"
+              label={t("Security", "امنیت")}
               active={isSecurity}
               icon={<LockIcon />}
             />
 
             <NavItem
               href="/dashboard/sessions"
-              label="Sessions"
+              label={t("Sessions", "نشست‌ها")}
               active={isSessions}
               icon={<MonitorIcon />}
             />
@@ -346,6 +360,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
         </div>
 
         <div className={styles.sidebarBottom}>
+          <PreferencesControls compact />
           <button
             type="button"
             className={styles.signOutButton}
@@ -354,7 +369,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
             <span className={styles.navIcon}>
               <LogoutIcon />
             </span>
-            <span>Sign out</span>
+            <span>{t("Sign out", "خروج از حساب")}</span>
           </button>
 
           <div className={styles.userSummary}>
@@ -365,34 +380,48 @@ function DashboardShell({ children }: DashboardLayoutProps) {
             />
 
             <div className={styles.userSummaryText}>
-              <div className={styles.userName}>
+              <div className={styles.userName} dir="auto">
                 {user.first_name} {user.last_name}
               </div>
-              <div className={styles.userEmail}>{user.email}</div>
+              <div className={styles.userEmail}><bdi>{user.email}</bdi></div>
             </div>
           </div>
         </div>
       </aside>
 
       <header className={styles.mobileHeader}>
-        <WorkspaceSwitcher slug={slug} mobile />
+        <DashboardBrand />
         <div className={styles.mobileHeaderActions}>
+          <PreferencesControls compact />
           <Link
             href={inbox}
             className={styles.mobileLogoutButton}
-            aria-label={count ? `Notifications, ${count} unread` : "Notifications"}
+            aria-label={notificationsLabel}
             aria-current={pathname === inbox ? "page" : undefined}
           >
             <BellIcon />
             {badge}
           </Link>
-          <Link
-            className={styles.mobileLogoutButton}
-            href="/dashboard/profile"
-            aria-label="Account"
-          >
-            <UserIcon />
-          </Link>
+        </div>
+        <div className={styles.mobileWorkspace}>
+          <WorkspaceSwitcher slug={slug} mobile />
+          {workspaceBase && (
+            <details ref={moreMenu} className={styles.mobileMore}
+              onKeyDown={(event) => {
+                if (event.key === "Escape" && event.currentTarget.open) {
+                  event.currentTarget.open = false;
+                  moreTrigger.current?.focus();
+                }
+              }}>
+              <summary ref={moreTrigger}>
+                {t("More", "بیشتر")}
+                <span aria-hidden="true">⌄</span>
+              </summary>
+              <nav className={styles.moreItems} aria-label={t("Workspace options", "گزینه‌های فضای کاری")}>
+                <WorkspaceManagementNavigation workspaceBase={workspaceBase} pathname={pathname} />
+              </nav>
+            </details>
+          )}
         </div>
       </header>
 
@@ -400,30 +429,30 @@ function DashboardShell({ children }: DashboardLayoutProps) {
         {(isProfile || isSecurity || isSessions) && (
           <nav
             className={styles.mobileAccountNav}
-            aria-label="Account navigation"
+            aria-label={t("Account navigation", "ناوبری حساب کاربری")}
           >
             <NavItem
               href="/dashboard/profile"
-              label="Profile"
+              label={t("Profile", "نمایه")}
               active={isProfile}
               icon={<UserIcon />}
             />
             <NavItem
               href="/dashboard/security"
-              label="Security"
+              label={t("Security", "امنیت")}
               active={isSecurity}
               icon={<LockIcon />}
             />
             <NavItem
               href="/dashboard/sessions"
-              label="Sessions"
+              label={t("Sessions", "نشست‌ها")}
               active={isSessions}
               icon={<MonitorIcon />}
             />
             <button
               className={styles.signOutButton}
               onClick={handleLogout}
-              aria-label="Sign out"
+              aria-label={t("Sign out", "خروج از حساب")}
             >
               <LogoutIcon />
             </button>
@@ -432,14 +461,14 @@ function DashboardShell({ children }: DashboardLayoutProps) {
         {children}
       </main>
 
-      <nav className={styles.mobileTabBar} aria-label="Dashboard">
+      <nav className={styles.mobileTabBar} aria-label={t("Dashboard", "داشبورد")}>
         <WorkspaceNavigation mobile
           workspaceBase={workspaceBase}
           pathname={pathname}
         />
         <NavItem
           href="/dashboard/profile"
-          label="Account"
+          label={t("Account", "حساب کاربری")}
           active={isProfile || isSecurity || isSessions}
           icon={<UserIcon />}
         />

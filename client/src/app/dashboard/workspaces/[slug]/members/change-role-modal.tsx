@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -26,6 +27,7 @@ export default function ChangeRoleModal({
   onClose,
   onUpdated,
 }: Props) {
+  const { ui } = useWorkspaceLocale();
   const [role, setRole] = useState<"admin" | "member">(
     member.role === "admin" ? "admin" : "member",
   );
@@ -115,11 +117,11 @@ export default function ChangeRoleModal({
         aria-labelledby="change-role-title"
       >
         <div className={styles.header}>
-          <h2 id="change-role-title">Change member role</h2>
+          <h2 id="change-role-title">{ui("Change member role")}</h2>
           <button
             type="button"
             className={styles.closeButton}
-            aria-label="Close"
+            aria-label={ui("Close")}
             disabled={isSubmitting}
             onClick={onClose}
           >
@@ -128,13 +130,11 @@ export default function ChangeRoleModal({
         </div>
 
         <p className={styles.description}>
-          Update the role for <strong>{member.user_email}</strong>.
+          {ui("Update the role for")} <strong>{member.user_email}</strong>.
         </p>
 
         <form onSubmit={handleSubmit}>
-          <label htmlFor="member-role" className={styles.label}>
-            Role
-          </label>
+          <label htmlFor="member-role" className={styles.label}>{ui("Role")}</label>
 
           <select
             id="member-role"
@@ -145,13 +145,13 @@ export default function ChangeRoleModal({
               setRole(event.target.value as "admin" | "member")
             }
           >
-            <option value="member">Member</option>
-            <option value="admin">Admin</option>
+            <option value="member">{ui("Member")}</option>
+            <option value="admin">{ui("Admin")}</option>
           </select>
 
           {error && (
             <p className={styles.error} role="alert">
-              {error}
+              {ui(error)}
             </p>
           )}
 
@@ -161,16 +161,14 @@ export default function ChangeRoleModal({
               className={styles.cancelButton}
               disabled={isSubmitting}
               onClick={onClose}
-            >
-              Cancel
-            </button>
+            >{ui("Cancel")}</button>
 
             <button
               type="submit"
               className={styles.submitButton}
               disabled={isSubmitting || role === member.role}
             >
-              {isSubmitting ? "Saving..." : "Save changes"}
+              {isSubmitting ? ui("Saving...") : ui("Save changes")}
             </button>
           </div>
         </form>

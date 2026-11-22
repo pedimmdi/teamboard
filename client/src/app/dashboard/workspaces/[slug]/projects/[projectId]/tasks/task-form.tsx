@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { ApiError, type ProjectMember, type TaskInput } from "@/lib/api";
 import AssigneePicker from "./assignee-picker";
@@ -31,6 +32,7 @@ export default function TaskForm({
   metadata?: ReactNode;
   deleteAction?: ReactNode;
 }) {
+  const { ui, formatNumber } = useWorkspaceLocale();
   const [input, setInput] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -80,17 +82,17 @@ export default function TaskForm({
   const fieldError = (key: keyof TaskInput) =>
     fields[key] ? (
       <p id={`${id}-${key}-error`} className={styles.error} role="alert">
-        {fields[key]}
+        {ui(fields[key] ?? "")}
       </p>
     ) : null;
   const title = (
     <div className={styles.field}>
-      <label htmlFor={`${id}-title`}>Title</label>
+      <label htmlFor={`${id}-title`}>{ui("Title")}</label>
       <input
         id={`${id}-title`}
         value={input.title}
         maxLength={200}
-        placeholder="What needs to be done?"
+        placeholder={ui("What needs to be done?")}
         disabled={busy}
         onChange={(event) => update("title", event.target.value)}
         aria-invalid={Boolean(fields.title)}
@@ -102,20 +104,20 @@ export default function TaskForm({
   const description = (
     <div className={styles.field}>
       <label htmlFor={`${id}-description`}>
-        Description{!editing && " (optional)"}
+        {ui("Description")}{!editing && " (optional)"}
       </label>
       <textarea
         id={`${id}-description`}
         value={input.description}
         maxLength={10000}
         disabled={busy}
-        placeholder="Add more details…"
+        placeholder={ui("Add more details…")}
         onChange={(event) => update("description", event.target.value)}
         aria-invalid={Boolean(fields.description)}
         aria-describedby={`${id}-count${fields.description ? ` ${id}-description-error` : ""}`}
       />
       <span className={styles.counter} id={`${id}-count`}>
-        {input.description.length} / 10000
+        {formatNumber(input.description.length)} / {formatNumber(10000)}
       </span>
       {fieldError("description")}
     </div>
@@ -124,14 +126,14 @@ export default function TaskForm({
     <form className={styles.form} onSubmit={submit}>
       {error && (
         <p className={styles.alert} role="alert">
-          {error}
+          {ui(error)}
         </p>
       )}
       {title}
       {!editing && description}
       <div className={styles.formGrid}>
         <div className={styles.field}>
-          <label htmlFor={`${id}-status`}>Status</label>
+          <label htmlFor={`${id}-status`}>{ui("Status")}</label>
           <select
             id={`${id}-status`}
             value={input.status}
@@ -142,14 +144,14 @@ export default function TaskForm({
           >
             {taskStatuses.map((status) => (
               <option key={status.value} value={status.value}>
-                {status.label}
+                {ui(status.label)}
               </option>
             ))}
           </select>
           {fieldError("status")}
         </div>
         <div className={styles.field}>
-          <label htmlFor={`${id}-priority`}>Priority</label>
+          <label htmlFor={`${id}-priority`}>{ui("Priority")}</label>
           <select
             id={`${id}-priority`}
             value={input.priority}
@@ -160,14 +162,14 @@ export default function TaskForm({
           >
             {taskPriorities.map((priority) => (
               <option key={priority} value={priority}>
-                {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                {ui(priority.charAt(0).toUpperCase() + priority.slice(1))}
               </option>
             ))}
           </select>
           {fieldError("priority")}
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>Assignee (required)</span>
+          <span className={styles.fieldLabel}>{ui("Assignee (required)")}</span>
           <AssigneePicker
             members={members}
             value={input.assignee === null ? "" : String(input.assignee)}
@@ -182,7 +184,7 @@ export default function TaskForm({
           {fieldError("assignee")}
         </div>
         <div className={styles.field}>
-          <label htmlFor={`${id}-due`}>Due date</label>
+          <label htmlFor={`${id}-due`}>{ui("Due date")}</label>
           <input
             id={`${id}-due`}
             type="date"
@@ -198,7 +200,7 @@ export default function TaskForm({
       </div>
       {days > 0 && (
         <p className={styles.overdue} id={`${id}-overdue`}>
-          Overdue by {days} {days === 1 ? "day" : "days"}
+          {ui("Overdue by")} {formatNumber(days)} {ui(days === 1 ? "day" : "days")}
         </p>
       )}
       {editing && description}
@@ -211,14 +213,12 @@ export default function TaskForm({
             type="button"
             disabled={busy}
             onClick={onCancel}
-          >
-            Cancel
-          </button>
+          >{ui("Cancel")}</button>
           <button
             className={styles.primaryButton}
             disabled={busy || (editing && !changed)}
           >
-            {busy ? "Saving…" : editing ? "Save changes" : "Create task"}
+            {busy ? ui("Saving…") : editing ? ui("Save changes") : ui("Create task")}
           </button>
         </div>
       </div>

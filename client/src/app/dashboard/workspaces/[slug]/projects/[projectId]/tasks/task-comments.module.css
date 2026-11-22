@@ -22,7 +22,7 @@
 }
 
 .tabs {
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   gap: 2px;
 }
@@ -39,12 +39,12 @@
 .tabs button {
   padding: 10px 16px 12px;
   border-bottom: 2px solid transparent;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .tabs button[aria-pressed="true"] {
-  border-color: #4f46e5;
-  color: #4f46e5;
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .thread {
@@ -71,7 +71,7 @@
   align-items: start;
   gap: 12px;
   padding: 14px 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
 
 .commentContent {
@@ -101,8 +101,8 @@
   justify-content: center;
   align-items: center;
   border-radius: 50%;
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .avatar {
@@ -113,8 +113,8 @@
 
 .deletedAvatar,
 .you {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
 }
 
 .you {
@@ -126,7 +126,7 @@
 .date,
 .permissionHint,
 .empty p {
-  color: #64748b;
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -158,19 +158,20 @@
 
 .more:hover,
 .actionPanel button:hover {
-  background: #f1f5f9;
+  background: var(--surface-subtle);
 }
 
 .actionPanel {
   position: fixed;
-  inset: var(--comment-menu-top) var(--comment-menu-right) auto auto;
+  inset-block-start: var(--comment-menu-top);
+  inset-inline-end: var(--comment-menu-inline-end);
   z-index: 6;
   min-width: 188px;
   padding: 6px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: white;
-  box-shadow: 0 8px 24px #0f172a20;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .actionPanel button {
@@ -182,8 +183,8 @@
   padding: 6px 10px;
   border: 0;
   border-radius: 6px;
-  background: white;
-  color: #0f172a;
+  background: var(--surface);
+  color: var(--foreground);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
@@ -191,7 +192,7 @@
 
 .actionPanel .remove,
 .fieldError {
-  color: #b91c1c;
+  color: var(--danger);
 }
 
 .actionBackdrop,
@@ -224,7 +225,7 @@
   display: block;
   width: 100%;
   padding: 12px;
-  color: #4f46e5;
+  color: var(--primary);
 }
 
 .composerArea {
@@ -243,22 +244,22 @@
   align-items: start;
   gap: 8px;
   padding: 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 12px;
-  background: white;
+  background: var(--surface);
 }
 
 .editor {
   display: block;
-  border-color: #6366f1;
+  border-color: var(--primary);
 }
 
 .composer:focus-within {
-  border-color: #6366f1;
+  border-color: var(--primary);
 }
 
 .composer:has([aria-invalid="true"]) {
-  border-color: #dc2626;
+  border-color: var(--danger);
 }
 
 .composer textarea,
@@ -268,7 +269,7 @@
   padding: 2px 0;
   border: 0;
   background: transparent;
-  color: #0f172a;
+  color: var(--foreground);
   font: inherit;
   font-size: 14px;
   line-height: 20px;
@@ -276,7 +277,7 @@
 }
 
 .composer textarea::placeholder {
-  color: #64748b;
+  color: var(--muted);
 }
 
 .composer textarea:focus,
@@ -304,7 +305,7 @@
 }
 
 .editorFooter span {
-  margin-right: auto;
+  margin-inline-end: auto;
 }
 
 .fieldError {
@@ -318,12 +319,12 @@
   padding: 0;
   border: 0;
   border-radius: 16px;
-  color: #0f172a;
-  box-shadow: 0 12px 40px #0f172a33;
+  color: var(--foreground);
+  box-shadow: var(--shadow-card);
 }
 
 .confirm::backdrop {
-  background: #0f172a80;
+  background: var(--workspace-scrim, rgb(4 15 19 / 64%));
 }
 
 .confirmContent {
@@ -337,7 +338,7 @@
 
 .confirmContent > p {
   margin: 0 0 16px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -347,7 +348,7 @@
   margin: 0 0 20px;
   padding: 12px;
   border-radius: 8px;
-  background: #f1f5f9;
+  background: var(--surface-subtle);
 }
 
 .confirmContent blockquote strong {
@@ -369,8 +370,8 @@
   .composerArea {
     margin: 0 -20px;
     padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
-    border-top: 1px solid #e2e8f0;
-    background: white;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
   }
 
   .composer {
@@ -386,20 +387,20 @@
     min-height: 42px;
     max-height: 116px;
     padding: 10px 16px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-strong);
     border-radius: 22px;
-    background: #f1f5f9;
+    background: var(--surface-subtle);
     font-size: 16px;
     field-sizing: content;
     resize: none;
   }
 
   .composer textarea:focus {
-    border-color: #6366f1;
+    border-color: var(--primary);
   }
 
   .composer textarea[aria-invalid="true"] {
-    border-color: #dc2626;
+    border-color: var(--danger);
   }
 
   .composerAvatar,
@@ -429,8 +430,8 @@
   }
 
   .send:disabled {
-    border-color: #e2e8f0;
-    background: white;
+    border-color: var(--border);
+    background: var(--surface);
   }
 
   .actionBackdrop {
@@ -438,7 +439,7 @@
     position: fixed;
     inset: 0;
     z-index: 7;
-    background: #0f172a80;
+    background: var(--workspace-scrim, rgb(4 15 19 / 64%));
   }
 
   .actionPanel,
@@ -465,7 +466,7 @@
   .actionPanel .actionCancel {
     display: block;
     margin-top: 12px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-strong);
     text-align: center;
   }
 
@@ -497,10 +498,10 @@
   max-height: 180px;
   overflow: auto;
   padding: 4px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: white;
-  box-shadow: 0 8px 20px #0f172a20;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 .editor .mentions { top: 100%; bottom: auto; }
 .mentions button,
@@ -509,7 +510,7 @@
 .replyDraft button {
   border: 0;
   padding: 4px 6px;
-  color: #4338ca;
+  color: var(--primary-hover);
   background: transparent;
   text-align: start;
   font: inherit;
@@ -520,30 +521,30 @@
 .mentions button:hover,
 .replyButton:hover,
 .attachment:hover {
-  background: #eef2ff;
+  background: var(--primary-soft);
 }
 .mention {
-  color: #3730a3;
-  background: #eef2ff;
+  color: var(--primary-hover);
+  background: var(--primary-soft);
   border-radius: 4px;
 }
 .replyContext,
 .replyDraft {
   margin: 4px 0;
   padding: 4px 8px;
-  border-inline-start: 2px solid #818cf8;
-  color: #475569;
-  background: #f8fafc;
+  border-inline-start: 2px solid var(--primary);
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
   font-size: 12px;
   overflow-wrap: anywhere;
 }
 .replyDraft { display: flex; align-items: center; justify-content: space-between; }
 .attachmentControls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
-.attachment:has(input:focus-visible) { outline: 2px solid #6366f1; }
+.attachment:has(input:focus-visible) { outline: 2px solid var(--primary); }
 .attachment input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.attachButton {display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:8px}
+.attachButton {display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:6px 10px;border:1px solid var(--border-strong);border-radius:8px}
 .attachButton:has(input:disabled) {opacity:.5;cursor:default}
-.selectedAttachment {min-width:0;border-radius:8px;background:#eef2ff}
+.selectedAttachment {min-width:0;border-radius:8px;background:var(--primary-soft)}
 @media (max-width: 767px) {
   .tabs button {flex:1;min-width:0;padding:12px 6px;font-size:13px;white-space:nowrap}
   .composer {grid-template-columns:40px minmax(0,1fr) 40px;gap:8px}
@@ -551,7 +552,7 @@
   .composer .send {grid-area:1 / 3;min-height:44px}
   .composer textarea {padding:11px 12px;min-height:44px}
   .composer .attachmentControls {display:contents}
-  .composer .attachButton {grid-area:1 / 1;min-height:44px;padding:0;background:#f8fafc}
+  .composer .attachButton {grid-area:1 / 1;min-height:44px;padding:0;background:var(--surface-subtle)}
   .composer .attachText {display:none}
   .composer .selectedAttachment {grid-column:1 / -1;min-height:40px;padding:8px 10px}
   .composer:has([aria-invalid="true"]) .composerCounter {grid-column:1 / -1}
@@ -561,14 +562,14 @@
   composes: comment;
   margin-inline-start: 16px;
   padding-inline-start: 10px;
-  border-inline-start: 2px solid #c7d2fe;
+  border-inline-start: 2px solid var(--primary-soft);
 }
 button.replyContext {
   border: 0;
-  border-inline-start: 2px solid #818cf8;
+  border-inline-start: 2px solid var(--primary);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
   text-align: start;
 }
-button.replyContext:hover { background: #eef2ff; }
+button.replyContext:hover { background: var(--primary-soft); }

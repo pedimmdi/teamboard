@@ -6,18 +6,18 @@
   min-height: 43px;
   padding: 10px 16px;
   border-radius: 6px;
-  background: #4f46e5;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   font-size: 13px;
   font-weight: 600;
 }
 
 .primaryButton:hover {
-  background: #4338ca;
+  background: var(--primary-hover);
 }
 
 .secondaryLink {
-  color: #4f46e5;
+  color: var(--primary);
   font-size: 13px;
   font-weight: 500;
 }
@@ -27,7 +27,7 @@
 }
 
 .loadingText {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

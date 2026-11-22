@@ -40,8 +40,9 @@ test("workspace dashboard supports scope, session restoration, views and mobile 
   await expect(nav.getByRole("link").nth(2)).toHaveAttribute("aria-current","page");
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:"test-results/dashboard-mobile.png",fullPage:true});
-  await page.emulateMedia({colorScheme:"dark"});
   await page.setViewportSize({width:1440,height:900});
+  await page.getByRole("button", { name: "Dark mode", exact: true }).filter({ visible: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(dashboard.getByRole("article")).toHaveCount(2);
   await page.screenshot({path:"test-results/dashboard-dark.png",fullPage:true});
   await page.getByRole("navigation",{name:"Workspace",exact:true}).getByRole("link",{name:"Profile",exact:true}).click();

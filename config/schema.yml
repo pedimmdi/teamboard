@@ -488,9 +488,19 @@ paths:
     get:
       operationId: website_blog_list
       description: Returns paginated public blog posts ordered by publication date,
-        newest first. Drafts and future scheduled posts are excluded.
+        newest first. Drafts and future scheduled posts are excluded. The Persian
+        list includes only articles with a translation.
       summary: List published blog posts
       parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fa
+          default: en
+        description: Language of the article content.
       - name: page
         required: false
         in: query
@@ -516,9 +526,19 @@ paths:
     get:
       operationId: website_blog_detail
       description: Returns a published article by its slug. Drafts, unpublished posts,
-        and future scheduled posts return 404.
+        and future scheduled posts return 404. The original article is returned if
+        no Persian translation is available.
       summary: Retrieve a published blog post
       parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - en
+          - fa
+          default: en
+        description: Language of the article content.
       - in: path
         name: slug
         schema:
@@ -5027,9 +5047,13 @@ components:
           type: string
           format: date-time
           readOnly: true
+        has_persian_translation:
+          type: boolean
+          readOnly: true
       required:
       - content
       - excerpt
+      - has_persian_translation
       - id
       - published_at
       - slug
@@ -5058,12 +5082,21 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        has_persian_translation:
+          type: boolean
+          readOnly: true
       required:
       - excerpt
+      - has_persian_translation
       - id
       - published_at
       - slug
       - title
+      - updated_at
     Register:
       type: object
       properties:
