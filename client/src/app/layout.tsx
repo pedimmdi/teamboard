@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { direction } from "@/lib/locale";
+import { persianFontAssets } from "@/lib/persian-font";
 import { PreferencesProvider } from "@/lib/preferences";
 import { getPreferences } from "@/lib/server-preferences";
 
@@ -18,10 +19,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const { locale, preferredLocale, theme } = await getPreferences();
+  const font = persianFontAssets();
+  // This licensed stylesheet is installed into the deployment's runtime static assets.
+  // eslint-disable-next-line @next/next/no-css-tags
+  const fontStylesheet = font.stylesheet ? <link rel="stylesheet" href="/fonts/iransansx/faces.css" precedence="default" /> : null;
   return (
     <html lang={locale} dir={direction(locale)} data-theme={theme}
-      data-iran-sans={process.env.IRANSANSX_WEBFONT === "1" ? "" : undefined}>
+      data-iran-sans={font.enabled ? "" : undefined}>
       <body>
+        {fontStylesheet}
         <PreferencesProvider initialLocale={locale} preferredLocale={preferredLocale} initialTheme={theme}>
           <AuthProvider>{children}</AuthProvider>
         </PreferencesProvider>

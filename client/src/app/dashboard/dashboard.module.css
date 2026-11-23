@@ -37,6 +37,16 @@
   color: var(--foreground);
 }
 
+.brand:hover {
+  color: var(--primary);
+}
+
+.signOutError {
+  margin-block: 4px;
+  color: var(--danger);
+  font-size: 0.8125rem;
+}
+
 .brandMark {
   width: 32px;
   height: 32px;

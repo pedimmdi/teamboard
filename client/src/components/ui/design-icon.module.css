@@ -1,0 +1,10 @@
+.icon {
+  display: block;
+  flex: 0 0 auto;
+  inline-size: 20px;
+  block-size: 20px;
+  background-color: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}

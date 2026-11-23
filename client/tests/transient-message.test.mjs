@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
+import { loadSource } from "./load-source.mjs";
 import test from "node:test";
 import React, { act } from "react";
 import { JSDOM } from "jsdom";
-import ts from "typescript";
 
 test("temporary feedback resets its timer for repeated messages and cleans up on unmount", async () => {
   const dom = new JSDOM("<main></main>");
@@ -13,17 +11,14 @@ test("temporary feedback resets its timer for repeated messages and cleans up on
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   const pending = new Map();
   let sequence = 0;
-  const exports = {};
-  runInNewContext(ts.transpileModule(readFileSync(new URL(
-    "../src/hooks/use-transient-message.ts", import.meta.url,
-  ), "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
-    exports, require: () => React,
+  const { useTransientMessage } = loadSource("../src/hooks/use-transient-message.ts", {
+    require: () => React,
     setTimeout: (callback, delay) => { assert.equal(delay, 5000); pending.set(++sequence, callback); return sequence; },
     clearTimeout: (id) => pending.delete(id),
   });
   let update;
   function Feedback() {
-    const [message, setMessage] = exports.useTransientMessage("");
+    const [message, setMessage] = useTransientMessage("");
     update = setMessage;
     return React.createElement("p", null, message);
   }

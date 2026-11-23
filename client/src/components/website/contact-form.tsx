@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import styles from "@/app/(public)/website.module.css";
 import { websitePath, type WebsiteLocale } from "@/lib/website";
-import { websiteCopy } from "@/lib/website-copy";
+import { retentionSchedule, websiteCopy } from "@/lib/website-copy";
 
 const fields = [
   { name: "name", maxLength: 120, autoComplete: "name" },
@@ -13,7 +13,7 @@ const fields = [
   { name: "message", maxLength: 5000 },
 ] as const;
 
-export default function ContactForm({ locale }: { locale: WebsiteLocale }) {
+export default function ContactForm({ locale, retentionDays }: { locale: WebsiteLocale; retentionDays: number | null }) {
   const copy = websiteCopy[locale];
   const busy = useRef(false);
   const [pending, setPending] = useState(false);
@@ -114,7 +114,7 @@ export default function ContactForm({ locale }: { locale: WebsiteLocale }) {
         <label htmlFor="website-url">{copy.form.trap}</label>
         <input id="website-url" name="website_url" tabIndex={-1} autoComplete="off" />
       </div>
-      <p>{copy.form.retention} <Link href={websitePath("/privacy", locale)}>{copy.privacyTitle}</Link></p>
+      <p>{retentionSchedule(locale, retentionDays)} <Link href={websitePath("/privacy", locale)}>{copy.privacyTitle}</Link></p>
       <button type="submit" className={styles.primary} disabled={pending}>
         {pending ? copy.form.pending : copy.form.submit}
       </button>

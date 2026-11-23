@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {readFileSync} from "node:fs";
-import {runInNewContext} from "node:vm";
-import ts from "typescript";
-function load(path, globals={}) {
-  const exports={};runInNewContext(ts.transpileModule(readFileSync(new URL(path,import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,...globals});return exports;
-}
-const utils=load("../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/reminder-utils.ts",{Intl,Date,Set});
+import { loadSource } from "./load-source.mjs";
+const utils=loadSource("../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/reminder-utils.ts",{Intl,Date,Set});
 test("reminder wall clocks convert to UTC and round-trip in selected IANA zones",()=>{
   for(const [zone,input,expected] of [["Asia/Tehran","2030-06-01T09:00","2030-06-01T05:30:00.000Z"],["America/New_York","2030-06-01T09:00","2030-06-01T13:00:00.000Z"],["UTC","2030-06-01T09:00","2030-06-01T09:00:00.000Z"],["Asia/Kathmandu","2030-06-01T09:00","2030-06-01T03:15:00.000Z"]]) {
     assert.equal(utils.reminderLocalToUTC(input,zone),expected);assert.equal(utils.reminderLocalInput(expected,zone),input);
@@ -20,7 +15,7 @@ test("reminder conversion rejects DST gaps, folds and malformed dates rather tha
 });
 test("private reminder client keeps scope, method and UTC data without recipient controls",async()=>{
   const calls=[];
-  const api=load("../src/lib/api.ts",{process:{env:{NEXT_PUBLIC_API_URL:"https://api.example.com"}},FormData,URLSearchParams,fetch:async(url,options)=>{calls.push([url,options]);return new Response("{}",{headers:{"Content-Type":"application/json"}});}});
+  const api=loadSource("../src/lib/api.ts",{process:{env:{NEXT_PUBLIC_API_URL:"https://api.example.com"}},FormData,URLSearchParams,fetch:async(url,options)=>{calls.push([url,options]);return new Response("{}",{headers:{"Content-Type":"application/json"}});}});
   await api.getTaskReminders("token","team","project","task",2);
   await api.saveTaskReminder("token","team","project","task",{kind:"relative",timezone:"Asia/Tehran",days_before:1,local_time:"09:00"});
   await api.saveTaskReminder("token","team","project","task",{kind:"absolute",timezone:"UTC",run_at:"2030-06-01T09:00:00Z"},"reminder");

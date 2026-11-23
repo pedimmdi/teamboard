@@ -222,6 +222,40 @@ class WebsiteAdminTests(TestCase):
         self.assertEqual(post.status, BlogPost.Status.DRAFT)
         self.assertIsNone(post.published_at)
 
+    def test_admin_can_edit_and_publish_persian_translation(self):
+        self.client.force_login(self.superuser)
+        url = reverse("admin:website_blogpost_change", args=[self.draft.pk])
+        form_response = self.client.get(url)
+        self.assertContains(form_response, 'dir="rtl" lang="fa"', count=3)
+
+        publication = timezone.localtime() - timedelta(minutes=10)
+        fields = {
+            "title": self.draft.title,
+            "slug": self.draft.slug,
+            "content": self.draft.content,
+            "title_fa": "راهنمای تیم‌برد",
+            "excerpt_fa": "چگونه همکاری را شروع کنیم؟",
+            "content_fa": "  \n",
+            "status": BlogPost.Status.PUBLISHED,
+            "published_at_0": publication.date().isoformat(),
+            "published_at_1": publication.strftime("%H:%M:%S"),
+            "_save": "Save",
+        }
+        self.assertRedirects(self.client.post(url, fields), reverse("admin:website_blogpost_changelist"))
+        detail = reverse("website_api_v1:blog_detail", kwargs={"slug": self.draft.slug})
+        self.assertFalse(self.client.get(detail, {"lang": "fa"}).json()["has_persian_translation"])
+
+        fields["content_fa"] = "## شروع همکاری\n\nپروژه را بسازید."
+        self.assertRedirects(self.client.post(url, fields), reverse("admin:website_blogpost_changelist"))
+        article = self.client.get(detail, {"lang": "fa"}).json()
+        self.assertEqual(article["title"], fields["title_fa"])
+        self.assertEqual(article["content"], fields["content_fa"])
+
+        fields["title_fa"] = "الف" * 201
+        self.assertEqual(self.client.post(url, fields).status_code, 200)
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.title_fa, "راهنمای تیم‌برد")
+
     def test_admin_can_schedule_blog_publication(self):
         self.client.force_login(self.superuser)
 

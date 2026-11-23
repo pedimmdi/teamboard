@@ -585,6 +585,39 @@ paths:
           description: Only JSON requests are accepted.
         '429':
           description: Contact form rate limit exceeded.
+  /api/v1/website/policy/:
+    get:
+      operationId: website_policy
+      summary: Read the public contact retention policy
+      tags:
+      - Website
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicWebsitePolicy'
+          description: ''
+  /api/v1/website/sitemap/:
+    get:
+      operationId: website_blog_sitemap
+      summary: List published article sitemap entries
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      tags:
+      - Website
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPublicBlogSitemapList'
+          description: ''
   /api/v1/workspaces/:
     get:
       operationId: v1_workspaces_list
@@ -4547,6 +4580,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PublicBlogPostList'
+    PaginatedPublicBlogSitemapList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicBlogSitemap'
     PaginatedReminderList:
       type: object
       required:
@@ -5097,6 +5149,40 @@ components:
       - slug
       - title
       - updated_at
+    PublicBlogSitemap:
+      type: object
+      properties:
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-\w]+$
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        has_persian_translation:
+          type: boolean
+          readOnly: true
+      required:
+      - has_persian_translation
+      - published_at
+      - slug
+      - updated_at
+    PublicWebsitePolicy:
+      type: object
+      properties:
+        contact_retention_days:
+          type: integer
+          maximum: 3650
+          minimum: 1
+          readOnly: true
+      required:
+      - contact_retention_days
     Register:
       type: object
       properties:

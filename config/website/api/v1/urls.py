@@ -5,6 +5,8 @@ from .views import (
     ContactMessageSubmitView,
     PublicBlogPostDetailView,
     PublicBlogPostListView,
+    PublicBlogSitemapView,
+    PublicWebsitePolicyView,
 )
 
 
@@ -27,4 +29,6 @@ urlpatterns = [
         PublicBlogPostDetailView.as_view(),
         name="blog_detail",
     ),
+    path("sitemap/", PublicBlogSitemapView.as_view(), name="blog_sitemap"),
+    path("policy/", PublicWebsitePolicyView.as_view(), name="policy"),
 ]

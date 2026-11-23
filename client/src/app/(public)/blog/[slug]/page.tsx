@@ -4,7 +4,8 @@ import Markdown from "react-markdown";
 import { notFound } from "next/navigation";
 import { WebsiteIcon } from "@/components/website/website-icons";
 import { getLocale } from "@/lib/server-preferences";
-import { post, publicMetadata, jsonLd, siteUrl, websitePath, websiteDate } from "@/lib/website";
+import { publicMetadata, jsonLd, siteUrl, websitePath, websiteDate } from "@/lib/website";
+import { post } from "@/lib/website-data";
 import { websiteCopy } from "@/lib/website-copy";
 import styles from "../../website.module.css";
 

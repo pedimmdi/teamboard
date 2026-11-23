@@ -70,6 +70,7 @@ export default function TaskComments({
   const deleteDialog = useRef<HTMLDialogElement>(null);
   const entries = useRef<HTMLDivElement>(null);
   const postedId = useRef<string | null>(null);
+  const replyHighlight = useRef<Animation | null>(null);
   const dialogTitle = useId();
   const dialogDescription = useId();
   const draftLength = Array.from(draft).length;
@@ -78,6 +79,8 @@ export default function TaskComments({
   const canPost = !busy && !loadError && Boolean(draft.trim() || attachment) && draftLength <= commentLimit;
   const commentsById = new Map(comments.map((comment) => [comment.id, comment]));
   const scope = [token, slug, projectId, taskId] as const;
+
+  useEffect(() => () => replyHighlight.current?.cancel(), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -247,7 +250,7 @@ export default function TaskComments({
           const edited = Boolean(comment.edited_at) ||
             Date.parse(comment.updated_at) - Date.parse(comment.created_at) >= 1000;
           return (
-            <article className={comment.reply_to ? styles.reply : styles.comment} id={`comment-${comment.id}`} key={comment.id}>
+            <article className={comment.reply_to ? styles.reply : styles.comment} id={`comment-${comment.id}`} key={comment.id} tabIndex={-1}>
               <Avatar
                 className={`${styles.avatar} ${comment.author_id === null ? styles.deletedAvatar : ""}`}
                 src={avatar}
@@ -294,13 +297,16 @@ export default function TaskComments({
                   <>
                     {comment.reply_to && (
                       commentsById.has(comment.reply_to) ? (
-                        <button type="button" className={styles.replyContext} onClick={() => {
+                        <button type="button" className={styles.replyContext} onClick={(event) => {
                           const parent = document.getElementById("comment-" + comment.reply_to);
-                          if (!parent) return;
+                          if (!parent || !entries.current?.contains(parent)) return;
                           parent.scrollIntoView({ block: "center" });
-                          parent.animate(
-                            [{ backgroundColor: "#e0e7ff" }, { backgroundColor: "transparent" }],
-                            { duration: 1000 },
+                          if (event.detail === 0) parent.focus({ preventScroll: true });
+                          replyHighlight.current?.cancel();
+                          const highlight = { backgroundColor: "var(--primary-soft)", boxShadow: "inset 0 0 0 1px var(--primary)" };
+                          replyHighlight.current = parent.animate(
+                            [highlight, { ...highlight, offset: 0.8 }, { backgroundColor: "transparent", boxShadow: "inset 0 0 0 1px transparent" }],
+                            { duration: 2400, easing: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "steps(1, end)" : "ease-out" },
                           );
                         }}>
                           {ui("Reply to")} {commentsById.get(comment.reply_to)?.author_name}

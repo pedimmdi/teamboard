@@ -2,6 +2,7 @@
 from datetime import timedelta
 
 from django.db import transaction
+from django.db.models import Case, F, Q, When
 from django.utils import timezone
 
 from website.models import BlogPost, ContactMessage
@@ -30,6 +31,42 @@ def get_public_blog_posts():
             published_at__lte=timezone.now(),
         )
         .order_by("-published_at", "-pk")
+    )
+
+
+def get_public_blog_translations():
+    return get_public_blog_posts().annotate(
+        translation_available=~Q(title_fa="") & ~Q(content_fa=""),
+    )
+
+
+def get_public_blog_projection(*, persian, detail=False):
+    posts = get_public_blog_translations()
+    if persian and not detail:
+        posts = posts.filter(translation_available=True)
+
+    def localized(field):
+        if not persian:
+            return F(field)
+        translation = F(f"{field}_fa")
+        if not detail:
+            return translation
+        return Case(When(translation_available=True, then=translation), default=F(field))
+
+    projection = {
+        "public_title": localized("title"),
+        "public_excerpt": localized("excerpt"),
+    }
+    if detail:
+        projection["public_content"] = localized("content")
+    return posts.values(
+        "id", "slug", "published_at", "updated_at", "translation_available", **projection,
+    )
+
+
+def get_public_sitemap_projection():
+    return get_public_blog_translations().values(
+        "slug", "published_at", "updated_at", "translation_available", "pk",
     )
 
 

@@ -114,6 +114,25 @@ process_reminder(seed_reminder.pk)
 
 dashboard_empty, _ = Workspace.objects.get_or_create(slug="dashempty", defaults={"name":"Dashboard empty workspace"})
 WorkspaceMembership.objects.get_or_create(workspace=dashboard_empty, user=reminder_user, defaults={"role":"owner"})
+
+quality_user, _ = User.objects.get_or_create(email="browser-quality@example.com", defaults={"is_email_verified": True})
+quality_user.set_password(password)
+quality_user.save(update_fields=["password"])
+quality_workspace, _ = Workspace.objects.get_or_create(slug="uiquality", defaults={"name": "UI quality workspace"})
+WorkspaceMembership.objects.get_or_create(workspace=quality_workspace, user=quality_user, defaults={"role": "owner"})
+with transaction.atomic():
+    quality_project, _ = Project.objects.get_or_create(workspace=quality_workspace, name="UI quality project", defaults={"created_by": quality_user})
+    ProjectMembership.objects.get_or_create(project=quality_project, user=quality_user, defaults={"role": "manager"})
+if not quality_project.tasks.exists():
+    statuses = tuple(Task.Status.values)
+    Task.objects.bulk_create([
+        Task(project=quality_project, title=f"Quality task {index:03}", assignee=quality_user,
+             created_by=quality_user, status=statuses[index % len(statuses)],
+             position=(index // len(statuses) + 1) * 1024,
+             due_date=timezone.now().date() + timedelta(days=index % 16 - 5))
+        for index in range(240)
+    ])
+
 from website.models import BlogPost
 for number in range(11):
     BlogPost.objects.update_or_create(slug=f"website-{number}", defaults={"title":f"Website article {number}", "excerpt":"Ideas for better teamwork.", "content":"## A clearer workflow\n\nWork together.\n\n<script>window.websiteUnsafe=true</script>\n\n[Unsafe](javascript:alert(1))", "status":"published", "published_at":timezone.now()-timedelta(days=number+1)})

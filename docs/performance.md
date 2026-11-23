@@ -1,5 +1,16 @@
 # Measured performance review
 
+## Dashboard and Tasks render profile
+
+The browser fixture seeds 240 assigned tasks across four statuses. The production React profiling build records render durations for the dashboard shell and its active page. The workflow opens the dashboard, navigates to the task board, opens a dialog and uses the keyboard to close it.
+
+| Test viewport and appearance | Dashboard commits / p95 | Projects and Tasks interaction commits / p95 |
+| --- | ---: | ---: |
+| 1440 px, English light | 9 / 8.3 ms | 17 / 18.5 ms |
+| 390 px, Persian dark | 9 / 7.4 ms | 17 / 10.6 ms |
+
+These local Chromium samples include navigation and dialog updates. The 18.5 ms maximum in the desktop task flow came from a single commit. The traces support keeping the existing page structure. Run the profile with `NEXT_PUBLIC_TEAMBOARD_PROFILE_UI=1` and `npm run test:e2e -- e2e/ui-quality.spec.mjs`. The profiling build and measurements are opt-in.
+
 Measurements: local Docker Desktop / PostgreSQL 17, November 2026. Raw logs and JSON are kept locally in ignored `artifacts/`, never in the repository. Values are observations, not production SLAs. Read benchmarks use disposable fixtures with rollback and representative planner statistics.
 
 ## Baseline and decisions
@@ -43,6 +54,24 @@ docker compose up -d --no-deps frontend
 ```
 
 `WEBSITE_API_URL` is server-reachable (`http://backend:8000` inside Compose); `NEXT_PUBLIC_API_URL` is browser-reachable. Do not use the browser's localhost endpoint as the server-side Docker address.
+
+### Public blog queries and caching
+
+The PostgreSQL comparison used the same 50 published, translated articles before and after the projection change. Each had a 39,600-byte English body and a 45,600-byte Persian body. SQL counts came from Django's `CaptureQueriesContext` during anonymous API calls. Database result bytes came from replaying each captured `SELECT` with `COPY (...) TO STDOUT (FORMAT binary)`, including the `COPY` framing. HTTP bytes are the raw JSON response body without compression or headers. These measurements describe the fixture rather than production latency.
+
+| Public read | SQL queries before → after | Database result bytes before → after | HTTP body bytes before → after |
+| --- | ---: | ---: | ---: |
+| English list, 50 articles | 2 → 2 | 2,291,556 → 6,156 | 12,952 → 12,952 |
+| Persian list, 50 articles | 2 → 2 | 2,291,556 → 7,506 | 14,302 → 14,302 |
+| English article | 1 → 1 | 85,455 → 39,747 | 39,870 → 39,870 |
+| Persian article | 1 → 1 | 85,455 → 45,774 | 45,897 → 45,897 |
+| Sitemap data for 50 articles | 2 → 1 | 2,291,556 → 3,271 | 12,952 → 7,091 |
+
+List and detail projections compute translation availability in SQL. Lists return only card fields, and detail returns the requested language or the English fallback. The sitemap projection returns slug, timestamps and translation availability, with cursor pages of 250 records. Regression tests assert constant query counts, including a second sitemap page when articles share the same publication time.
+
+Next.js caches only the server-side responses of anonymous editorial and policy GET requests. In each process, listing reads are retained for 60 seconds (64 entries), article reads for 30 seconds (128 entries), and the public contact policy for 60 seconds (one entry). An automated test confirms 20 concurrent reads of the same article and language share one upstream request. Locale, pagination and slug are part of the read keys. Failed reads and 404s are fetched again on the next attempt. Editorial edits or unpublishing propagate after these short TTLs.
+
+The sitemap caches a complete successful snapshot for five minutes. It can serve the last complete snapshot for up to one hour from its creation during an upstream outage. A failed refresh waits 15 seconds before trying again. A cold start or expired snapshot serves the known public routes in both languages. The full upstream traversal has a 10-second deadline. These caches are process-local, so a restart starts with an empty cache and multiple replicas can refresh independently. Personalized HTML, cookies, auth responses, contact submissions and workspace data are outside this cache.
 
 ## Selected avatar encoder
 

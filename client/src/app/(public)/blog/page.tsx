@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale } from "@/lib/server-preferences";
-import { posts, publicMetadata, websitePath } from "@/lib/website";
+import { publicMetadata, websitePath } from "@/lib/website";
+import { posts } from "@/lib/website-data";
 import { websiteCopy } from "@/lib/website-copy";
 import PostList from "@/components/website/post-list";
 import { WebsiteIcon } from "@/components/website/website-icons";

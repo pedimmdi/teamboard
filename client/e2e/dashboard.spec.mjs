@@ -23,7 +23,13 @@ test("workspace dashboard supports scope, session restoration, views and mobile 
   await expect(dashboard.getByText("Reminder browser task",{exact:true})).toHaveCount(0);
   await page.goto("/login");
   await expect(page).toHaveURL(/\/workspaces\/[^/]+\/dashboard$/,{timeout:15000});
-  await page.goto("/");
+  await page.getByRole("link", { name: "Public website" }).filter({ visible: true }).click();
+  await expect(page).toHaveURL("/");
+  const publicHeader = page.getByRole("banner");
+  await expect(publicHeader.getByRole("link", { name: "Open dashboard" })).toBeVisible();
+  await publicHeader.getByRole("link", { name: "About" }).click();
+  await expect(page).toHaveURL("/about");
+  await publicHeader.getByRole("link", { name: "Open dashboard" }).click();
   await expect(page).toHaveURL(/\/workspaces\/[^/]+\/dashboard$/,{timeout:15000});
   await expect(dashboard.getByRole("article")).toHaveCount(2);
   const workspaceReads=[];

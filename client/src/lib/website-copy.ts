@@ -1,3 +1,13 @@
+import type { WebsiteLocale } from "@/lib/website";
+
+export function retentionSchedule(locale: WebsiteLocale, days: number | null) {
+  if (days === null) return locale === "fa" ? "پیام‌های تماس طبق سیاست نگهداری به‌صورت دوره‌ای حذف می‌شوند." : "Contact messages are deleted periodically under the retention policy.";
+  const duration = new Intl.NumberFormat(locale).format(days);
+  return locale === "fa"
+    ? `پیام‌های تماس پس از ${duration} روز وارد برنامهٔ حذف دوره‌ای می‌شوند.`
+    : `Contact messages are scheduled for periodic deletion after ${duration} ${days === 1 ? "day" : "days"}.`;
+}
+
 export const websiteCopy = {
   en: {
     tagline: "A shared workspace for projects, tasks and the conversations around them.",
@@ -62,7 +72,7 @@ export const websiteCopy = {
     privacyDescription: "How TeamBoard handles account information, workspace content and contact messages.",
     privacySections: [
       ["Information you provide", "TeamBoard processes account details and the projects, tasks, messages and files you provide to operate the service. Workspace and project access is controlled through memberships and roles."],
-      ["Contact messages and retention", "When you contact us, we receive your name, email address, subject and message. These submissions are private, used to respond to enquiries and maintain the service, and scheduled for deletion after 180 days. Deletion runs periodically, so there is no fixed time of day for it."],
+      ["Contact messages and retention", (days: number | null) => `When you contact us, we receive your name, email address, subject and message. These submissions are private and used to respond to enquiries and maintain the service. ${retentionSchedule("en", days)}`],
       ["Authentication and browser storage", "We use an HttpOnly refresh cookie to maintain your sign-in and browser storage to remember preferences such as the selected workspace, language and theme. Keep your account credentials private and sign out on shared devices."],
       ["Security and your choices", "You can manage your profile and active sessions within your account. Use the Contact page for privacy questions or requests concerning your personal information. Avoid sending sensitive information through the public contact form."],
     ],
@@ -72,7 +82,7 @@ export const websiteCopy = {
       ["Using TeamBoard", "Use TeamBoard lawfully and respect other users. You are responsible for your account credentials and for content you share. Do not upload harmful material, infringe others’ rights or attempt to bypass access controls."],
       ["Your workspace content", "You retain responsibility for your content and for choosing who can access it. Workspace owners and project managers control access according to the permissions available in the product."],
       ["Service availability", "Features may change as the product develops. Availability and uninterrupted operation are not guaranteed. Keep appropriate copies of information that is important to your team."],
-      ["Public contact form", "Use the contact form for legitimate enquiries. Automated abuse and spam are restricted. Messages submitted through the form are private and subject to the 180-day retention policy described in our Privacy policy."],
+      ["Public contact form", "Use the contact form for legitimate enquiries. Automated abuse and spam are restricted. Messages submitted through the form are private and subject to the retention policy described in our Privacy policy."],
       ["Questions", "Contact us through the Contact page if you have questions about these terms or the service."],
     ],
     errorTitle: "This page is temporarily unavailable",
@@ -94,7 +104,6 @@ export const websiteCopy = {
       field: "Check the value you entered for this field.",
       failed: "Unable to send your message. Please try again later.",
       network: "Unable to connect. Please try again.",
-      retention: "We keep contact messages for up to 180 days.",
       pending: "Sending…",
       submit: "Send message",
     },
@@ -162,7 +171,7 @@ export const websiteCopy = {
     privacyDescription: "نحوه استفاده تیم‌برد از اطلاعات حساب، محتوای فضای کاری و پیام‌های تماس.",
     privacySections: [
       ["اطلاعاتی که ارائه می‌کنید", "تیم‌برد برای ارائه سرویس، اطلاعات حساب و پروژه‌ها، وظایف، پیام‌ها و فایل‌هایی را که ثبت می‌کنید پردازش می‌کند. دسترسی به فضاهای کاری و پروژه‌ها بر اساس عضویت و نقش تعیین می‌شود."],
-      ["پیام‌های تماس و مدت نگهداری", "هنگام تماس با ما، نام، نشانی ایمیل، موضوع و پیام شما را دریافت می‌کنیم. این پیام‌ها خصوصی هستند و برای پاسخ به درخواست‌ها و نگهداری سرویس استفاده می‌شوند. حذف آن‌ها پس از ۱۸۰ روز برنامه‌ریزی شده است و به‌صورت دوره‌ای انجام می‌شود."],
+      ["پیام‌های تماس و مدت نگهداری", (days: number | null) => `هنگام تماس با ما، نام، نشانی ایمیل، موضوع و پیام شما را دریافت می‌کنیم. این پیام‌ها خصوصی هستند و برای پاسخ به درخواست‌ها و نگهداری سرویس استفاده می‌شوند. ${retentionSchedule("fa", days)}`],
       ["احراز هویت و ذخیره‌سازی مرورگر", "برای حفظ وضعیت ورود از کوکی تمدید نشست با ویژگی HttpOnly و برای نگهداری ترجیحات، مانند فضای کاری انتخابی، زبان و تم، از ذخیره‌سازی مرورگر استفاده می‌کنیم. اطلاعات ورودتان را خصوصی نگه دارید و در دستگاه‌های مشترک از حساب خارج شوید."],
       ["امنیت و انتخاب‌های شما", "از طریق حساب کاربری می‌توانید نمایه و نشست‌های فعال را مدیریت کنید. برای پرسش‌های مربوط به حریم خصوصی یا درخواست درباره اطلاعات شخصی از صفحه تماس استفاده کنید. اطلاعات حساس را از طریق فرم تماس عمومی نفرستید."],
     ],
@@ -172,7 +181,7 @@ export const websiteCopy = {
       ["استفاده از تیم‌برد", "از تیم‌برد مطابق قانون استفاده کنید و به سایر کاربران احترام بگذارید. مسئولیت اطلاعات ورود و محتوایی که به اشتراک می‌گذارید بر عهده شماست. محتوای مضر بارگذاری نکنید، حقوق دیگران را نقض نکنید و برای دور زدن محدودیت‌های دسترسی تلاش نکنید."],
       ["محتوای فضای کاری شما", "مسئولیت محتوا و انتخاب افرادی که به آن دسترسی دارند بر عهده شماست. مالکان فضاهای کاری و مدیران پروژه بر اساس مجوزهای موجود در محصول دسترسی را تعیین می‌کنند."],
       ["دسترسی به سرویس", "امکانات ممکن است با توسعه محصول تغییر کنند. دسترسی و کارکرد بی‌وقفه تضمین نمی‌شود. از اطلاعات مهم تیم خود نسخه پشتیبان مناسب نگه دارید."],
-      ["فرم تماس عمومی", "فرم تماس را برای درخواست‌های واقعی به کار ببرید. سوءاستفاده خودکار و ارسال هرزنامه محدود می‌شود. پیام‌های فرم خصوصی هستند و مشمول دوره نگهداری ۱۸۰روزه‌ای می‌شوند که در سیاست حریم خصوصی توضیح داده شده است."],
+      ["فرم تماس عمومی", "فرم تماس را برای درخواست‌های واقعی به کار ببرید. سوءاستفاده خودکار و ارسال هرزنامه محدود می‌شود. مدت نگهداری پیام‌های خصوصی فرم در سیاست حریم خصوصی توضیح داده شده است."],
       ["پرسش‌ها", "اگر درباره این شرایط یا سرویس سؤالی دارید، از طریق صفحه تماس با ما در ارتباط باشید."],
     ],
     errorTitle: "این صفحه به‌طور موقت در دسترس نیست",
@@ -194,7 +203,6 @@ export const websiteCopy = {
       field: "مقدار واردشده در این فیلد را بررسی کنید.",
       failed: "پیام ارسال نشد. لطفاً بعداً دوباره تلاش کنید.",
       network: "ارتباط برقرار نشد. لطفاً دوباره تلاش کنید.",
-      retention: "پیام‌های تماس را تا ۱۸۰ روز نگه می‌داریم.",
       pending: "در حال ارسال…",
       submit: "ارسال پیام",
     },

@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
+import { loadSource } from "./load-source.mjs";
 import test from "node:test";
 import { JSDOM } from "jsdom";
 import React, { act } from "react";
-import ts from "typescript";
 
 test("drawer opens Comments first and a reply jumps to its parent", async () => {
   const dom = new JSDOM("<main></main>");
@@ -18,8 +16,9 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
   dom.window.HTMLElement.prototype.scrollIntoView = function () {
     calls.push(this.id);
   };
-  dom.window.HTMLElement.prototype.animate = function (_, options) {
-    calls.push(options.duration);
+  dom.window.HTMLElement.prototype.animate = function (frames, options) {
+    calls.push([frames[0].backgroundColor, options.duration]);
+    return { cancel() {} };
   };
   const user = { id: 1, email: "user@example.com", first_name: "Alex", last_name: "" };
   const timestamp = "2026-11-12T10:00:00Z";
@@ -38,13 +37,8 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
     }),
   };
   const component = (name, modules) => {
-    const source = readFileSync(new URL("../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/" + name + ".tsx", import.meta.url), "utf8");
-    const { outputText } = ts.transpileModule(source, {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, esModuleInterop: true },
-    });
-    const exports = {};
-    runInNewContext(outputText, {
-      exports, React, document, window, Intl, Date,
+    const exports = loadSource("../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/" + name + ".tsx", {
+      React, document, window, Intl, Date,
       require: (path) => path.endsWith(".css") ? styles : path === "@/lib/workspace-locale" ? workspaceLocale : modules[path],
     });
     return exports.default;
@@ -75,8 +69,8 @@ test("drawer opens Comments first and a reply jumps to its parent", async () => 
     assert.equal(commentsTab.getAttribute("aria-pressed"), "true");
     assert.equal(container.querySelector("#comment-reply").className, "reply");
     await act(async () => buttons().find((button) => button.textContent.includes("Reply to Alex")).click());
-    assert.equal(container.querySelector("#comment-parent").hasAttribute("tabindex"), false);
-    assert.deepEqual(calls, ["comment-parent", 1000]);
+    assert.equal(document.activeElement.id, "comment-parent");
+    assert.deepEqual(calls, ["comment-parent", ["var(--primary-soft)", 2400]]);
     const reminderPanel = [...container.querySelectorAll("p")].find((p) => p.textContent === "Private reminders").parentElement;
     assert.equal(reminderPanel.hidden, true);
     await act(async () => remindersTab.click());

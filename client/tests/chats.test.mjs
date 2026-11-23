@@ -1,19 +1,10 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
+import { loadSource } from "./load-source.mjs";
 import test from "node:test";
-import ts from "typescript";
 
-function load(path, globals = {}) {
-  const exports = {};
-  runInNewContext(ts.transpileModule(readFileSync(new URL(path, import.meta.url), "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText, { exports, ...globals });
-  return exports;
-}
 
 test("chat merging deduplicates live events and preserves chronological history", () => {
-  const { mergeChatMessages, validateChatFiles } = load("../src/components/chats/chat-utils.ts");
+  const { mergeChatMessages, validateChatFiles } = loadSource("../src/components/chats/chat-utils.ts");
   const first = { id: "1", created_at: "2026-11-01T00:00:00Z", content: "First" };
   const second = { id: "2", created_at: "2026-11-01T00:01:00Z", content: "Second" };
   const result = mergeChatMessages([second], [first, { ...second, content: "Edited" }]);
@@ -28,7 +19,7 @@ test("chat merging deduplicates live events and preserves chronological history"
 
 test("chat client authenticates REST, sends replies and attachments, and keeps JWTs out of URLs", async () => {
   const calls = [];
-  const api = load("../src/lib/api.ts", {
+  const api = loadSource("../src/lib/api.ts", {
     process: { env: { NEXT_PUBLIC_API_URL: "https://api.example.com" } },
     FormData, URLSearchParams, URL,
     fetch: async (url, options) => {
@@ -58,7 +49,7 @@ test("chat client authenticates REST, sends replies and attachments, and keeps J
 
 test("unread and parent retrieval APIs keep workspace/conversation boundaries and read cursor payload", async () => {
   const calls = [];
-  const api = load("../src/lib/api.ts", {
+  const api = loadSource("../src/lib/api.ts", {
     process: {env: {NEXT_PUBLIC_API_URL: "https://api.example.com"}}, URLSearchParams, FormData,
     fetch: async (url, options) => {calls.push([url, options]); return new Response("{}", {headers: {"Content-Type": "application/json"}});},
   });

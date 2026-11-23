@@ -3,6 +3,8 @@
 .header h2, .toolbar h3, .agenda h3 { margin: 0; }
 .header p { margin: 4px 0 0; color: var(--text-secondary); font-size: 14px; }
 .header > button { margin-inline-start: auto; }
+.clock { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--surface-subtle); color: var(--text-secondary); font-size: 13px; }
+.clock time { color: var(--foreground); font-variant-numeric: tabular-nums; font-weight: 650; }
 .badge {
   width: 42px;
   height: 42px;

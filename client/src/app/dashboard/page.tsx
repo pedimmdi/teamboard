@@ -1,25 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { RouteFeedback, RouteLoading } from "@/components/route-feedback";
 import { useAuth } from "@/lib/auth";
 import { useLocale } from "@/lib/preferences";
 import { dashboardWorkspaceKey, loadDashboardWorkspace } from "./dashboard-workspace";
-import styles from "./dashboard.module.css";
 
 export default function DashboardEntry() {
   const { t } = useLocale();
   const { accessToken, user } = useAuth();
+  const userId = user?.id;
   const router = useRouter();
   const [failed, setFailed] = useState(false);
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    if (!accessToken || !user) return;
+    if (!accessToken || userId === undefined) return;
     let cancelled = false;
+    const deadline = window.setTimeout(() => {
+      cancelled = true;
+      setFailed(true);
+    }, 22_000);
     let saved: string | null = null;
     try {
-      const key = dashboardWorkspaceKey(user.id);
+      const key = dashboardWorkspaceKey(userId);
       saved = localStorage.getItem(key) || sessionStorage.getItem(key);
     } catch {}
 
@@ -29,24 +35,27 @@ export default function DashboardEntry() {
         ? `/dashboard/workspaces/${encodeURIComponent(workspace.slug)}/dashboard`
         : "/dashboard/workspaces");
     }).catch(() => {
+      window.clearTimeout(deadline);
       if (!cancelled) setFailed(true);
     });
-    return () => { cancelled = true; };
-  }, [accessToken, user, router, retry]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(deadline);
+    };
+  }, [accessToken, userId, router, retry]);
+
+  if (!failed) return <RouteLoading label={t("Opening your dashboard…", "در حال باز کردن داشبورد…")} />;
 
   return (
-    <div className={styles.entry}>
-      {failed ? (
-        <>
-          <p role="alert">{t("Unable to select your workspace.", "انتخاب فضای کاری انجام نشد.")}</p>
-          <button type="button" className={styles.secondaryButton} onClick={() => {
-            setFailed(false);
-            setRetry((value) => value + 1);
-          }}>{t("Try again", "تلاش دوباره")}</button>
-        </>
-      ) : (
-        <p role="status">{t("Opening your dashboard…", "در حال باز کردن داشبورد…")}</p>
-      )}
-    </div>
+    <RouteFeedback
+      title={t("Unable to select your workspace", "فضای کاری باز نشد")}
+      description={t("Try again to resume where you left off, or open your workspace list.", "برای ادامهٔ کار دوباره تلاش کنید یا فهرست فضاهای کاری را باز کنید.")}
+      onRetry={() => {
+        setFailed(false);
+        setRetry((value) => value + 1);
+      }}
+    >
+      <Link href="/dashboard/workspaces">{t("View workspaces", "دیدن فضاهای کاری")}</Link>
+    </RouteFeedback>
   );
 }

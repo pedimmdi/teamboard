@@ -1,6 +1,8 @@
-from unittest.mock import patch
 from datetime import timedelta
+from urllib.parse import parse_qs, urlsplit
+from unittest.mock import patch
 
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -237,6 +239,56 @@ class PublicBlogAPITests(APITestCase):
             len(capped_response.data["results"]),
             50,
         )
+
+    def test_blog_read_queries_are_constant_for_each_language(self):
+        BlogPost.objects.filter(status=BlogPost.Status.PUBLISHED).update(
+            title_fa="عنوان فارسی", content_fa="متن فارسی " * 1000,
+        )
+        for lang in ("en", "fa"):
+            with self.subTest(lang=lang):
+                with self.assertNumQueries(2) as listing_queries:
+                    listing = self.client.get(self.list_url, {"lang": lang})
+                self.assertEqual(len(listing.data["results"]), 2)
+                query = listing_queries.captured_queries[-1]["sql"]
+                self.assertIn('AS "translation_available"', query)
+                self.assertNotIn('AS "public_content"', query)
+
+                with self.assertNumQueries(1):
+                    detail = self.client.get(self.detail_url(self.new_post.slug), {"lang": lang})
+                self.assertEqual(detail.status_code, 200)
+                self.assertIn("content", detail.data)
+
+    def test_sitemap_reads_only_public_metadata_and_traverses_tied_dates(self):
+        now = timezone.now() - timedelta(minutes=1)
+        BlogPost.objects.bulk_create([
+            BlogPost(
+                title=f"Article {index}", slug=f"sitemap-{index}", content="Body",
+                title_fa="عنوان فارسی", content_fa="متن فارسی",
+                status=BlogPost.Status.PUBLISHED, published_at=now,
+            )
+            for index in range(251)
+        ])
+        url = reverse("website_api_v1:blog_sitemap")
+        with self.assertNumQueries(1):
+            first = self.client.get(url).data
+        self.assertEqual(len(first["results"]), 250)
+        cursor = parse_qs(urlsplit(first["next"]).query)["cursor"][0]
+        with self.assertNumQueries(1):
+            second = self.client.get(url, {"cursor": cursor}).data
+        self.assertIsNone(second["next"])
+        entries = first["results"] + second["results"]
+        self.assertEqual(len({post["slug"] for post in entries}), 253)
+        self.assertTrue(all(set(post) == {"slug", "published_at", "updated_at", "has_persian_translation"} for post in entries))
+        translated_slugs = {post["slug"] for post in entries if post["has_persian_translation"]}
+        self.assertEqual(translated_slugs, {f"sitemap-{index}" for index in range(251)})
+
+    @override_settings(WEBSITE_CONTACT_RETENTION_DAYS=45)
+    def test_public_policy_reads_only_configured_retention(self):
+        url = reverse("website_api_v1:policy")
+        with self.assertNumQueries(0):
+            response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"contact_retention_days": 45})
 
     def test_unicode_slug_is_supported(self):
         post = BlogPost.objects.create(

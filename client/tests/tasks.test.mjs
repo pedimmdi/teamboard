@@ -1,40 +1,21 @@
-import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
+import { loadSource } from "./load-source.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import ts from "typescript";
 
-function compile(path) {
-  return ts.transpileModule(
-    readFileSync(new URL(path, import.meta.url), "utf8"),
-    {
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        target: ts.ScriptTarget.ES2022,
-      },
-    },
-  ).outputText;
-}
-const apiCode = compile("../src/lib/api.ts");
-const locale = {};
-runInNewContext(compile("../src/lib/locale.ts"), { exports: locale });
-const utils = {};
-runInNewContext(
-  compile(
-    "../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/task-utils.ts",
-  ),
-  { exports: utils, URLSearchParams, Date, Intl, require: () => locale },
+const locale = loadSource("../src/lib/locale.ts");
+const utils = loadSource(
+  "../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/task-utils.ts",
+  { URLSearchParams, Date, Intl, require: () => locale },
 );
 
 function moveClient() {
   const calls = [];
-  const exports = {};
   const api = {
     getTask: () => { throw new Error("Client must not read positions before moving"); },
     getTasks: () => { throw new Error("Client must not read column counts before moving"); },
     moveTask: async (...args) => { calls.push(args); return { id: "task" }; },
   };
-  runInNewContext(compile("../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/task-moves.ts"), { exports, require: () => api });
+  const exports = loadSource("../src/app/dashboard/workspaces/[slug]/projects/[projectId]/tasks/task-moves.ts", { require: () => api });
   return { move: exports.moveTaskToPosition, calls };
 }
 
@@ -58,10 +39,8 @@ function client(
       headers: { "Content-Type": "application/json" },
     }),
 ) {
-  const api = {},
-    calls = [];
-  runInNewContext(apiCode, {
-    exports: api,
+  const calls = [];
+  const api = loadSource("../src/lib/api.ts", {
     process: { env: { NEXT_PUBLIC_API_URL: "http://api.test" } },
     URLSearchParams,
     FormData,

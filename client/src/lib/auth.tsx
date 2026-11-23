@@ -5,10 +5,12 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
 import {
+  ApiError,
   getCurrentUser,
   logout as logoutApi,
   type CurrentUser,
@@ -30,6 +32,8 @@ type AuthContextValue = {
   user: CurrentUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  sessionUnavailable: boolean;
+  retrySession: () => void;
   setTokens: (
     access: string,
     user: CurrentUser,
@@ -55,6 +59,9 @@ export function AuthProvider({
 
   const [isLoading, setIsLoading] =
     useState(true);
+  const [sessionUnavailable, setSessionUnavailable] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const sessionVersion = useRef(0);
 
   const clearAuth = useCallback(() => {
     setAccessToken(null);
@@ -66,8 +73,11 @@ export function AuthProvider({
       access: string,
       currentUser: CurrentUser,
     ) => {
+      sessionVersion.current++;
       setAccessToken(access);
       setUser(currentUser);
+      setSessionUnavailable(false);
+      setIsLoading(false);
     },
     [],
   );
@@ -76,7 +86,18 @@ export function AuthProvider({
     setUser(updatedUser);
   }, []);
 
+  const retrySession = useCallback(() => {
+    sessionVersion.current++;
+    setIsLoading(true);
+    setSessionUnavailable(false);
+    setAttempt((previous) => previous + 1);
+  }, []);
+
   useEffect(() => {
+    const version = sessionVersion.current;
+    let cancelled = false;
+    const isCurrent = () => !cancelled && version === sessionVersion.current;
+
     async function restoreSession() {
       try {
         /*
@@ -88,12 +109,17 @@ export function AuthProvider({
         */
         const {tokens,currentUser} = await restoreAuthSession();
 
-        setAccessToken(tokens.access);
-        setUser(currentUser);
-      } catch {
-        clearAuth();
+        if (isCurrent()) {
+          setAccessToken(tokens.access);
+          setUser(currentUser);
+        }
+      } catch (error) {
+        if (isCurrent()) {
+          clearAuth();
+          setSessionUnavailable(!(error instanceof ApiError && error.status === 401));
+        }
       } finally {
-        setIsLoading(false);
+        if (isCurrent()) setIsLoading(false);
       }
     }
 
@@ -130,6 +156,7 @@ export function AuthProvider({
     restoreSession();
 
     return () => {
+      cancelled = true;
       window.removeEventListener(
         "teamboard:auth-refreshed",
         handleTokenRefreshed,
@@ -140,16 +167,14 @@ export function AuthProvider({
         handleAuthLogout,
       );
     };
-  }, [clearAuth]);
+  }, [attempt, clearAuth]);
 
   const logout = useCallback(async () => {
-    try {
-      if (accessToken) {
-        await logoutApi(accessToken);
-      }
-    } finally {
-      clearAuth();
-    }
+    sessionVersion.current++;
+    if (accessToken) await logoutApi(accessToken);
+    clearAuth();
+    setIsLoading(false);
+    setSessionUnavailable(false);
   }, [accessToken, clearAuth]);
 
   return (
@@ -161,6 +186,8 @@ export function AuthProvider({
           accessToken && user,
         ),
         isLoading,
+        sessionUnavailable,
+        retrySession,
         setTokens,
         updateUser,
         logout,

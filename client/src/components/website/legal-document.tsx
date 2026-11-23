@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getLocale } from "@/lib/server-preferences";
 import { publicMetadata, websitePath } from "@/lib/website";
+import { contactRetentionDays } from "@/lib/website-data";
 import { websiteCopy } from "@/lib/website-copy";
 import styles from "@/app/(public)/website.module.css";
 
@@ -13,7 +14,7 @@ export async function legalMetadata(page: LegalPage) {
 }
 
 export async function LegalDocument({ page }: { page: LegalPage }) {
-  const locale = await getLocale();
+  const [locale, days] = await Promise.all([getLocale(), page === "privacy" ? contactRetentionDays() : null]);
   const copy = websiteCopy[locale];
   return (
     <article className={styles.document}>
@@ -21,7 +22,9 @@ export async function LegalDocument({ page }: { page: LegalPage }) {
         <h1>{copy[`${page}Title`]}</h1>
         <p>{copy[`${page}Description`]}</p>
       </header>
-      {copy[`${page}Sections`].map(([title, body]) => <section key={title}><h2>{title}</h2><p>{body}</p></section>)}
+      {copy[`${page}Sections`].map(([title, body]) => (
+        <section key={title}><h2>{title}</h2><p>{typeof body === "function" ? body(days) : body}</p></section>
+      ))}
       <Link className={styles.textLink} href={websitePath(page === "privacy" ? "/contact" : "/privacy", locale)}>{page === "privacy" ? copy.contact : copy.privacy}</Link>
     </article>
   );

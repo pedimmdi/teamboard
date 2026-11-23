@@ -42,10 +42,15 @@ for (const locale of ["en", "fa"]) {
       await expect(root).toHaveCSS("color-scheme", theme);
       if (isPersian && process.env.IRANSANSX_WEBFONT === "1") {
         const loaded = await page.evaluate(async () => {
-          const fonts = await document.fonts.load('400 16px "IranSansX"', "تیم‌برد");
-          return fonts.some((font) => font.status === "loaded");
+          await document.fonts.ready;
+          const installed = document.querySelector('link[href="/fonts/iransansx/faces.css"]');
+          const expected = installed ? [100, 200, 300, 400, 500, 600, 700, 800, 900, 950, 1000] : [400];
+          return Promise.all(expected.map(async (weight) => {
+            const faces = await document.fonts.load(`${weight} 16px "IranSansX"`, "تیم‌برد");
+            return faces.some((face) => face.status === "loaded" && Number(face.weight) === weight);
+          }));
         });
-        expect(loaded).toBe(true);
+        expect(loaded.every(Boolean)).toBe(true);
       }
       await page.getByLabel(label("Email address", "نشانی ایمیل"), { exact: true }).fill("browser-test@example.com");
       await page.locator('input[autocomplete="current-password"]').fill(process.env.E2E_PASSWORD);

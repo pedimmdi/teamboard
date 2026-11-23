@@ -159,6 +159,8 @@
   --workspace-tracking: normal;
 }
 
+[lang="fa"] { font-family: var(--font-persian); }
+
 * {
   box-sizing: border-box;
   margin: 0;

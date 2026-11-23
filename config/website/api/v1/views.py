@@ -1,4 +1,5 @@
 
+from django.conf import settings
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiResponse,
@@ -15,19 +16,22 @@ from rest_framework.response import Response
 
 from website.services import (
     create_contact_message,
-    get_public_blog_posts,
+    get_public_blog_projection,
+    get_public_sitemap_projection,
 )
 from website.security import (
     ContactSubmissionThrottle,
     LimitedContactJSONParser,
 )
 
-from .pagination import PublicBlogPagination
+from .pagination import PublicBlogPagination, PublicBlogSitemapPagination
 from .serializers import (
     ContactMessageSubmitResponseSerializer,
     ContactMessageSubmitSerializer,
     PublicBlogPostDetailSerializer,
     PublicBlogPostListSerializer,
+    PublicBlogSitemapSerializer,
+    PublicWebsitePolicySerializer,
 )
 
 
@@ -129,10 +133,7 @@ class PublicBlogPostListView(generics.ListAPIView):
     http_method_names = ["get", "head", "options"]
 
     def get_queryset(self):
-        posts = get_public_blog_posts().defer("content")
-        if self.request.query_params.get("lang") == "fa":
-            return posts.exclude(title_fa="").exclude(content_fa="")
-        return posts
+        return get_public_blog_projection(persian=self.request.query_params.get("lang") == "fa")
 
 
 @extend_schema_view(
@@ -172,4 +173,41 @@ class PublicBlogPostDetailView(generics.RetrieveAPIView):
     http_method_names = ["get", "head", "options"]
 
     def get_queryset(self):
-        return get_public_blog_posts()
+        return get_public_blog_projection(persian=self.request.query_params.get("lang") == "fa", detail=True)
+
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=["Website"],
+        operation_id="website_blog_sitemap",
+        summary="List published article sitemap entries",
+        auth=[],
+    ),
+)
+class PublicBlogSitemapView(generics.ListAPIView):
+    serializer_class = PublicBlogSitemapSerializer
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    pagination_class = PublicBlogSitemapPagination
+    http_method_names = ["get", "head", "options"]
+
+    def get_queryset(self):
+        return get_public_sitemap_projection()
+
+
+class PublicWebsitePolicyView(generics.GenericAPIView):
+    serializer_class = PublicWebsitePolicySerializer
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_classes = []
+    http_method_names = ["get", "head", "options"]
+
+    @extend_schema(
+        tags=["Website"],
+        operation_id="website_policy",
+        summary="Read the public contact retention policy",
+        auth=[],
+    )
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer({"contact_retention_days": settings.WEBSITE_CONTACT_RETENTION_DAYS})
+        return Response(serializer.data)

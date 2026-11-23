@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  devIndicators: false,
+  reactProductionProfiling: process.env.NEXT_PUBLIC_TEAMBOARD_PROFILE_UI === "1",
   allowedDevOrigins: ["127.0.0.1"],
   async headers() {
     return [

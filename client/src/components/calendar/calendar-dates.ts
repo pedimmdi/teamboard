@@ -1,4 +1,5 @@
 import type { CalendarTimelineItem } from "@/lib/api";
+import { iranDayBoundary } from "@/lib/iran-time";
 
 export function shiftDay(day: Date, amount: number) {
   const result = new Date(day);
@@ -33,9 +34,25 @@ export function monthDays(month: Date, calendar: Calendar = "gregory", firstWeek
   return Array.from({ length: 42 }, (_, index) => shiftDay(start, index));
 }
 
-export function itemsForDay(items: CalendarTimelineItem[], day: Date) {
-  const end = shiftDay(day, 1).getTime();
-  return items.filter((item) => Date.parse(item.starts_at) < end && Date.parse(item.ends_at) > day.getTime());
+export function timelineBounds(first: Date, end: Date, iranTime: boolean) {
+  if (!iranTime) return [first.toISOString(), end.toISOString()] as const;
+  // Timed events use local day boundaries. All-day events and due dates keep their saved civil date.
+  return [
+    new Date(Math.min(+first, +iranDayBoundary(first))).toISOString(),
+    new Date(Math.max(+end, +iranDayBoundary(end))).toISOString(),
+  ] as const;
+}
+
+export function itemsForDay(items: CalendarTimelineItem[], day: Date, iranTime = false) {
+  const tomorrow = shiftDay(day, 1);
+  const localStart = iranTime ? +iranDayBoundary(day) : +day;
+  const localEnd = iranTime ? +iranDayBoundary(tomorrow) : +tomorrow;
+  return items.filter((item) => {
+    const dateOnly = item.all_day || item.item_type === "task";
+    const start = dateOnly ? +day : localStart;
+    const end = dateOnly ? +tomorrow : localEnd;
+    return Date.parse(item.starts_at) < end && Date.parse(item.ends_at) > start;
+  });
 }
 
 export function calendarEventPermissions(workspaceRole: string | null, projectRole: string | null) {

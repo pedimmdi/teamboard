@@ -173,9 +173,7 @@ function InvitationContent() {
 
           {status === "success" && result ? (
             <>
-              <h1>{locale === "fa"
-                ? <>به <bdi>{result.workspace.name}</bdi> پیوستید.</>
-                : <>You joined <bdi>{result.workspace.name}</bdi>.</>}</h1>
+              <h1>{t("You joined ", "به ")}<bdi>{result.workspace.name}</bdi>{t(".", " پیوستید.")}</h1>
               <p className={styles.description}>
                 {t("You are now a member of this workspace. You can start collaborating with your team.", "اکنون عضو این فضای کاری هستید و می‌توانید همکاری با تیم را شروع کنید.")}
               </p>

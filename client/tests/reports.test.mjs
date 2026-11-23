@@ -1,19 +1,10 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
+import { loadSource } from "./load-source.mjs";
 import test from "node:test";
-import ts from "typescript";
 
-function load(file, globals = {}) {
-  const exports = {};
-  runInNewContext(ts.transpileModule(readFileSync(new URL(file, import.meta.url), "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText, { exports, ...globals });
-  return exports;
-}
 
 test("report date ranges use UTC inclusive days and reject oversized or reversed ranges", () => {
-  const dates = load("../src/components/reports/report-utils.ts");
+  const dates = loadSource("../src/components/reports/report-utils.ts");
   const range = dates.reportDateRange(7, new Date("2026-03-09T00:30:00Z"));
   assert.equal(range.start_date, "2026-03-03");
   assert.equal(range.end_date, "2026-03-09");
@@ -24,7 +15,7 @@ test("report date ranges use UTC inclusive days and reject oversized or reversed
 
 test("report requests preserve scope, applied filters, pagination and CSV response type", async () => {
   const calls = [];
-  const api = load("../src/lib/api.ts", {
+  const api = loadSource("../src/lib/api.ts", {
     process: { env: { NEXT_PUBLIC_API_URL: "http://localhost:8000" } }, FormData, URLSearchParams,
     fetch: async (url, options) => {
       calls.push([new URL(url), options]);

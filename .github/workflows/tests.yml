@@ -44,7 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install -r requirements.txt -r requirements-ci.txt
 
       - name: Validate backend production deployment
         run: APP_ENV_FILE=.env.example docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.production.yml config --quiet
@@ -72,7 +72,21 @@ jobs:
           python manage.py check
           python manage.py makemigrations --check --dry-run
           python manage.py spectacular --validate --fail-on-warn --file /tmp/schema.yml
-          python -m pytest -v
+          python -m coverage run -m pytest -v
+
+      - name: Generate backend coverage reports
+        if: ${{ !cancelled() }}
+        working-directory: config
+        run: |
+          python -m coverage report
+          python -m coverage xml
+
+      - name: Upload backend coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: config/coverage.xml
 
   frontend:
     runs-on: ubuntu-latest
@@ -98,13 +112,51 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-      - name: Run frontend tests
-        run: npm test
+      - name: Run frontend tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload frontend coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: client/coverage/lcov.info
 
       - name: Build frontend
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
         run: npm run build
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install the Python audit tool
+        run: python -m pip install -r requirements-ci.txt
+
+      - name: Audit Python dependencies
+        run: python -m pip_audit -r requirements.txt -r requirements-ci.txt --format=json --output=artifacts/python-audit.json
+
+      - name: Audit npm dependencies
+        if: ${{ !cancelled() }}
+        working-directory: client
+        run: npm audit --audit-level=moderate --json > ../artifacts/npm-audit.json
+
+      - name: Upload dependency audit reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit
+          path: |
+            artifacts/python-audit.json
+            artifacts/npm-audit.json
 
   browser:
     runs-on: ubuntu-latest

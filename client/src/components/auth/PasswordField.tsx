@@ -32,11 +32,12 @@ export default function PasswordField({
         {action}
       </div>
 
-      <div className={styles.inputWrapper}>
+      <div className={styles.inputWrapper} dir="ltr">
         <input
           {...props}
           id={id}
           type={visible ? "text" : "password"}
+          dir="ltr"
           aria-invalid={Boolean(error)}
           aria-describedby={error && id ? `${id}-error` : undefined}
         />

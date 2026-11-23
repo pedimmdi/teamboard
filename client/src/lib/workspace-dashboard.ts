@@ -43,7 +43,7 @@ export function getWorkspaceDashboard(token: string, slug: string) {
   if (!request) {
     request = apiFetch<WorkspaceDashboard>(
       `/api/v1/workspaces/${encodeURIComponent(slug)}/dashboard/`,
-      { token },
+      { token, timeoutMs: 10_000, cache: "no-store" },
     );
     pending.set(key, request);
     void request.finally(() => pending.delete(key)).catch(() => {});

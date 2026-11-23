@@ -37,6 +37,10 @@ def enqueue_comment_file(key, *, using="default"):
     return enqueue(BackgroundJob.Kind.COMMENT_FILE, {"key": key}, using=using)
 
 
+def enqueue_avatar_file(key, *, using="default"):
+    return enqueue(BackgroundJob.Kind.AVATAR_FILE, {"key": key}, using=using)
+
+
 def enqueue_chat_attachments(message_id):
     from chats.models import ChatAttachment
     for attachment_id in ChatAttachment.objects.filter(message_id=message_id).values_list("pk", flat=True):

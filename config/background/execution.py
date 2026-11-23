@@ -47,6 +47,9 @@ def perform(job):
     elif job.kind == BackgroundJob.Kind.CHAT_ATTACHMENT:
         from chats.attachment_cleanup import cleanup_deleted_attachment
         cleanup_deleted_attachment(job.payload["id"])
+    elif job.kind == BackgroundJob.Kind.AVATAR_FILE:
+        from accounts.avatar_cleanup import cleanup_avatar_file
+        cleanup_avatar_file(job.payload["key"], using=job._state.db)
     else:
         raise ValueError("Unknown background job kind")
 

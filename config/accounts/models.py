@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 
+from .avatar_cleanup import AvatarCleanupMixin
 from .managers import UserManager
 from .validators import validate_avatar
 
@@ -36,7 +37,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
-class Profile(models.Model):
+class Profile(AvatarCleanupMixin, models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,

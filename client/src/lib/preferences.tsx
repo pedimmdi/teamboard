@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { direction, LOCALE_COOKIE, publicLocale, regionalLocale, THEME_COOKIE, type Locale, type Theme } from "./locale";
+import { IRAN_TIME_ZONE } from "./iran-time";
 
 export type { Locale, Theme } from "./locale";
 
@@ -64,7 +65,7 @@ export function useLocale() {
       formatDate: (value: string | number | Date, options?: Intl.DateTimeFormatOptions) => {
         const date = value instanceof Date ? value : new Date(value);
         return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat(region, {
-          ...(/^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? { timeZone: "UTC" } : {}),
+          timeZone: /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? "UTC" : locale === "fa" ? IRAN_TIME_ZONE : undefined,
           ...options,
         }).format(date);
       },

@@ -1,13 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
-import {runInNewContext} from "node:vm";
-import ts from "typescript";
+import { loadSource } from "./load-source.mjs";
 function client(fetcher) {
-  const exports={};
-  const source=readFileSync(new URL("../src/lib/workspace-dashboard.ts",import.meta.url),"utf8");
-  runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:()=>({apiFetch:fetcher}),Map,JSON});
-  return exports.getWorkspaceDashboard;
+  return loadSource("../src/lib/workspace-dashboard.ts", { require: () => ({ apiFetch: fetcher }), Map, JSON }).getWorkspaceDashboard;
 }
 test("dashboard shares concurrent requests without sharing user or workspace scope",async()=>{
   const calls=[];let finish;

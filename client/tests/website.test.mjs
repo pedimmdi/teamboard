@@ -3,14 +3,9 @@ import assert from "node:assert/strict";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import Markdown from "react-markdown";
-import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
-import ts from "typescript";
+import { loadSource } from "./load-source.mjs";
 
-const website = {};
-const source = readFileSync(new URL("../src/lib/website.ts", import.meta.url), "utf8");
-const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } });
-runInNewContext(outputText, { exports: website, process: { env: {} } });
+const website = loadSource("../src/lib/website.ts", { process: { env: {} } });
 
 test("public Markdown rendering rejects raw HTML and unsafe link protocols", () => {
   const html = renderToStaticMarkup(React.createElement(Markdown, { skipHtml: true },

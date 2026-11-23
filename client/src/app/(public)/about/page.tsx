@@ -1,4 +1,4 @@
-import { AuthEntry } from "@/components/website/public-auth";
+import { PublicStart } from "@/components/website/public-auth";
 import { WebsiteIcon } from "@/components/website/website-icons";
 import { getLocale } from "@/lib/server-preferences";
 import { publicMetadata } from "@/lib/website";
@@ -37,7 +37,7 @@ export default async function About() {
         </div>
         <div className={styles.cta}>
           <h2>{copy.cta}</h2>
-          <AuthEntry className={styles.primary} href="/register" locale={locale}>{copy.heroAction}<WebsiteIcon name="arrow" className={styles.arrow} /></AuthEntry>
+          <PublicStart locale={locale}>{copy.heroAction}<WebsiteIcon name="arrow" className={styles.arrow} /></PublicStart>
         </div>
       </section>
     </article>

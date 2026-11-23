@@ -1,21 +1,11 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
-import { runInNewContext } from "node:vm";
-import ts from "typescript";
+import { loadSource } from "./load-source.mjs";
 
-function load(path, globals = {}) {
-  const exports = {};
-  const source = readFileSync(new URL(path, import.meta.url), "utf8");
-  runInNewContext(ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText, { exports, ...globals });
-  return exports;
-}
 
 test("notification API sends filters, pagination, bearer credentials and read mutations", async () => {
   const requests = [];
-  const api = load("../src/lib/api.ts", {
+  const api = loadSource("../src/lib/api.ts", {
     process: { env: { NEXT_PUBLIC_API_URL: "http://localhost:8000" } },
     FormData, URLSearchParams,
     fetch: async (url, options) => {
@@ -43,7 +33,7 @@ test("notification API sends filters, pagination, bearer credentials and read mu
 });
 
 test("task notifications open the task drawer and invitations use the email flow", () => {
-  const { notificationContent } = load("../src/app/dashboard/notifications/notification-content.ts");
+  const { notificationContent } = loadSource("../src/app/dashboard/notifications/notification-content.ts");
   const notification = {
     event_type: "comment_replied",
     workspace_slug: "workspace",
@@ -68,16 +58,14 @@ test("task notifications open the task drawer and invitations use the email flow
 
 
 test("task reminder notifications link directly to the existing task drawer", () => {
-  const source = readFileSync(new URL("../src/app/dashboard/notifications/notification-content.ts", import.meta.url), "utf8");
-  const exports = {};
-  runInNewContext(ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.CommonJS}}).outputText, {exports});
+  const exports = loadSource("../src/app/dashboard/notifications/notification-content.ts");
   const content = exports.notificationContent({event_type:"task_reminder",workspace_slug:"team",project:"project",task:"task",payload:{},task_title:"Reminder task"});
   assert.equal(content.title,"Task reminder");
   assert.equal(content.href,"/dashboard/workspaces/team/projects/project/tasks?task=task");
 });
 
 test("Persian notification titles and role changes preserve workspace names and link destinations", () => {
-  const { notificationContent } = load("../src/app/dashboard/notifications/notification-content.ts");
+  const { notificationContent } = loadSource("../src/app/dashboard/notifications/notification-content.ts");
   const notification = {
     event_type: "workspace_role_changed",
     workspace_slug: "design",

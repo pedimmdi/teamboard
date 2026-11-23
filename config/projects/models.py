@@ -4,15 +4,17 @@ from pathlib import Path
 from django.conf import settings
 from django.db import models
 
-from accounts.validators import validate_avatar
 from django.db.models.functions import Lower
+
+from accounts.avatar_cleanup import AvatarCleanupMixin
+from accounts.validators import validate_avatar
 
 
 def projects_avatar_path(instance, filename):
     return f"projects/{instance.pk}/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
 
 
-class Project(models.Model):
+class Project(AvatarCleanupMixin, models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,

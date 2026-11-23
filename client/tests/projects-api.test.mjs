@@ -1,38 +1,12 @@
 import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
+import { loadSource } from "./load-source.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import ts from "typescript";
 
-const source = readFileSync(
-  new URL("../src/lib/api.ts", import.meta.url),
-  "utf8",
-);
-const code = ts.transpileModule(source, {
-  compilerOptions: {
-    module: ts.ModuleKind.CommonJS,
-    target: ts.ScriptTarget.ES2022,
-  },
-}).outputText;
-
-const permissionsSource = readFileSync(
-  new URL(
-    "../src/app/dashboard/workspaces/[slug]/projects/project-utils.ts",
-    import.meta.url,
-  ),
-  "utf8",
-);
-const permissionExports = {};
-const locale = {};
-runInNewContext(ts.transpileModule(
-  readFileSync(new URL("../src/lib/locale.ts", import.meta.url), "utf8"),
-  { compilerOptions: { module: ts.ModuleKind.CommonJS } },
-).outputText, { exports: locale });
-runInNewContext(
-  ts.transpileModule(permissionsSource, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS },
-  }).outputText,
-  { exports: permissionExports, Intl, Date, require: () => locale },
+const locale = loadSource("../src/lib/locale.ts");
+const permissionExports = loadSource(
+  "../src/app/dashboard/workspaces/[slug]/projects/project-utils.ts",
+  { Intl, Date, require: () => locale },
 );
 
 test("workspace owners and admins retain all management rights for every project role", () => {
@@ -111,9 +85,7 @@ function client(
     }),
 ) {
   const calls = [];
-  const exports = {};
-  runInNewContext(code, {
-    exports,
+  const exports = loadSource("../src/lib/api.ts", {
     process: { env: { NEXT_PUBLIC_API_URL: "http://api.test" } },
     URLSearchParams,
     FormData,

@@ -1,30 +1,21 @@
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
-import {runInNewContext} from "node:vm";
+import { loadSource } from "./load-source.mjs";
 import test from "node:test";
 import {JSDOM} from "jsdom";
 import React, {act} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
-import ts from "typescript";
 
 function component(name, modules, globals = {}, locale = "en") {
-  const exports = {};
   const styles = new Proxy({}, {get: (_, name) => name === "__esModule" ? false : String(name)});
-  const copy = {};
   const region = locale === "fa" ? "fa-IR" : "en-US";
-  runInNewContext(ts.transpileModule(readFileSync(new URL("../src/lib/workspace-locale.ts", import.meta.url), "utf8"), {
-    compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022},
-  }).outputText, {exports: copy, require: () => ({
+  const copy = loadSource("../src/lib/workspace-locale.ts", {require: () => ({
     useLocale: () => ({
       locale,
       formatDate: (value, options) => new Intl.DateTimeFormat(region, options).format(new Date(value)),
       formatNumber: (value) => new Intl.NumberFormat(region).format(value),
     }),
   })});
-  runInNewContext(ts.transpileModule(readFileSync(new URL("../src/components/chats/" + name + ".tsx", import.meta.url), "utf8"), {
-    compilerOptions: {module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true},
-  }).outputText, {exports, React, ...globals, require: (path) => path.endsWith(".css") ? styles : path === "react" ? React : path === "@/lib/workspace-locale" ? copy : modules[path]});
-  return exports;
+  return loadSource("../src/components/chats/" + name + ".tsx", {React, ...globals, require: (path) => path.endsWith(".css") ? styles : path === "react" ? React : path === "@/lib/workspace-locale" ? copy : modules[path]});
 }
 
 test("chat unread badges hide zero and show exact values through ten, then +10", () => {

@@ -1,5 +1,6 @@
 import { getLocale } from "@/lib/server-preferences";
 import { publicMetadata } from "@/lib/website";
+import { contactRetentionDays } from "@/lib/website-data";
 import { websiteCopy } from "@/lib/website-copy";
 import ContactForm from "@/components/website/contact-form";
 import { WebsiteIcon } from "@/components/website/website-icons";
@@ -11,7 +12,7 @@ export async function generateMetadata() {
 }
 
 export default async function Contact() {
-  const locale = await getLocale();
+  const [locale, retentionDays] = await Promise.all([getLocale(), contactRetentionDays()]);
   const copy = websiteCopy[locale];
   return (
     <section className={styles.contact}>
@@ -24,7 +25,7 @@ export default async function Contact() {
       </header>
       <div className={styles.contactPane}>
         <h2>{copy.form.heading}</h2>
-        <ContactForm locale={locale} />
+        <ContactForm locale={locale} retentionDays={retentionDays} />
       </div>
     </section>
   );

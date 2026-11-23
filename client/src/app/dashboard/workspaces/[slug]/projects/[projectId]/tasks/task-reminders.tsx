@@ -4,6 +4,7 @@ import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import {useEffect, useId, useRef, useState, type FormEvent} from "react";
 import {getTaskReminders, saveTaskReminder, cancelTaskReminder, ApiError, type TaskReminder, type Task, type ReminderInput} from "@/lib/api";
 import {useTransientMessage} from "@/hooks/use-transient-message";
+import {IRAN_TIME_ZONE} from "@/lib/iran-time";
 import {reminderLocalInput, futureReminderTime} from "./reminder-utils";
 import styles from "./reminders.module.css";
 
@@ -13,7 +14,8 @@ function errorText(error: unknown) {
 export default function TaskReminders({token, slug, projectId, task, onBusyChange}: {
   token: string; slug: string; projectId: string; task: Task; onBusyChange: (busy: boolean) => void;
 }) {
-  const { ui, formatDate, formatNumber } = useWorkspaceLocale();
+  const { ui, locale, formatDate, formatNumber } = useWorkspaceLocale();
+  const defaultZone = () => locale === "fa" ? IRAN_TIME_ZONE : Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const [rows, setRows] = useState<TaskReminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,7 +24,7 @@ export default function TaskReminders({token, slug, projectId, task, onBusyChang
   const [editing, setEditing] = useState<TaskReminder | null>(null);
   const [form, setForm] = useState(false);
   const [kind, setKind] = useState<"absolute" | "relative">("absolute");
-  const [zone, setZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
+  const [zone, setZone] = useState(defaultZone);
   const [date, setDate] = useState("");
   const [days, setDays] = useState(0);
   const [clock, setClock] = useState("09:00");
@@ -46,7 +48,7 @@ export default function TaskReminders({token, slug, projectId, task, onBusyChang
   const active = rows.filter((row) => ["pending", "disabled", "invalid", "failed"].includes(row.status)).length;
   function open(row?: TaskReminder) {
     setEditing(row ?? null); setForm(true); setError("");
-    setKind(row?.kind ?? "absolute"); setZone(row?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC");
+    setKind(row?.kind ?? "absolute"); setZone(row?.timezone ?? defaultZone());
     setDate(row?.run_at ? reminderLocalInput(row.run_at, row.timezone) : "");
     setDays(row?.days_before ?? 0); setClock(row?.local_time?.slice(0, 5) ?? "09:00");
   }

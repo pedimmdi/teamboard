@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { AuthEntry, HomeSession } from "@/components/website/public-auth";
+import { PublicStart } from "@/components/website/public-auth";
 import PostList from "@/components/website/post-list";
 import BrandMark from "@/components/ui/BrandMark";
 import { WebsiteIcon } from "@/components/website/website-icons";
 import { getLocale } from "@/lib/server-preferences";
-import { jsonLd, posts, publicMetadata, siteUrl, websitePath, type WebsiteLocale } from "@/lib/website";
+import { jsonLd, publicMetadata, siteUrl, websitePath, type WebsiteLocale } from "@/lib/website";
+import { posts } from "@/lib/website-data";
 import { websiteCopy } from "@/lib/website-copy";
 import styles from "./website.module.css";
 
@@ -61,7 +62,6 @@ export default async function Home() {
 
   return (
     <>
-      <HomeSession locale={locale} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -81,7 +81,7 @@ export default async function Home() {
             <h1>{copy.heroLead} <span>{copy.heroEnd}</span></h1>
             <p>{copy.heroBody}</p>
             <div className={styles.actions}>
-              <AuthEntry locale={locale} className={styles.primary} href="/register">{copy.heroAction}<WebsiteIcon name="arrow" className={styles.arrow} /></AuthEntry>
+              <PublicStart locale={locale}>{copy.heroAction}<WebsiteIcon name="arrow" className={styles.arrow} /></PublicStart>
               <Link className={styles.secondary} href={websitePath("/about", locale)}>{copy.explore}</Link>
             </div>
           </div>
@@ -112,7 +112,7 @@ export default async function Home() {
       <section className={styles.section}>
         <div className={styles.cta}>
           <h2>{copy.cta}</h2>
-          <AuthEntry locale={locale} className={styles.primary} href="/register">{copy.heroAction}<WebsiteIcon name="arrow" className={styles.arrow} /></AuthEntry>
+          <PublicStart locale={locale}>{copy.heroAction}<WebsiteIcon name="arrow" className={styles.arrow} /></PublicStart>
         </div>
       </section>
     </>

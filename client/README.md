@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TeamBoard frontend
 
-## Getting Started
+This package contains the Next.js App Router interface for TeamBoard. See the [project README](../README.md) for Docker setup, API configuration, Persian fonts and deployment.
 
-First, run the development server:
+## Run locally
 
-```bash
+With Django and its services running, install the locked dependencies and start Next.js.
+
+```sh
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The default browser origin is `http://localhost:3000`. Set `NEXT_PUBLIC_API_URL` for the browser and `WEBSITE_API_URL` for server-side public reads. Set `NEXT_PUBLIC_SITE_URL` to the public HTTPS origin before a production build.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Verify
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sh
+npm run lint
+npm run test:coverage
+npm run build
+npm run test:e2e
+```
 
-## Learn More
+The browser suite requires the isolated backend and environment described in the [browser setup](../README.md#development-and-verification). It covers both locales and themes, account and workspace flows, accessible forms and dialogs, and recovery from navigation and service failures. The unit runner writes LCOV under `coverage/`.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Use `NEXT_PUBLIC_TEAMBOARD_PROFILE_UI=1` for an opt-in production React profile of the 240-task browser fixture. See the [measurement notes](../docs/performance.md).

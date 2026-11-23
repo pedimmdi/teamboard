@@ -56,17 +56,9 @@ class ContactMessageSubmitResponseSerializer(serializers.Serializer):
 
 
 class PublicBlogPostSerializer(serializers.ModelSerializer):
-    has_persian_translation = serializers.BooleanField(read_only=True)
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        request = self.context.get("request")
-        if request and request.query_params.get("lang") == "fa" and instance.has_persian_translation:
-            data["title"] = instance.title_fa
-            data["excerpt"] = instance.excerpt_fa
-            if "content" in data:
-                data["content"] = instance.content_fa
-        return data
+    has_persian_translation = serializers.BooleanField(source="translation_available", read_only=True)
+    title = serializers.CharField(source="public_title", read_only=True)
+    excerpt = serializers.CharField(source="public_excerpt", read_only=True)
 
 
 class PublicBlogPostListSerializer(PublicBlogPostSerializer):
@@ -95,6 +87,8 @@ class PublicBlogPostDetailSerializer(PublicBlogPostSerializer):
     Public article details, including Markdown content.
     """
 
+    content = serializers.CharField(source="public_content", read_only=True)
+
     class Meta:
         model = BlogPost
 
@@ -110,3 +104,16 @@ class PublicBlogPostDetailSerializer(PublicBlogPostSerializer):
         )
 
         read_only_fields = fields
+
+
+class PublicBlogSitemapSerializer(serializers.ModelSerializer):
+    has_persian_translation = serializers.BooleanField(source="translation_available", read_only=True)
+
+    class Meta:
+        model = BlogPost
+        fields = ("slug", "published_at", "updated_at", "has_persian_translation")
+        read_only_fields = fields
+
+
+class PublicWebsitePolicySerializer(serializers.Serializer):
+    contact_retention_days = serializers.IntegerField(min_value=1, max_value=3650, read_only=True)

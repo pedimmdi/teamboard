@@ -5,13 +5,17 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ApiError, getCalendarTimeline, type CalendarTimelineItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { adjacentMonth, dayOfMonth, itemsForDay, monthDays, monthStart, shiftDay, weekStart } from "./calendar-dates";
+import { adjacentMonth, dayOfMonth, itemsForDay, monthDays, monthStart, shiftDay, timelineBounds, weekStart } from "./calendar-dates";
+import { iranCivilDay, IRAN_TIME_ZONE } from "@/lib/iran-time";
+import { useLocale } from "@/lib/preferences";
 import CalendarIcon from "./calendar-icon";
 import EventDialog from "./event-dialog";
+import IranClock from "./iran-clock";
 import styles from "./calendar.module.css";
 
-function todayUtc() {
+function today(iranTime: boolean) {
   const today = new Date();
+  if (iranTime) return iranCivilDay(today);
   today.setUTCHours(0, 0, 0, 0);
   return today;
 }
@@ -24,10 +28,15 @@ export default function CalendarView({ slug, projectId, canCreateEvent = false, 
   canDeleteEvent?: boolean;
 }) {
   const { ui, locale, formatDate, formatNumber } = useWorkspaceLocale();
+  const { t } = useLocale();
   const { accessToken } = useAuth();
-  const [localTimes, setLocalTimes] = useState(false);
+  const [preferredTimeZone, setPreferredTimeZone] = useState<"utc" | "local" | "tehran" | null>(null);
+  const timeZone = preferredTimeZone ?? (locale === "fa" ? "tehran" : "utc");
+  const iranTime = timeZone === "tehran";
   const [view, setView] = useState<"month" | "week" | "day">("month");
-  const [selected, setSelected] = useState(todayUtc);
+  const [selectedDate, setSelected] = useState<Date | null>(null);
+  const currentDay = today(iranTime);
+  const selected = selectedDate ?? currentDay;
   const [filter, setFilter] = useState<"all" | "event" | "task" | "meeting" | "deadline">("all");
   const [revision, setRevision] = useState(0);
   const [dialog, setDialog] = useState<CalendarTimelineItem | "new" | null>(null);
@@ -42,8 +51,7 @@ export default function CalendarView({ slug, projectId, canCreateEvent = false, 
     : [selected];
   const dayLabel = (day: Date) => formatDate(day, { dateStyle: "full", timeZone: "UTC" });
   const monthLabel = formatDate(selected, { month: "long", year: "numeric", timeZone: "UTC" });
-  const start = days[0].toISOString();
-  const end = shiftDay(days[days.length - 1], 1).toISOString();
+  const [start, end] = timelineBounds(days[0], shiftDay(days[days.length - 1], 1), iranTime);
   const key = JSON.stringify([slug, projectId, start, end, revision]);
   const current = result?.key === key ? result : undefined;
 
@@ -84,7 +92,8 @@ export default function CalendarView({ slug, projectId, canCreateEvent = false, 
     <section className={styles.calendar} aria-label={ui("Calendar")}>
       <header className={styles.header}>
         <span className={styles.badge}><CalendarIcon /></span>
-        <div><h2>{ui("Calendar")}</h2><p>{ui("Events and task due dates · Calendar days in UTC")}</p></div>
+        <div><h2>{ui("Calendar")}</h2><p>{iranTime ? t("Events in Iran time and task due dates", "رویدادها به وقت ایران و سررسید کارها") : ui("Events and task due dates · Calendar days in UTC")}</p></div>
+        {iranTime && <IranClock />}
         {canCreateEvent && <button className={styles.primary} onClick={() => setDialog("new")}>{ui("New event")}</button>}
       </header>
       <div className={styles.panel}>
@@ -92,7 +101,7 @@ export default function CalendarView({ slug, projectId, canCreateEvent = false, 
           <h3 aria-live="polite">{view === "day" ? dayLabel(selected) : monthLabel}</h3>
           <div className={styles.controls}>
             <button aria-label={ui("Previous {0}", ui(view))} onClick={() => changePeriod(-1)}><span aria-hidden="true">‹</span></button>
-            <button onClick={() => setSelected(todayUtc())}>{ui("Today")}</button>
+            <button onClick={() => setSelected(null)}>{ui("Today")}</button>
             <button aria-label={ui("Next {0}", ui(view))} onClick={() => changePeriod(1)}><span aria-hidden="true">›</span></button>
           </div>
           <label className={styles.filter}>{ui("View")}
@@ -119,11 +128,11 @@ export default function CalendarView({ slug, projectId, canCreateEvent = false, 
         {view !== "day" && <div className={styles.grid} aria-label={view === "month" ? ui("Month days") : ui("Week days")}>
           {days.slice(0, 7).map((day) => <span key={day.toISOString()} className={styles.weekday}>{formatDate(day, { weekday: "short", timeZone: "UTC" })}</span>)}
           {days.map((day) => {
-            const dayItems = itemsForDay(items, day);
+            const dayItems = itemsForDay(items, day, iranTime);
             return <button key={day.toISOString()} className={styles.day}
               aria-label={ui("{0}, {1} items", dayLabel(day), dayItems.length)}
               aria-pressed={+selected === +day}
-              aria-current={+todayUtc() === +day ? "date" : undefined}
+              aria-current={+currentDay === +day ? "date" : undefined}
               data-outside={view === "month" && (day < firstOfMonth || day >= lastOfMonth)}
               onClick={() => setSelected(day)}>
               <span className={styles.number}>{formatNumber(dayOfMonth(day, calendar))}</span>
@@ -140,14 +149,15 @@ export default function CalendarView({ slug, projectId, canCreateEvent = false, 
         <div className={styles.agendaHeader}>
           <h3>{dayLabel(selected)}</h3>
           <label className={styles.filter}>{ui("Event times")}
-            <select value={localTimes ? "local" : "utc"} onChange={(event) => setLocalTimes(event.target.value === "local")}>
+            <select value={timeZone} onChange={(event) => setPreferredTimeZone(event.target.value as typeof timeZone)}>
               <option value="utc">UTC</option>
               <option value="local">{ui("Local time")}</option>
+              <option value="tehran">{t("Iran time", "وقت ایران")}</option>
             </select>
           </label>
         </div>
         {current?.items && (() => {
-          const dayItems = itemsForDay(items, selected);
+          const dayItems = itemsForDay(items, selected, iranTime);
           return dayItems.length ? <ul>{dayItems.map((item) => (
             <li key={`${item.item_type}-${item.id}`}>
               <span className={styles.kind} data-kind={item.item_type}>
@@ -158,16 +168,17 @@ export default function CalendarView({ slug, projectId, canCreateEvent = false, 
               ) : (
                 <button onClick={() => setDialog(item)}>{item.title}</button>
               )}
-              <time dateTime={item.starts_at}>{item.all_day ? ui("All day") : formatDate(item.starts_at, localTimes
-                ? { dateStyle: "medium", timeStyle: "short" }
-                : { timeStyle: "short", timeZone: "UTC" })}</time>
+              <time dateTime={item.starts_at}>{item.all_day ? ui("All day") : formatDate(item.starts_at, {
+                timeStyle: "short",
+                timeZone: iranTime ? IRAN_TIME_ZONE : timeZone === "local" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC",
+              })}</time>
             </li>
           ))}</ul> : <p>{ui("No items for this day.")}</p>;
         })()}
       </section>
       {dialog && accessToken && (
         <EventDialog token={accessToken} slug={slug} projectId={dialog === "new" ? projectId : dialog.project}
-          item={dialog === "new" ? null : dialog} day={selected} canEditEvent={canEditEvent} canDeleteEvent={canDeleteEvent}
+          item={dialog === "new" ? null : dialog} day={selected} iranTime={iranTime} canEditEvent={canEditEvent} canDeleteEvent={canDeleteEvent}
           onClose={() => setDialog(null)} onSaved={() => { setDialog(null); refresh(); }} />
       )}
     </section>

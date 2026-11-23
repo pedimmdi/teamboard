@@ -1,4 +1,4 @@
-import Image from "next/image";
+import styles from "./design-icon.module.css";
 
 export default function DesignIcon({
   name,
@@ -6,11 +6,9 @@ export default function DesignIcon({
   name: "folder" | "users" | "settings" | "chevron-right" | "chevrons-up-down";
 }) {
   return (
-    <Image
-      src={`/icons/${name}.svg`}
-      width={20}
-      height={20}
-      alt=""
+    <span
+      className={styles.icon}
+      style={{ maskImage: `url('/icons/${name}.svg')` }}
       aria-hidden="true"
     />
   );

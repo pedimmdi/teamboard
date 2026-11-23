@@ -1,16 +1,7 @@
-import { readFileSync } from "node:fs";
-import { runInNewContext } from "node:vm";
+import { loadSource } from "./load-source.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
-import ts from "typescript";
 
-const source = readFileSync(
-  new URL("../src/app/dashboard/dashboard-workspace.ts", import.meta.url),
-  "utf8",
-);
-const code = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.CommonJS },
-}).outputText;
 class ApiError extends Error {
   constructor(status) {
     super("Request failed");
@@ -22,12 +13,9 @@ function navigation({
   getWorkspace = async (_, slug) => ({ slug }),
   getWorkspaces = async () => ({ results: [{ slug: "first" }] }),
 } = {}) {
-  const exports = {};
-  runInNewContext(code, {
-    exports,
+  return loadSource("../src/app/dashboard/dashboard-workspace.ts", {
     require: () => ({ ApiError, getWorkspace, getWorkspaces }),
   });
-  return exports;
 }
 
 test("workspace in the route takes precedence over a saved workspace", async () => {

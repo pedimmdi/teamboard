@@ -1,30 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, type ComponentProps } from "react";
-import { useRouter } from "next/navigation";
+import type { ComponentProps, ReactNode } from "react";
 import styles from "@/app/(public)/website.module.css";
 import { useAuth } from "@/lib/auth";
 import { usePreferences } from "@/lib/preferences";
 import type { WebsiteLocale } from "@/lib/website";
 import { websiteCopy } from "@/lib/website-copy";
 
-export function HomeSession({ locale }: { locale: WebsiteLocale }) {
-  const { isLoading, isAuthenticated } = useAuth();
-  const { setLocale } = usePreferences();
-  const router = useRouter();
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      if (locale === "fa") setLocale(locale);
-      router.replace("/dashboard");
-    }
-  }, [isLoading, isAuthenticated, locale, router, setLocale]);
-  return null;
-}
+const panelLabel = (locale: WebsiteLocale) => locale === "fa" ? "ورود به پنل" : websiteCopy[locale].dashboard;
 
 export function AuthEntry({ locale, ...props }: ComponentProps<typeof Link> & { locale: WebsiteLocale }) {
   const { setLocale } = usePreferences();
   return <Link {...props} prefetch={false} onClick={() => setLocale(locale)} />;
+}
+
+export function PublicStart({ locale, children }: { locale: WebsiteLocale; children: ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  return (
+    <AuthEntry locale={locale} className={styles.primary} href={isAuthenticated ? "/dashboard" : "/register"}>
+      {isAuthenticated ? panelLabel(locale) : children}
+    </AuthEntry>
+  );
 }
 
 export function PublicAuth({ locale }: { locale: WebsiteLocale }) {
@@ -33,7 +30,9 @@ export function PublicAuth({ locale }: { locale: WebsiteLocale }) {
   return (
     <div className={styles.auth}>
       {isAuthenticated ? (
-        <AuthEntry locale={locale} href="/dashboard" className={styles.primary}>{copy.dashboard}</AuthEntry>
+        <AuthEntry locale={locale} href="/dashboard" className={styles.primary}>
+          {panelLabel(locale)}
+        </AuthEntry>
       ) : (
         <>
           <AuthEntry locale={locale} href="/login" className={styles.login}>{copy.login}</AuthEntry>

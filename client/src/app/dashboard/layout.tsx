@@ -10,6 +10,8 @@ import Avatar from "@/components/ui/Avatar";
 import BrandMark from "@/components/ui/BrandMark";
 import DesignIcon from "@/components/ui/DesignIcon";
 import { PreferencesControls } from "@/components/preferences-controls";
+import { RouteFeedback, RouteLoading } from "@/components/route-feedback";
+import { DashboardProfiler } from "@/components/ui/dashboard-profiler";
 import { BellIcon, NotificationCountProvider, useNotificationCount } from "./notifications/notification-count";
 import WorkspaceSwitcher from "./workspace-switcher";
 import { useParams, usePathname, useRouter } from "next/navigation";
@@ -28,12 +30,12 @@ type DashboardLayoutProps = {
 };
 
 function DashboardBrand() {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   return (
-    <div className={styles.brand}>
+    <Link href={locale === "fa" ? "/fa" : "/"} className={styles.brand} aria-label={t("Public website", "وب‌سایت تیم‌برد")}>
       <span className={styles.brandMark}><BrandMark /></span>
       <span>{t("TeamBoard", "تیم‌برد")}</span>
-    </div>
+    </Link>
   );
 }
 
@@ -224,16 +226,18 @@ function getInitials(firstName: string, lastName: string) {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <NotificationCountProvider>
-      <DashboardShell>{children}</DashboardShell>
+      <DashboardProfiler><DashboardShell>{children}</DashboardShell></DashboardProfiler>
     </NotificationCountProvider>
   );
 }
 
 function DashboardShell({ children }: DashboardLayoutProps) {
-  const { t, formatNumber } = useLocale();
+  const { locale, t, formatNumber } = useLocale();
   const { count } = useNotificationCount();
   const moreMenu = useRef<HTMLDetailsElement>(null);
   const moreTrigger = useRef<HTMLElement>(null);
+  const signOutDestination = useRef<string | null>(null);
+  const [signOutState, setSignOutState] = useState<"idle" | "pending" | "error">("idle");
   const inbox = "/dashboard/notifications";
   const unread = t(`${formatNumber(count ?? 0)} unread`, `${formatNumber(count ?? 0)} خوانده‌نشده`);
   const notificationsLabel = count
@@ -245,13 +249,14 @@ function DashboardShell({ children }: DashboardLayoutProps) {
     </span>
   ) : null;
   const pathname = usePathname();
+  const dashboardEntry = pathname === "/dashboard";
   const { slug: routeSlug } = useParams<{ slug?: string }>();
   const [activeWorkspace, setActiveWorkspace] = useState<{
     userId: number;
     slug: string;
   } | null>(null);
   const router = useRouter();
-  const { user, accessToken, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, accessToken, isAuthenticated, isLoading, sessionUnavailable, retrySession, logout } = useAuth();
   const userId = user?.id;
   const slug =
     routeSlug ||
@@ -261,7 +266,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
     : null;
 
   useEffect(() => {
-    if (!accessToken || userId === undefined) return;
+    if (!accessToken || userId === undefined || dashboardEntry) return;
     let cancelled = false;
     const key = dashboardWorkspaceKey(userId);
     let savedSlug: string | null = null;
@@ -281,23 +286,32 @@ function DashboardShell({ children }: DashboardLayoutProps) {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, userId, routeSlug]);
+  }, [accessToken, userId, routeSlug, dashboardEntry]);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace("/login");
+    if (!isLoading && !isAuthenticated && !sessionUnavailable) {
+      router.replace(signOutDestination.current ?? "/login");
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, sessionUnavailable]);
 
   useEffect(() => {
     if (moreMenu.current) moreMenu.current.open = false;
   }, [pathname]);
 
-  if (isLoading || !isAuthenticated || !user) {
-    return null;
+  if (isLoading) {
+    return <main><RouteLoading label={t("Checking your session…", "در حال بررسی نشست شما…")} /></main>;
   }
 
-  if (pathname === "/dashboard") return <main>{children}</main>;
+  if (sessionUnavailable) {
+    return <main><RouteFeedback
+      title={t("Couldn’t check your session", "بررسی نشست انجام نشد")}
+      description={t("TeamBoard couldn’t reach the account service. Try again to continue.", "ارتباط با سرویس حساب کاربری برقرار نشد. برای ادامه دوباره تلاش کنید.")}
+      onRetry={retrySession}
+    /></main>;
+  }
+
+  if (!isAuthenticated || !user) return null;
+  if (dashboardEntry) return <main>{children}</main>;
 
   const initials = getInitials(user.first_name, user.last_name);
 
@@ -306,9 +320,21 @@ function DashboardShell({ children }: DashboardLayoutProps) {
   const isSessions = pathname === "/dashboard/sessions";
 
   const handleLogout = async () => {
-    await logout();
-    router.replace("/login");
+    if (signOutDestination.current) return;
+    const home = locale === "fa" ? "/fa" : "/";
+    signOutDestination.current = home;
+    setSignOutState("pending");
+    try {
+      await logout();
+      router.replace(home);
+    } catch {
+      signOutDestination.current = null;
+      setSignOutState("error");
+    }
   };
+  const signOutError = signOutState === "error" && (
+    <p className={styles.signOutError} role="alert">{t("Could not sign out. Try again.", "خروج از حساب انجام نشد. دوباره تلاش کنید.")}</p>
+  );
 
   return (
     <ChatUnreadProvider slug={slug}>
@@ -365,12 +391,14 @@ function DashboardShell({ children }: DashboardLayoutProps) {
             type="button"
             className={styles.signOutButton}
             onClick={handleLogout}
+            disabled={signOutState === "pending"}
           >
             <span className={styles.navIcon}>
               <LogoutIcon />
             </span>
             <span>{t("Sign out", "خروج از حساب")}</span>
           </button>
+          {signOutError}
 
           <div className={styles.userSummary}>
             <Avatar
@@ -450,12 +478,15 @@ function DashboardShell({ children }: DashboardLayoutProps) {
               icon={<MonitorIcon />}
             />
             <button
+              type="button"
               className={styles.signOutButton}
               onClick={handleLogout}
+              disabled={signOutState === "pending"}
               aria-label={t("Sign out", "خروج از حساب")}
             >
               <LogoutIcon />
             </button>
+            {signOutError}
           </nav>
         )}
         {children}

@@ -1,4 +1,5 @@
 
+from django import forms
 from django.contrib import admin
 
 from website.models import BlogPost, ContactMessage
@@ -71,6 +72,22 @@ class ContactMessageAdmin(admin.ModelAdmin):
         return False
 
 
+class BlogPostForm(forms.ModelForm):
+    class Meta:
+        model = BlogPost
+        fields = "__all__"
+        labels = {
+            "title_fa": "عنوان فارسی",
+            "excerpt_fa": "خلاصهٔ فارسی",
+            "content_fa": "متن فارسی (Markdown)",
+        }
+        widgets = {
+            "title_fa": forms.TextInput(attrs={"dir": "rtl", "lang": "fa", "size": 60}),
+            "excerpt_fa": forms.Textarea(attrs={"dir": "rtl", "lang": "fa", "rows": 3}),
+            "content_fa": forms.Textarea(attrs={"dir": "rtl", "lang": "fa", "rows": 16}),
+        }
+
+
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
     """
@@ -79,6 +96,8 @@ class BlogPostAdmin(admin.ModelAdmin):
     Only published posts with published_at <= now
     are exposed by the separate public Blog API.
     """
+
+    form = BlogPostForm
 
     list_display = (
         "title",
@@ -112,9 +131,9 @@ class BlogPostAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {"fields": ("id", "title", "slug", "excerpt", "content")}),
-        ("Persian translation", {
+        ("ترجمهٔ فارسی", {
             "fields": ("title_fa", "excerpt_fa", "content_fa"),
-            "description": "Provide a Persian title and article body to publish this language version.",
+            "description": "ترجمه را می‌توانید مرحله‌به‌مرحله ذخیره کنید. پس از تکمیل عنوان و متن فارسی، نسخهٔ فارسی نوشتهٔ منتشرشده نمایش داده می‌شود. خلاصه اختیاری است.",
         }),
         ("Publication", {"fields": ("status", "published_at", "created_at", "updated_at")}),
     )

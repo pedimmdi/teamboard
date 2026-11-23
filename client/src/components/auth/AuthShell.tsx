@@ -47,7 +47,16 @@ export default function AuthShell({ children }: AuthShellProps) {
       </aside>
 
       <section className={styles.formPanel}>
-        <div className={styles.preferences}><PreferencesControls compact /></div>
+        <div className={styles.formNav}>
+          <Link className={styles.homeLink} href={locale === "fa" ? "/fa" : "/"}>
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" width="18" height="18">
+              <path d="m3 9 7-6 7 6v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M8 17v-5h4v5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+            {t("Home", "خانه")}
+          </Link>
+          <PreferencesControls compact />
+        </div>
         <div className={styles.formContainer}>{children}</div>
       </section>
     </main>

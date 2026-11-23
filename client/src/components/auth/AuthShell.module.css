@@ -117,10 +117,29 @@
   padding: 100px clamp(20px, 5vw, 84px) 58px;
 }
 
-.preferences {
+.formNav {
   position: absolute;
   inset-block-start: 26px;
-  inset-inline-end: clamp(20px, 4vw, 48px);
+  inset-inline: clamp(20px, 4vw, 48px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.homeLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-block-size: 44px;
+  color: var(--text-secondary);
+  font-weight: 650;
+}
+
+.homeLink:hover {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .formContainer {
@@ -137,5 +156,5 @@
   }
   .brandContent p + p, .board { display: none; }
   .formPanel { padding-block: 80px 48px; }
-  .preferences { inset-block-start: 15px; }
+  .formNav { inset-block-start: 15px; }
 }

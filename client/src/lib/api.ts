@@ -1,9 +1,11 @@
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const INITIAL_READ_TIMEOUT = 10_000;
 
 type ApiOptions = RequestInit & {
   token?: string;
   responseType?: "blob";
+  timeoutMs?: number;
 };
 
 export type LoginResponse = {
@@ -40,7 +42,11 @@ function notifyAuthLogout() {
 }
 
 
-async function performRefresh(): Promise<string> {
+function connectionError() {
+  return new ApiError("Unable to connect to the server. Please try again.", 0);
+}
+
+async function performRefresh(signal: AbortSignal): Promise<string> {
   let response: Response;
 
   try {
@@ -48,6 +54,7 @@ async function performRefresh(): Promise<string> {
       `${API_URL}/api/v1/accounts/refresh/`,
       {
         method: "POST",
+        signal,
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -55,13 +62,11 @@ async function performRefresh(): Promise<string> {
       },
     );
   } catch {
-    throw new ApiError(
-      "Unable to connect to the server. Please try again.",
-      0,
-    );
+    throw connectionError();
   }
 
   const data = await parseResponse(response);
+  if (signal.aborted) throw connectionError();
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -99,24 +104,17 @@ function refreshAccessToken(): Promise<string> {
     return refreshPromise;
   }
 
-  const refresh: Promise<string> =
+  const signal = AbortSignal.timeout(INITIAL_READ_TIMEOUT);
+  const refresh =
     typeof navigator !== "undefined" &&
     typeof navigator.locks?.request === "function"
-      ? new Promise<string>((resolve, reject) => {
-          navigator.locks.request(
-            "teamboard:refresh",
-            async () => {
-              try {
-                resolve(await performRefresh());
-              } catch (error) {
-                reject(error);
-              }
-            },
-          ).catch(reject);
-        })
-      : performRefresh();
+      ? Promise.resolve(navigator.locks.request("teamboard:refresh", { signal }, () => performRefresh(signal)))
+      : performRefresh(signal);
 
-  const sharedRefresh = refresh.finally(() => {
+  const sharedRefresh = refresh.catch((error: unknown) => {
+    if (signal.aborted) throw connectionError();
+    throw error;
+  }).finally(() => {
     if (refreshPromise === sharedRefresh) {
       refreshPromise = null;
     }
@@ -216,8 +214,13 @@ export async function apiFetch<T>(
     token,
     headers,
     responseType,
+    timeoutMs,
     ...requestOptions
   } = options;
+  const deadline = timeoutMs && typeof AbortSignal !== "undefined" ? AbortSignal.timeout(timeoutMs) : undefined;
+  const signal = deadline && requestOptions.signal
+    ? AbortSignal.any([deadline, requestOptions.signal])
+    : deadline ?? requestOptions.signal;
 
   async function makeRequest(
     requestToken?: string,
@@ -225,6 +228,7 @@ export async function apiFetch<T>(
     try {
       return await fetch(`${API_URL}${path}`, {
         ...requestOptions,
+        signal,
         credentials: "include",
         headers: {
           ...(requestOptions.body instanceof FormData
@@ -239,10 +243,7 @@ export async function apiFetch<T>(
         },
       });
     } catch {
-      throw new ApiError(
-        "Unable to connect to the server. Please try again.",
-        0,
-      );
+      throw connectionError();
     }
   }
 
@@ -285,6 +286,7 @@ export async function apiFetch<T>(
   if (response.ok && responseType === "blob") return (await response.blob()) as T;
 
   const data = await parseResponse(response);
+  if (deadline?.aborted) throw connectionError();
 
   if (!response.ok) {
     throw new ApiError(
@@ -345,6 +347,7 @@ export function getCurrentUser(token: string) {
     {
       method: "GET",
       token,
+      timeoutMs: INITIAL_READ_TIMEOUT,
     },
   );
 }
@@ -547,6 +550,7 @@ export function getWorkspaces(
     {
       method: "GET",
       token,
+      timeoutMs: INITIAL_READ_TIMEOUT,
     },
   );
 }
@@ -565,6 +569,7 @@ export function getWorkspace(
     {
       method: "GET",
       token,
+      timeoutMs: INITIAL_READ_TIMEOUT,
     },
   );
   workspaceRequests.set(key, request);

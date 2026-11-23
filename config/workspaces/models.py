@@ -6,8 +6,10 @@ from pathlib import Path
 from django.conf import settings
 from django.db import models
 
-from accounts.validators import validate_avatar
 from django.db.models import Q
+
+from accounts.avatar_cleanup import AvatarCleanupMixin
+from accounts.validators import validate_avatar
 
 
 def generate_workspace_slug():
@@ -19,7 +21,7 @@ def workspaces_avatar_path(instance, filename):
     return f"workspaces/{instance.pk}/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
 
 
-class Workspace(models.Model):
+class Workspace(AvatarCleanupMixin, models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,

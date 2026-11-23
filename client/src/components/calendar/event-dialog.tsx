@@ -9,6 +9,8 @@ import {
   type CalendarEvent, type CalendarEventInput, type CalendarTimelineItem,
 } from "@/lib/api";
 import ProjectDialog from "@/app/dashboard/workspaces/[slug]/projects/project-dialog";
+import { iranInstant, iranWallClock, IRAN_TIME_ZONE } from "@/lib/iran-time";
+import { useLocale } from "@/lib/preferences";
 import { shiftDay, toggleEventDates } from "./calendar-dates";
 import styles from "./calendar.module.css";
 
@@ -18,6 +20,7 @@ type Props = {
   projectId?: string;
   item: CalendarTimelineItem | null;
   day: Date;
+  iranTime: boolean;
   canEditEvent: boolean;
   canDeleteEvent: boolean;
   onClose: () => void;
@@ -26,7 +29,8 @@ type Props = {
 
 export default function EventDialog(props: Props) {
   const { ui, formatDate } = useWorkspaceLocale();
-  const { token, slug, projectId, item, day, canEditEvent, canDeleteEvent, onClose, onSaved } = props;
+  const { t } = useLocale();
+  const { token, slug, projectId, item, day, iranTime, canEditEvent, canDeleteEvent, onClose, onSaved } = props;
   const id = item?.id;
   const [result, setResult] = useState<{ event?: CalendarEvent; error?: string }>();
   const [revision, setRevision] = useState(0);
@@ -76,8 +80,9 @@ export default function EventDialog(props: Props) {
 
   const event = result?.event;
   const dayKey = day.toISOString().slice(0, 10);
-  const defaultStart = event ? new Date(event.starts_at).toISOString().slice(0, 16) : `${dayKey}T09:00`;
-  const defaultEnd = event ? new Date(event.ends_at).toISOString().slice(0, 16) : `${dayKey}T10:00`;
+  const eventInput = (instant: string) => iranTime && !event?.all_day ? iranWallClock(instant) : new Date(instant).toISOString().slice(0, 16);
+  const defaultStart = event ? eventInput(event.starts_at) : `${dayKey}T09:00`;
+  const defaultEnd = event ? eventInput(event.ends_at) : `${dayKey}T10:00`;
 
   const [startInput, endInput] = dates ?? (allDay
     ? toggleEventDates(defaultStart, defaultEnd, true)
@@ -89,11 +94,12 @@ export default function EventDialog(props: Props) {
     const fields = new FormData(formEvent.currentTarget);
     const start = String(fields.get("start"));
     const end = String(fields.get("end"));
-    const startsAt = new Date(allDay ? `${start}T00:00Z` : `${start}Z`);
-    const endsAt = allDay ? shiftDay(new Date(`${end}T00:00Z`), 1) : new Date(`${end}Z`);
+    const timedInstant = (input: string) => iranTime ? iranInstant(input) : new Date(`${input}Z`);
+    const startsAt = allDay ? new Date(`${start}T00:00Z`) : timedInstant(start);
+    const endsAt = allDay ? shiftDay(new Date(`${end}T00:00Z`), 1) : timedInstant(end);
     const destination = projectId ?? String(fields.get("project") ?? "");
     const title = String(fields.get("title")).trim();
-    if (!destination || !title || !(endsAt > startsAt)) {
+    if (!destination || !title || !startsAt || !endsAt || !(endsAt > startsAt)) {
       setError("Enter a title and an end after the start.");
       return;
     }
@@ -156,9 +162,11 @@ export default function EventDialog(props: Props) {
         </div>
       ) : !canEditEvent && event ? (
         <div className={styles.form}>
-          <p>{event.all_day ? ui("All day · ") : ""}{formatDate(event.starts_at, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })} – {
-            formatDate(event.all_day ? shiftDay(new Date(event.ends_at), -1) : event.ends_at, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" })
-          } UTC</p>
+          <p>{event.all_day ? ui("All day · ") : ""}{formatDate(event.starts_at, {
+            dateStyle: "medium", timeStyle: event.all_day ? undefined : "short", timeZone: iranTime && !event.all_day ? IRAN_TIME_ZONE : "UTC",
+          })} – {formatDate(event.all_day ? shiftDay(new Date(event.ends_at), -1) : event.ends_at, {
+            dateStyle: "medium", timeStyle: event.all_day ? undefined : "short", timeZone: iranTime && !event.all_day ? IRAN_TIME_ZONE : "UTC",
+          })}{!event.all_day && <> · {iranTime ? t("Iran time", "وقت ایران") : "UTC"}</>}</p>
           {event.description && <p className={styles.description}>{event.description}</p>}
           <Link href={`/dashboard/workspaces/${encodeURIComponent(slug)}/projects/${projectId}/calendar`}>{ui("Open project calendar")}</Link>
         </div>
@@ -187,11 +195,11 @@ export default function EventDialog(props: Props) {
             setAllDay(next);
           }} /> {ui("All day")}</label>
           <div className={styles.dateFields}>
-            <label>{allDay ? ui("First day (UTC)") : ui("Starts at (UTC)")}
+            <label>{allDay ? ui("First day (UTC)") : iranTime ? t("Starts at (Iran time)", "شروع (به وقت ایران)") : ui("Starts at (UTC)")}
               <input key={`start-${allDay}`} required name="start" type={allDay ? "date" : "datetime-local"}
                 value={startInput} onChange={(e) => setDates([e.target.value, endInput])} />
             </label>
-            <label>{allDay ? ui("Last day (UTC)") : ui("Ends at (UTC)")}
+            <label>{allDay ? ui("Last day (UTC)") : iranTime ? t("Ends at (Iran time)", "پایان (به وقت ایران)") : ui("Ends at (UTC)")}
               <input key={`end-${allDay}`} required name="end" type={allDay ? "date" : "datetime-local"}
                 value={endInput} onChange={(e) => setDates([startInput, e.target.value])} />
             </label>

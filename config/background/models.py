@@ -8,6 +8,7 @@ class BackgroundJob(models.Model):
         EMAIL = "email", "Email"
         COMMENT_FILE = "comment_file", "Comment file deletion"
         CHAT_ATTACHMENT = "chat_attachment", "Deleted chat attachment"
+        AVATAR_FILE = "avatar_file", "Avatar file deletion"
     class State(models.TextChoices):
         PENDING = "pending", "Pending"
         DONE = "done", "Done"
