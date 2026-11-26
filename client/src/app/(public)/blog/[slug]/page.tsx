@@ -4,7 +4,7 @@ import Markdown from "react-markdown";
 import { notFound } from "next/navigation";
 import { WebsiteIcon } from "@/components/website/website-icons";
 import { getLocale } from "@/lib/server-preferences";
-import { publicMetadata, jsonLd, siteUrl, websitePath, websiteDate } from "@/lib/website";
+import { articleDescription, publicMetadata, jsonLd, siteUrl, websitePath, websiteDate } from "@/lib/website";
 import { post } from "@/lib/website-data";
 import { websiteCopy } from "@/lib/website-copy";
 import styles from "../../website.module.css";
@@ -18,7 +18,9 @@ export async function generateMetadata({ params }: ArticleProps) {
     const item = await read(slug, locale);
     const translated = item.has_persian_translation;
     const defaultLocale = locale === "fa" && !translated ? "en" : locale;
-    const metadata = publicMetadata(item.title, item.excerpt, `/blog/${encodeURIComponent(slug)}`, defaultLocale, translated);
+    const description = articleDescription(item.title, item.excerpt, defaultLocale);
+    const canonical = `/blog/${encodeURIComponent(item.slug)}`;
+    const metadata = publicMetadata(item.title, description, canonical, defaultLocale, translated);
     return {
       ...metadata,
       robots: defaultLocale === locale ? undefined : { index: false, follow: true },
@@ -58,7 +60,7 @@ export default async function Article({ params }: ArticleProps) {
                 {
                   "@type": "BlogPosting",
                   headline: item.title,
-                  description: item.excerpt,
+                  description: articleDescription(item.title, item.excerpt, contentLocale),
                   image: siteUrl + "/opengraph-image",
                   datePublished: item.published_at,
                   dateModified: item.updated_at,

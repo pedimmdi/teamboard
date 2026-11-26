@@ -74,6 +74,10 @@ jobs:
           python manage.py spectacular --validate --fail-on-warn --file /tmp/schema.yml
           python -m coverage run -m pytest -v
 
+      - name: Check coverage of core backend apps
+        working-directory: config
+        run: python -m coverage report --include="accounts/*,background/*,projects/*,tasks/*,workspaces/*" --fail-under=85
+
       - name: Generate backend coverage reports
         if: ${{ !cancelled() }}
         working-directory: config
@@ -111,6 +115,9 @@ jobs:
 
       - name: Run lint
         run: npm run lint
+
+      - name: Run TypeScript checks
+        run: npm run typecheck
 
       - name: Run frontend tests with coverage
         run: npm run test:coverage

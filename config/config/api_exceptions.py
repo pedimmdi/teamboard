@@ -1,10 +1,13 @@
 from django.db import IntegrityError, OperationalError
 from django.db.models.deletion import ProtectedError
+from django.http import JsonResponse
+from django.views import defaults
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
-
-MANAGER_REQUIRED = "Assign another manager before removing this user from the workspace."
+MANAGER_REQUIRED = (
+    "Assign another manager before removing this user from the workspace."
+)
 
 
 def api_exception_handler(exc, context):
@@ -26,6 +29,43 @@ def api_exception_handler(exc, context):
         }
         if constraint in messages:
             return Response({"detail": messages[constraint]}, status=409)
-    if isinstance(exc, OperationalError) and getattr(cause, "sqlstate", None) in {"40P01", "40001", "55P03"}:
-        return Response({"detail": "Membership changed concurrently. Please retry the request."}, status=409)
+    if isinstance(exc, OperationalError) and getattr(cause, "sqlstate", None) in {
+        "40P01",
+        "40001",
+        "55P03",
+    }:
+        return Response(
+            {"detail": "Membership changed concurrently. Please retry the request."},
+            status=409,
+        )
     return exception_handler(exc, context)
+
+
+def _is_api_request(request):
+    return request.path_info == "/api" or request.path_info.startswith("/api/")
+
+
+def bad_request(request, exception):
+    if _is_api_request(request):
+        return JsonResponse({"detail": "Bad request."}, status=400)
+    return defaults.bad_request(request, exception)
+
+
+def permission_denied(request, exception):
+    if _is_api_request(request):
+        return JsonResponse({"detail": "Permission denied."}, status=403)
+    return defaults.permission_denied(request, exception)
+
+
+def page_not_found(request, exception):
+    if _is_api_request(request):
+        return JsonResponse({"detail": "Not found."}, status=404)
+    return defaults.page_not_found(request, exception)
+
+
+def server_error(request):
+    if _is_api_request(request):
+        return JsonResponse(
+            {"detail": "Something went wrong. Please try again."}, status=500
+        )
+    return defaults.server_error(request)

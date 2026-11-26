@@ -1,5 +1,37 @@
 # Measured performance review
 
+## Public home responsiveness
+
+The home page renders its hero and feature overview while the optional latest-articles section loads. The section preserves the localized loading, empty and unavailable states. The anonymous listing cache still coalesces simultaneous reads. Public navigation and the home page's secondary links fetch their destinations when activated, following a trace that showed duplicate speculative requests for About, Blog and Contact.
+
+An isolated loopback probe observed the following on cold home requests with a synthetic API delayed by 1,000 ms. Each row uses one request in the same locale order before and after. The article still arrives when the upstream response completes.
+
+| Home route | TTFB before | TTFB after | Hero before | Hero after |
+| --- | ---: | ---: | ---: | ---: |
+| English | 1,239 ms | 208 ms | 1,242 ms | 210 ms |
+| Persian | 1,037 ms | 25 ms | 1,037 ms | 25 ms |
+
+Run the bounded read-only k6 scenario against the local browser fixture servers on ports 3100 and 8100:
+
+```sh
+k6 run --summary-export=artifacts/k6-public.json scripts/benchmark-public.k6.js
+```
+
+It mixes eight HTML and five API requests per second for 30 seconds after warming public routes. The script checks status and content type, reports dropped iterations, and measures server response time separately for each scenario. It exercises only loopback targets and anonymous GETs. The browser suite checks rendering, navigation and input behavior separately. [k6 metric reference](https://grafana.com/docs/k6/latest/using-k6/metrics/reference/)
+
+The local k6 2.4.0 run completed 392 measured iterations and seven warm-up requests. All checks passed. There were zero HTTP failures and zero dropped iterations. The p95 TTFB was 12.66 ms for the HTML scenario and 46.51 ms for the API scenario. Results describe the seeded PostgreSQL fixture and warmed public cache.
+
+| Home route | Lighthouse mode | Performance | SEO | LCP | CLS | Requests |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| English | Mobile | 99 | 100 | 1.07 s | 0.00002 | 21 |
+| Persian | Mobile | 98 | 100 | 1.06 s | 0.00215 | 23 |
+| English | Desktop | 100 | 100 | 0.25 s | 0.00002 | 21 |
+| Persian | Desktop | 100 | 100 | 0.26 s | 0.00403 | 23 |
+
+The Lighthouse 13.6.0 runs used Chrome against the built app and disposable backend. Before disabling the speculative navigation requests, the corresponding counts were 27 for English and 29 for Persian. The remaining account refresh check preserves signed-in navigation across full reloads.
+
+Use Lighthouse's mobile and desktop presets for lab LCP, CLS, SEO, performance and Total Blocking Time. Field Core Web Vitals use the 75th percentile of real visits segmented by device. Lighthouse reports Total Blocking Time as a lab proxy for responsiveness. [Core Web Vitals](https://web.dev/articles/vitals)
+
 ## Database and cache audit
 
 This review uses disposable PostgreSQL 17 fixtures and checks the same endpoint responses and access scopes before and after changes. The detailed SQL probes measure result-set bytes separately from the JSON response. Existing query-budget tests cover single-item and full-page reads.

@@ -2,6 +2,8 @@
 
 TeamBoard is a bilingual project workspace for planning work, tracking tasks, and discussing decisions in context. It uses Next.js and React for the interface, Django REST Framework for the API, PostgreSQL for application data, and Redis and Celery for live updates and background work.
 
+See [architecture and configuration](docs/architecture.md) for the request flow, API conventions and environment variable reference.
+
 ## What you can do
 
 - **Browse the public website** in English at `/` or Persian at `/fa`. Both versions include About, Contact, Blog, Privacy and Terms. The header offers **Open dashboard** when you are signed in. Signing out returns you to the home page in your selected language.
@@ -119,9 +121,12 @@ Run the frontend checks from `client/`.
 ```sh
 npm ci
 npm run lint
+npm run typecheck
 npm test
 npm run build
 ```
+
+See [frontend performance, SEO and quality](docs/frontend-quality.md) for the route and cache inventory, bundle analysis, local Lighthouse checks and the pre-commit hook.
 
 For browser verification, use an isolated PostgreSQL database named `teamboard_e2e` and dedicated Redis. Set `POSTGRES_DB`, matching connection details and `E2E_PASSWORD`. Set `E2E_PYTHON` to the virtual environment interpreter if necessary. From `client/` run `npx playwright install chromium` and `npm run test:e2e`. The runner starts Django on port 8100 and the production frontend on port 3100. Set `E2E_BROWSER_CHANNEL=chrome` or `msedge` to use the installed browser.
 

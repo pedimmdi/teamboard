@@ -1,12 +1,4 @@
 @font-face {
-  font-family: "Inter";
-  src: url("/fonts/open/inter-latin-wght-normal.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-}
-
-@font-face {
   font-family: "Vazirmatn";
   src: url("/fonts/open/vazirmatn-arabic-wght-normal.woff2") format("woff2");
   font-style: normal;
@@ -43,8 +35,8 @@
 :root {
   color-scheme: light;
 
-  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-persian: "Vazirmatn", "Inter", "Noto Sans Arabic", Tahoma, Arial, sans-serif;
+  --font-ui: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-persian: "Vazirmatn", var(--font-inter), "Noto Sans Arabic", Tahoma, Arial, sans-serif;
   --font-display: var(--font-ui);
 
   --primary: #126853;
@@ -151,7 +143,7 @@
 }
 
 :root[data-iran-sans] {
-  --font-persian: "IranSansX", "Vazirmatn", "Inter", "Noto Sans Arabic", Tahoma, Arial, sans-serif;
+  --font-persian: "IranSansX", "Vazirmatn", var(--font-inter), "Noto Sans Arabic", Tahoma, Arial, sans-serif;
 }
 
 :root[lang="fa"] {

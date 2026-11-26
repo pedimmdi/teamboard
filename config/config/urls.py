@@ -14,16 +14,21 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
+
 from django.conf import settings
 from django.conf.urls.static import static
-from django.urls import path, include
-
+from django.contrib import admin
+from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+
+handler400 = "config.api_exceptions.bad_request"
+handler403 = "config.api_exceptions.permission_denied"
+handler404 = "config.api_exceptions.page_not_found"
+handler500 = "config.api_exceptions.server_error"
 
 urlpatterns = [
     path("admin/", admin.site.urls),

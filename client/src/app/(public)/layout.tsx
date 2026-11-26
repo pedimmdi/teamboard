@@ -27,7 +27,7 @@ export default async function PublicLayout({ children }: { children: React.React
         <div className={styles.headerInner}>
           {brand}
           <nav className={styles.nav} aria-label={copy.nav}>
-            {primaryLinks.map((page) => <Link key={page} href={websitePath(`/${page}`, locale)}>{copy[page]}</Link>)}
+            {primaryLinks.map((page) => <Link key={page} href={websitePath(`/${page}`, locale)} prefetch={false}>{copy[page]}</Link>)}
           </nav>
           <div className={styles.headerActions}>
             <WebsitePreferences locale={locale} />
@@ -43,7 +43,7 @@ export default async function PublicLayout({ children }: { children: React.React
             <p>{copy.tagline}</p>
           </div>
           <nav aria-label={copy.footerNav}>
-            {footerLinks.map((page) => <Link key={page} href={websitePath(`/${page}`, locale)}>{copy[page]}</Link>)}
+            {footerLinks.map((page) => <Link key={page} href={websitePath(`/${page}`, locale)} prefetch={false}>{copy[page]}</Link>)}
           </nav>
           <small>© {new Intl.NumberFormat(locale, { useGrouping: false }).format(new Date().getUTCFullYear())} <bdi>TeamBoard</bdi></small>
         </div>

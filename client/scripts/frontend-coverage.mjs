@@ -9,6 +9,7 @@ const result = spawnSync(process.execPath, [
   "--enable-source-maps",
   "--experimental-test-coverage",
   "--test-coverage-include=src/**",
+  "--test-coverage-lines=70",
   "--test-reporter=spec",
   "--test-reporter-destination=stdout",
   "--test-reporter=lcov",

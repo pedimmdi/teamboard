@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { PublicStart } from "@/components/website/public-auth";
 import PostList from "@/components/website/post-list";
 import BrandMark from "@/components/ui/BrandMark";
@@ -54,10 +55,17 @@ function WorkspacePreview({ locale }: { locale: WebsiteLocale }) {
   );
 }
 
+async function LatestArticles({ locale }: { locale: WebsiteLocale }) {
+  const copy = websiteCopy[locale];
+  const articles = await posts(1, 3, locale).catch(() => null);
+  if (!articles) return <p>{copy.unableArticles}</p>;
+  if (!articles.results.length) return <p>{copy.noArticles}</p>;
+  return <PostList items={articles.results} locale={locale} headingLevel={3} />;
+}
+
 export default async function Home() {
   const locale = await getLocale();
   const copy = websiteCopy[locale];
-  const articles = await posts(1, 3, locale).catch(() => null);
   const homeUrl = siteUrl + websitePath("/", locale);
 
   return (
@@ -82,7 +90,7 @@ export default async function Home() {
             <p>{copy.heroBody}</p>
             <div className={styles.actions}>
               <PublicStart locale={locale}>{copy.heroAction}<WebsiteIcon name="arrow" className={styles.arrow} /></PublicStart>
-              <Link className={styles.secondary} href={websitePath("/about", locale)}>{copy.explore}</Link>
+              <Link className={styles.secondary} href={websitePath("/about", locale)} prefetch={false}>{copy.explore}</Link>
             </div>
           </div>
           <WorkspacePreview locale={locale} />
@@ -104,9 +112,11 @@ export default async function Home() {
         <div className={styles.section}>
           <div className={styles.sectionTitle}>
             <h2>{copy.latestArticles}</h2>
-            <Link className={styles.textLink} href={websitePath("/blog", locale)}>{copy.allArticles}<WebsiteIcon name="arrow" className={styles.arrow} /></Link>
+            <Link className={styles.textLink} href={websitePath("/blog", locale)} prefetch={false}>{copy.allArticles}<WebsiteIcon name="arrow" className={styles.arrow} /></Link>
           </div>
-          {articles?.results.length ? <PostList items={articles.results} locale={locale} headingLevel={3} /> : <p>{articles ? copy.noArticles : copy.unableArticles}</p>}
+          <Suspense fallback={<p role="status">{copy.loadingArticles}</p>}>
+            <LatestArticles locale={locale} />
+          </Suspense>
         </div>
       </section>
       <section className={styles.section}>

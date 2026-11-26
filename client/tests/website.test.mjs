@@ -23,6 +23,13 @@ test("public metadata is canonical and structured data cannot break out of its s
   assert.equal(meta.alternates.canonical, "/blog?page=2");
   assert.equal(meta.openGraph.url, "/blog?page=2");
   assert.equal(meta.alternates.languages, undefined);
+  assert.equal(meta.twitter.images[0].alt, "TeamBoard");
+});
+
+test("articles with optional excerpts still have localized descriptions", () => {
+  assert.equal(website.articleDescription("A clearer workflow", " A preview ", "en"), "A preview");
+  assert.equal(website.articleDescription("A clearer workflow", "", "en"), "Read “A clearer workflow” on the TeamBoard blog.");
+  assert.equal(website.articleDescription("روالی روشن‌تر", "  ", "fa"), "روالی روشن‌تر را در وبلاگ تیم‌برد بخوانید.");
 });
 
 test("Persian pages are self-canonical with reciprocal language metadata", () => {

@@ -1,8 +1,30 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
+import { loadSource } from "./load-source.mjs";
 
 const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+
+test("Persian font preload follows the installed family and the explicit fallback", () => {
+  function assets(flag, files) {
+    const source = loadSource("../src/lib/persian-font.ts", {
+      process: { env: { IRANSANSX_WEBFONT: flag }, cwd: () => "." },
+      require: (name) => name === "node:path" ? { join } : {
+        existsSync: (path) => files.some((file) => path.endsWith(file)),
+      },
+    });
+    return source.persianFontAssets();
+  }
+
+  const installed = ["faces.css", "IRANSansXFaNum-Regular.woff2"];
+  assert.equal(assets(undefined, installed).regularHref, "/fonts/iransansx/IRANSansXFaNum-Regular.woff2");
+  assert.equal(assets("1", installed.slice(1)).enabled, true);
+  assert.equal(assets("1", []).regularHref, null);
+  assert.equal(assets(undefined, []).regularHref, "/fonts/open/vazirmatn-arabic-wght-normal.woff2");
+  assert.equal(assets("0", installed).stylesheet, false);
+  assert.equal(assets("0", installed).regularHref, "/fonts/open/vazirmatn-arabic-wght-normal.woff2");
+});
 
 function tokens(block) {
   return Object.fromEntries([...block.matchAll(/--([\w-]+): (#\w{6});/g)].map(([, name, color]) => [name, color]));

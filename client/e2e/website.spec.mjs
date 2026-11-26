@@ -8,6 +8,7 @@ test("public website is accessible, searchable and supports safe articles and co
  });
  await page.goto("/");
  await expect(page.getByRole("heading",{level:1})).toContainText("Ship together");
+ await expect(page.getByRole("heading", { name: "Website article 0" })).toBeVisible();
  await expect(page.getByRole("navigation",{name:"Main navigation"})).toBeVisible();
  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content",/TeamBoard/);
  console.log("landing_lab_metrics",await page.evaluate(()=>({paint:window.websiteMetrics,dom_ready_ms:performance.getEntriesByType("navigation")[0]?.domContentLoadedEventEnd,js_transfer_bytes:performance.getEntriesByType("resource").filter(r=>r.name.includes(".js")).reduce((sum,r)=>sum+r.encodedBodySize,0)})));
@@ -33,6 +34,11 @@ test("public website is accessible, searchable and supports safe articles and co
  await page.route("**/api/v1/website/contact/",route=>route.fulfill({status:code,headers:{"Retry-After":"60","Access-Control-Expose-Headers":"Retry-After"},contentType:"application/json",body:JSON.stringify({email:["Check your email address."]})}));
  for(const [status,message] of [[400,"highlighted"],[413,"too large"],[429,"wait 60 seconds"]]){code=status;await page.getByRole("button",{name:"Send message",exact:true}).click();await expect(page.locator("form").getByRole("alert")).toContainText(message);await expect(page.getByLabel("Your name")).toHaveValue("Website tester");}
  await page.unroute("**/api/v1/website/contact/");
+ await page.route("**/api/v1/website/contact/", route => route.abort("timedout"));
+ await page.getByRole("button", { name: "Send message", exact: true }).click();
+ await expect(page.locator("form").getByRole("alert")).toContainText("Unable to connect");
+ await expect(page.getByLabel("Message", { exact: true })).toHaveValue("A browser test enquiry.");
+ await page.unroute("**/api/v1/website/contact/");
  await page.getByRole("button",{name:"Send message",exact:true}).click();
  await expect(page.locator("form").getByRole("status")).toContainText("has been received");
  await page.setViewportSize({width:390,height:844});
@@ -46,7 +52,13 @@ test("public translations have independent SEO and readable desktop and mobile l
   test.setTimeout(120_000);
   const landing = await request.get("/fa");
   expect(landing.ok()).toBe(true);
-  expect(await landing.text()).toMatch(/<html[^>]*lang="fa"[^>]*dir="rtl"/);
+  const landingHtml = await landing.text();
+  expect(landingHtml).toMatch(/<html[^>]*lang="fa"[^>]*dir="rtl"/);
+  if (process.env.IRANSANSX_WEBFONT !== "1" || landingHtml.includes("/fonts/iransansx/faces.css")) {
+    expect(landingHtml).toMatch(/<link(?=[^>]*rel="preload")(?=[^>]*as="font")[^>]*href="\/fonts\/(?:iransansx\/IRANSansXFaNum-Regular|open\/vazirmatn-arabic-wght-normal)\.woff2"/);
+  }
+  const englishHtml = await (await request.get("/")).text();
+  expect(englishHtml).not.toMatch(/<link(?=[^>]*rel="preload")(?=[^>]*as="font")[^>]*href="\/fonts\//);
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");

@@ -39,6 +39,7 @@ export default function ContactForm({ locale, retentionDays }: { locale: Website
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
           credentials: "omit",
+          signal: AbortSignal.timeout(15_000),
         },
       );
       if (response.status === 413) {

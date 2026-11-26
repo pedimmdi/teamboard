@@ -4,6 +4,7 @@ import { useWorkspaceLocale } from "@/lib/workspace-locale";
 import { useTransientMessage } from "@/hooks/use-transient-message";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ApiError,
@@ -25,7 +26,6 @@ import { projectPermissions } from "../../project-utils";
 import AssigneePicker from "./assignee-picker";
 import TaskActions from "./task-actions";
 import TaskDialog from "./task-dialog";
-import TaskDrawer from "./task-drawer";
 import TaskForm from "./task-form";
 import TaskFiltersDialog, { orderingLabels } from "./task-filters";
 import TaskIcon from "./task-icons";
@@ -45,6 +45,16 @@ import {
 } from "./task-utils";
 import styles from "./tasks.module.css";
 import { moveTaskToPosition } from "./task-moves";
+
+function TaskDrawerLoading() {
+  const { ui } = useWorkspaceLocale();
+  return <span className={styles.srOnly} role="status">{ui("Loading task…")}</span>;
+}
+
+const TaskDrawer = dynamic(() => import("./task-drawer"), {
+  ssr: false,
+  loading: TaskDrawerLoading,
+});
 
 type Column = PaginatedTasks & { page: number };
 type Move = { task: Task; status: TaskStatus; first: boolean };
