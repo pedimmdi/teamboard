@@ -148,6 +148,21 @@ class NotificationAPITests(TestCase):
             read_at=timezone.now() if read else None,
         )
 
+    def test_list_fetches_related_display_fields_in_the_page_query(self):
+        readings = [self.make_notification() for _ in range(8)]
+        with self.assertNumQueries(2) as queries:
+            response = self.client.get(self.list_url, {"page_size": 5})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 8)
+        self.assertEqual(len(response.data["results"]), 5)
+        latest = response.data["results"][0]
+        self.assertEqual(latest["id"], str(readings[-1].pk))
+        self.assertEqual(latest["task_title"], self.task.title)
+        self.assertEqual(latest["workspace_name"], self.workspace.name)
+        self.assertEqual(latest["project_name"], self.project.name)
+        self.assertNotIn('"tasks_task"."description"', queries.captured_queries[-1]["sql"])
+
     def test_list_requires_authentication(self):
         self.client.force_authenticate(user=None)
 

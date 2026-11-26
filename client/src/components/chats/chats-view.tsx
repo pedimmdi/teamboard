@@ -36,17 +36,22 @@ export default function ChatsView({ slug, projectId }: { slug: string; projectId
         if (!response.next) break;
       }
       const projects: Project[] = [];
+      const direct: ChatConversation[] = [];
       if (!projectId) {
         for (let page = 1; !cancelled; page++) {
           const response = await getProjects(accessToken!, slug, page);
           projects.push(...response.results);
           if (!response.next) break;
         }
+        for (let page = 1; !cancelled; page++) {
+          const response = await getDirectChats(accessToken!, slug, page);
+          direct.push(...response.results);
+          if (!response.next) break;
+        }
       }
-      const [direct, projectChat] = await Promise.all([
-        projectId ? Promise.resolve([]) : getDirectChats(accessToken!, slug),
-        projectId ? getProjectChat(accessToken!, slug, projectId) : Promise.resolve(undefined),
-      ]);
+      const projectChat = projectId && !cancelled
+        ? await getProjectChat(accessToken!, slug, projectId)
+        : undefined;
       if (!cancelled) {
         setResult({ key, members, projects, direct, projectChat });
         setError("");

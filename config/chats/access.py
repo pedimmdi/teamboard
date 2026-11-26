@@ -54,10 +54,10 @@ def get_conversation_or_404(*, workspace_slug, conversation_id, actor):
         if conversation.project_id is None:
             raise Http404
 
-        get_project_chat_access(
+        get_workspace_project_membership_or_404(
             workspace_slug=workspace_slug,
             project_id=conversation.project_id,
-            actor=actor,
+            user=actor,
         )
     elif conversation.type == Conversation.Type.DIRECT:
         if actor.pk not in (

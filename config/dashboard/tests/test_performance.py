@@ -60,6 +60,9 @@ class DashboardPerformanceTests(TestCase):
             response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, 200)
+        for query in queries:
+            self.assertNotIn('"tasks_task"."description"', query["sql"])
+            self.assertNotIn('"calendars_calendarevent"."description"', query["sql"])
 
         return len(queries), response.data
 

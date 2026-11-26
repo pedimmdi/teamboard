@@ -79,6 +79,8 @@ Public pages render on the server with language alternates, canonical links and 
 
 The frontend authenticates with bearer access tokens and an HTTP-only refresh cookie. Workspace Owners and Admins can manage project access. Project Managers manage their projects. Project Members can work on tasks and discussions they can access.
 
+The dashboard's Home link opens the public site in the selected language. Request `accounts/sessions/?page=1` for a paginated device inventory or `workspaces/<slug>/chats/direct/?page=1` for paginated direct conversations. On these routes, requests without pagination parameters return an array of up to 100 records. `X-Total-Count` gives the total and `Link` points to the next page when available.
+
 Each current task has a project-eligible assignee. Removing a member transfers tasks to an eligible remaining manager in the same transaction. Without a remaining manager, removal is rejected. The historical report field `unassigned_tasks` remains available for compatibility.
 
 Comments accept Markdown-free text with optional `reply_to` and one multipart attachment. A reply navigates to its source and briefly highlights it. Comment and chat attachments use authorization-checked download endpoints. Chat unread pointers advance monotonically and synchronize across sessions. The navbar displays counts up to ten, then `+10`.

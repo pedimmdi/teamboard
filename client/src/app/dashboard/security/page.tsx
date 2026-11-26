@@ -5,48 +5,11 @@ import { localizeAccountMessage } from "@/lib/account-message";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import PasswordField from "@/components/auth/PasswordField";
 import { changePassword } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 import styles from "../dashboard.module.css";
-
-function EyeIcon({ visible }: { visible: boolean }) {
-  if (visible) {
-    return (
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path
-          d="M2.5 10C4.3 6.8 6.8 5 10 5C13.2 5 15.7 6.8 17.5 10C15.7 13.2 13.2 15 10 15C6.8 15 4.3 13.2 2.5 10Z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-        <circle cx="10" cy="10" r="2.25" stroke="currentColor" strokeWidth="1.5" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M3 3L17 17"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 7.1C3.4 7.9 2.9 8.9 2.5 10C4.3 13.2 6.8 15 10 15C11.1 15 12.1 14.8 13 14.3"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M7.1 4.8C8 4.3 8.9 4 10 4C13.2 4 15.7 5.8 17.5 9C17.1 9.8 16.7 10.5 16.2 11.1"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 function AlertIcon() {
   return (
@@ -97,10 +60,6 @@ export default function SecurityPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -178,91 +137,42 @@ export default function SecurityPage() {
           </div>
 
           <div className={styles.passwordFields}>
-            <label className={styles.field}>
-              <span>{t("Current password", "گذرواژه فعلی")}</span>
-
-              <div className={styles.passwordInput}>
-                <input
-                  type={showCurrentPassword ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(event) =>
-                    setCurrentPassword(event.target.value)
-                  }
-                  autoComplete="current-password"
-                />
-
-                <button
-                  type="button"
-                  className={styles.visibilityButton}
-                  onClick={() =>
-                    setShowCurrentPassword((current) => !current)
-                  }
-                  aria-label={
-                    showCurrentPassword
-                      ? t("Hide current password", "پنهان کردن گذرواژه فعلی")
-                      : t("Show current password", "نمایش گذرواژه فعلی")
-                  }
-                >
-                  <EyeIcon visible={showCurrentPassword} />
-                </button>
-              </div>
-            </label>
-
-            <label className={styles.field}>
-              <span>{t("New password", "گذرواژه جدید")}</span>
-
-              <div className={styles.passwordInput}>
-                <input
-                  type={showNewPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(event) => setNewPassword(event.target.value)}
-                  autoComplete="new-password"
-                />
-
-                <button
-                  type="button"
-                  className={styles.visibilityButton}
-                  onClick={() => setShowNewPassword((current) => !current)}
-                  aria-label={
-                    showNewPassword
-                      ? t("Hide new password", "پنهان کردن گذرواژه جدید")
-                      : t("Show new password", "نمایش گذرواژه جدید")
-                  }
-                >
-                  <EyeIcon visible={showNewPassword} />
-                </button>
-              </div>
-            </label>
-
-            <label className={styles.field}>
-              <span>{t("Confirm new password", "تکرار گذرواژه جدید")}</span>
-
-              <div className={styles.passwordInput}>
-                <input
-                  type={showPasswordConfirm ? "text" : "password"}
-                  value={passwordConfirm}
-                  onChange={(event) =>
-                    setPasswordConfirm(event.target.value)
-                  }
-                  autoComplete="new-password"
-                />
-
-                <button
-                  type="button"
-                  className={styles.visibilityButton}
-                  onClick={() =>
-                    setShowPasswordConfirm((current) => !current)
-                  }
-                  aria-label={
-                    showPasswordConfirm
-                      ? t("Hide password confirmation", "پنهان کردن تکرار گذرواژه")
-                      : t("Show password confirmation", "نمایش تکرار گذرواژه")
-                  }
-                >
-                  <EyeIcon visible={showPasswordConfirm} />
-                </button>
-              </div>
-            </label>
+            <PasswordField
+              id="current-password"
+              name="current_password"
+              label={t("Current password", "گذرواژه فعلی")}
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              autoComplete="current-password"
+              visibilityLabels={{
+                show: t("Show current password", "نمایش گذرواژه فعلی"),
+                hide: t("Hide current password", "پنهان کردن گذرواژه فعلی"),
+              }}
+            />
+            <PasswordField
+              id="new-password"
+              name="new_password"
+              label={t("New password", "گذرواژه جدید")}
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              autoComplete="new-password"
+              visibilityLabels={{
+                show: t("Show new password", "نمایش گذرواژه جدید"),
+                hide: t("Hide new password", "پنهان کردن گذرواژه جدید"),
+              }}
+            />
+            <PasswordField
+              id="confirm-new-password"
+              name="password_confirm"
+              label={t("Confirm new password", "تکرار گذرواژه جدید")}
+              value={passwordConfirm}
+              onChange={(event) => setPasswordConfirm(event.target.value)}
+              autoComplete="new-password"
+              visibilityLabels={{
+                show: t("Show password confirmation", "نمایش تکرار گذرواژه"),
+                hide: t("Hide password confirmation", "پنهان کردن تکرار گذرواژه"),
+              }}
+            />
           </div>
 
           <div className={styles.requirements}>

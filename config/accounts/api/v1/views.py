@@ -23,6 +23,7 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     inline_serializer,
 )
+from config.api_pagination import LegacyArrayPagination
 from .serializers import (
     LoginSerializer,
     SessionRefreshTokenSerializer,
@@ -441,8 +442,19 @@ class ResendVerificationEmailView(APIView):
         )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        description=(
+            "Lists the authenticated user's active sessions newest first. "
+            "Pass page or page_size for the paginated object. Requests without those parameters "
+            "return a legacy array of up to 100 sessions, X-Total-Count, and a Link to page 2 "
+            "when more results exist. The Link preserves the 100-session page size."
+        ),
+    ),
+)
 class SessionListView(generics.ListAPIView):
     serializer_class = UserSessionSerializer
+    pagination_class = LegacyArrayPagination
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
@@ -450,7 +462,10 @@ class SessionListView(generics.ListAPIView):
             user=self.request.user,
             revoked_at__isnull=True,
             expires_at__gt=timezone.now(),
-        ).order_by("-last_seen_at")
+        ).only(
+            "id", "created_at", "last_seen_at", "expires_at", "revoked_at",
+            "ip_address", "user_agent", "user__is_active",
+        ).order_by("-last_seen_at", "-pk")
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

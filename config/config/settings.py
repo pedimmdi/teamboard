@@ -297,7 +297,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-CORS_EXPOSE_HEADERS = ["Retry-After"]
+CORS_EXPOSE_HEADERS = ["Retry-After", "Link", "X-Total-Count"]
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "TeamBoard API",

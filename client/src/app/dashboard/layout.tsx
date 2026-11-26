@@ -22,6 +22,7 @@ import {
 } from "./dashboard-workspace";
 
 import { useAuth } from "@/lib/auth";
+import { websitePath } from "@/lib/website";
 
 import styles from "./dashboard.module.css";
 
@@ -32,7 +33,7 @@ type DashboardLayoutProps = {
 function DashboardBrand() {
   const { locale, t } = useLocale();
   return (
-    <Link href={locale === "fa" ? "/fa" : "/"} className={styles.brand} aria-label={t("Public website", "وب‌سایت تیم‌برد")}>
+    <Link href={websitePath("/", locale)} className={styles.brand} aria-label={t("Public website", "وب‌سایت تیم‌برد")}>
       <span className={styles.brandMark}><BrandMark /></span>
       <span>{t("TeamBoard", "تیم‌برد")}</span>
     </Link>
@@ -108,6 +109,20 @@ function LogoutIcon() {
       />
       <path
         d="M11 6L15 10L11 14M7.5 10H15"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M2.5 9 10 2.75 17.5 9M4.5 7.5V17h4v-5h3v5h4V7.5"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
@@ -318,10 +333,10 @@ function DashboardShell({ children }: DashboardLayoutProps) {
   const isProfile = pathname === "/dashboard/profile";
   const isSecurity = pathname === "/dashboard/security";
   const isSessions = pathname === "/dashboard/sessions";
+  const home = websitePath("/", locale);
 
   const handleLogout = async () => {
     if (signOutDestination.current) return;
-    const home = locale === "fa" ? "/fa" : "/";
     signOutDestination.current = home;
     setSignOutState("pending");
     try {
@@ -332,8 +347,22 @@ function DashboardShell({ children }: DashboardLayoutProps) {
       setSignOutState("error");
     }
   };
-  const signOutError = signOutState === "error" && (
-    <p className={styles.signOutError} role="alert">{t("Could not sign out. Try again.", "خروج از حساب انجام نشد. دوباره تلاش کنید.")}</p>
+  const sessionActions = (
+    <div className={styles.sessionActions}>
+      <NavItem href={home} label={t("Home", "خانه")} active={false} icon={<HomeIcon />} />
+      <button
+        type="button"
+        className={styles.signOutButton}
+        onClick={handleLogout}
+        disabled={signOutState === "pending"}
+      >
+        <span className={styles.navIcon}><LogoutIcon /></span>
+        <span>{t("Sign out", "خروج از حساب")}</span>
+      </button>
+      {signOutState === "error" && (
+        <p className={styles.signOutError} role="alert">{t("Could not sign out. Try again.", "خروج از حساب انجام نشد. دوباره تلاش کنید.")}</p>
+      )}
+    </div>
   );
 
   return (
@@ -387,18 +416,9 @@ function DashboardShell({ children }: DashboardLayoutProps) {
 
         <div className={styles.sidebarBottom}>
           <PreferencesControls compact />
-          <button
-            type="button"
-            className={styles.signOutButton}
-            onClick={handleLogout}
-            disabled={signOutState === "pending"}
-          >
-            <span className={styles.navIcon}>
-              <LogoutIcon />
-            </span>
-            <span>{t("Sign out", "خروج از حساب")}</span>
-          </button>
-          {signOutError}
+          <nav aria-label={t("Website and session", "وب‌سایت و نشست کاربری")}>
+            {sessionActions}
+          </nav>
 
           <div className={styles.userSummary}>
             <Avatar
@@ -477,16 +497,7 @@ function DashboardShell({ children }: DashboardLayoutProps) {
               active={isSessions}
               icon={<MonitorIcon />}
             />
-            <button
-              type="button"
-              className={styles.signOutButton}
-              onClick={handleLogout}
-              disabled={signOutState === "pending"}
-              aria-label={t("Sign out", "خروج از حساب")}
-            >
-              <LogoutIcon />
-            </button>
-            {signOutError}
+            {sessionActions}
           </nav>
         )}
         {children}

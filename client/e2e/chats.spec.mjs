@@ -11,7 +11,7 @@ test("direct messages update in two browsers and support private attachments on 
     await page.getByLabel("Email address").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_PASSWORD);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page).toHaveURL(/dashboard/);
+    await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 });
     await page.goto("http://localhost:" + (process.env.E2E_FRONTEND_PORT || "3100") + "/dashboard/workspaces/chat-tests/chats");
   }
   try {

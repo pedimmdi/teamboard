@@ -45,6 +45,7 @@ class ReportsPerformanceTests(TestCase):
             get_project_report(project=self.project)
 
         baseline_count = len(queries)
+        self.assertLessEqual(baseline_count, 3)
 
         Task.objects.bulk_create([
             Task(
@@ -72,6 +73,7 @@ class ReportsPerformanceTests(TestCase):
             )
 
         baseline_count = len(queries)
+        self.assertLessEqual(baseline_count, 3)
 
         projects = Project.objects.bulk_create([
             Project(

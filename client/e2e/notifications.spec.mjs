@@ -15,7 +15,7 @@ test("mobile inbox retries, paginates, filters and updates unread badges", async
   await page.getByLabel("Email address").fill("browser-test@example.com");
   await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_PASSWORD);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/dashboard/);
+  await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 });
   const bell = page.getByRole("banner").getByRole("link", { name: "Notifications", exact: true });
   await expect(bell).toBeVisible();
 

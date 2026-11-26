@@ -8,8 +8,8 @@ from rest_framework.exceptions import PermissionDenied
 
 from chats.access import get_conversation_or_404
 from chats.events import chat_group_name
-from chats.models import ChatMessage
 from chats.api.v1.serializers import ChatMessageSerializer
+from chats.services import message_response_queryset
 from chats.ws_auth import authenticate_access_token
 
 
@@ -30,13 +30,11 @@ def can_access_conversation(*, workspace_slug, conversation_id, user):
 @database_sync_to_async
 def get_message_payload(*, conversation_id, message_id):
     message = (
-        ChatMessage.objects
+        message_response_queryset()
         .filter(
             pk=message_id,
             conversation_id=conversation_id,
         )
-        .select_related("sender", "reply_to")
-        .prefetch_related("attachments")
         .first()
     )
 

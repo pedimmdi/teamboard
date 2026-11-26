@@ -35,6 +35,49 @@ test("Persian chat unread badges display Persian numbers and a localized accessi
   assert.ok(html.includes(">+۱۰</span>"));
 });
 
+test("the workspace chat list opens a former member's conversation from the next page", async () => {
+  const dom = new JSDOM("<main></main>");
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const {createRoot} = await import("react-dom/client");
+  const root = createRoot(document.querySelector("main"));
+  const pages = [];
+  const existing = {id: "existing", type: "direct", direct_user_low: 1, direct_user_high: 2};
+  const former = {id: "former", type: "direct", direct_user_low: 1, direct_user_high: 3};
+  const emptyPage = async () => ({next: null, results: []});
+  const Stub = () => null;
+  const Chats = component("chats-view", {
+    "@/lib/api": {
+      getWorkspaceMembers: async () => ({next: null, results: [{id: "member", user_id: 2, user_email: "member@example.com"}]}),
+      getProjects: emptyPage,
+      getDirectChats: async (token, slug, page) => {
+        pages.push([token, slug, page]);
+        return page === 1 ? {next: "page 2", results: [existing]} : {next: null, results: [former]};
+      },
+    },
+    "@/lib/auth": {useAuth: () => ({accessToken: "token", user: {id: 1}})},
+    "./chat-unread": {ChatUnreadBadge: Stub, useChatUnread: () => ({summary: {conversations: []}})},
+    "./chat-thread": ({conversation}) => React.createElement("output", null, conversation),
+    "./chat-icon": Stub,
+  }).default;
+
+  try {
+    await act(async () => root.render(React.createElement(Chats, {slug: "team"})));
+    assert.deepEqual(pages, [["token", "team", 1], ["token", "team", 2]]);
+    const button = [...document.querySelectorAll("button")].find((item) => item.textContent === "Former member");
+    assert.ok(button);
+    await act(async () => button.click());
+    assert.equal(document.querySelector("output").textContent, "former");
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+    delete globalThis.window;
+    delete globalThis.document;
+    delete globalThis.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
 test("reply navigation fetches an unloaded parent, scrolls and briefly highlights it, then reuses the loaded message", async () => {
   const dom = new JSDOM("<main></main>", {pretendToBeVisual: true});
   globalThis.window = dom.window; globalThis.document = dom.window.document; globalThis.IS_REACT_ACT_ENVIRONMENT = true;

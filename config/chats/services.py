@@ -3,6 +3,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from django.db import transaction
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -322,6 +323,11 @@ def delete_chat_message(
     return message
 
 
+def message_response_queryset():
+    attachments = ChatAttachment.objects.only("id", "message_id", "filename", "size")
+    return ChatMessage.objects.prefetch_related(Prefetch("attachments", queryset=attachments))
+
+
 def get_chat_messages(
     *, workspace_slug, conversation_id, actor
 ):
@@ -332,9 +338,7 @@ def get_chat_messages(
     )
 
     return (
-        ChatMessage.objects
+        message_response_queryset()
         .filter(conversation=conversation)
-        .select_related("sender", "reply_to")
-        .prefetch_related("attachments")
         .order_by("-created_at", "-id")
     )

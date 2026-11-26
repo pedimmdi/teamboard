@@ -149,7 +149,26 @@ test("account and workspace navigation support both layouts in Persian dark mode
   await page.setViewportSize({ width: 390, height: 844 });
   const account = page.getByRole("navigation", { name: "ناوبری حساب کاربری" });
   await account.getByRole("link", { name: "امنیت" }).click();
-  await expect(page.getByLabel("گذرواژه فعلی", { exact: true })).toBeVisible();
+  for (const [label, toggleLabel] of [
+    ["گذرواژه فعلی", "گذرواژه فعلی"],
+    ["گذرواژه جدید", "گذرواژه جدید"],
+    ["تکرار گذرواژه جدید", "تکرار گذرواژه"],
+  ]) {
+    const field = page.getByLabel(label, { exact: true });
+    const show = page.getByRole("button", { name: `نمایش ${toggleLabel}`, exact: true });
+    await expect(field).toHaveCSS("direction", "ltr");
+    await expect(field).toHaveCSS("padding-right", "45px");
+    const fieldBox = await field.boundingBox();
+    const buttonBox = await show.boundingBox();
+    expect(buttonBox.x).toBeGreaterThan(fieldBox.x + fieldBox.width / 2);
+    await field.fill("LayoutFixture42");
+    await show.press("Space");
+    await expect(field).toHaveAttribute("type", "text");
+    await expect(field).toHaveCSS("direction", "ltr");
+    await expect(field).toHaveValue("LayoutFixture42");
+    await page.getByRole("button", { name: `پنهان کردن ${toggleLabel}`, exact: true }).click();
+    await expect(field).toHaveAttribute("type", "password");
+  }
   await account.getByRole("link", { name: "نشست‌ها" }).click();
   await expect(page.getByRole("heading", { name: "نشست‌های فعال" })).toBeVisible();
   await expect(page.getByText("این دستگاه", { exact: true })).toBeVisible();
@@ -167,7 +186,9 @@ test("account and workspace navigation support both layouts in Persian dark mode
   await expect(more).not.toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expectNoHorizontalOverflow(page);
-  await page.getByRole("link", { name: "وب‌سایت تیم‌برد" }).filter({ visible: true }).click();
+  await page.getByRole("navigation", { name: "داشبورد", exact: true }).getByRole("link", { name: "حساب کاربری", exact: true }).click();
+  await expect(account.getByRole("button", { name: "خروج از حساب", exact: true })).toBeVisible();
+  await account.getByRole("link", { name: "خانه", exact: true }).click();
   await expect(page).toHaveURL("/fa");
   const siteHeader = page.getByRole("banner");
   await expect(siteHeader.getByRole("link", { name: "ورود به پنل", exact: true })).toBeVisible();

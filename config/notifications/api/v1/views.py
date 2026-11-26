@@ -14,7 +14,7 @@ from drf_spectacular.utils import (
 from workspaces.services import accept_workspace_invitation
 
 from notifications.models import Notification
-from notifications.access import get_accessible_notifications
+from notifications.access import get_accessible_notifications, with_notification_display_fields
 
 from .pagination import NotificationPageNumberPagination
 from .serializers import NotificationSerializer
@@ -30,8 +30,6 @@ class NotificationListView(generics.ListAPIView):
             self.request.user,
         )
 
-        queryset = queryset.select_related("actor", "workspace", "project", "task")
-
         read_filter = self.request.query_params.get("read")
 
         if read_filter is not None:
@@ -44,7 +42,7 @@ class NotificationListView(generics.ListAPIView):
                 read_at__isnull=(read_filter == "false"),
             )
 
-        return queryset
+        return with_notification_display_fields(queryset)
 
     @extend_schema(
         tags=["Notifications"],

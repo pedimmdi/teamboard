@@ -13,12 +13,14 @@ type PasswordFieldProps = Omit<
   label: string;
   error?: string;
   action?: ReactNode;
+  visibilityLabels?: { show: string; hide: string };
 };
 
 export default function PasswordField({
   label,
   error,
   action,
+  visibilityLabels,
   id,
   ...props
 }: PasswordFieldProps) {
@@ -46,7 +48,9 @@ export default function PasswordField({
           type="button"
           className={styles.toggle}
           onClick={() => setVisible((current) => !current)}
-          aria-label={visible ? t("Hide password", "پنهان کردن گذرواژه") : t("Show password", "نمایش گذرواژه")}
+          aria-label={visible
+            ? visibilityLabels?.hide ?? t("Hide password", "پنهان کردن گذرواژه")
+            : visibilityLabels?.show ?? t("Show password", "نمایش گذرواژه")}
           aria-pressed={visible}
         >
           {visible ? (

@@ -2,16 +2,21 @@ import {expect,test} from "@playwright/test";
 
 test("private reminders support timezone-aware CRUD, due date changes, mobile and Inbox links", async ({page})=>{
   test.setTimeout(120_000);
+  await page.setViewportSize({width:1440,height:900});
   await page.goto("/login");
   await page.getByLabel("Email address").fill("browser-reminder@example.com");
   await page.getByLabel("Password",{exact:true}).fill(process.env.E2E_PASSWORD);
   await page.getByRole("button",{name:"Sign in",exact:true}).click();
-  await expect(page).toHaveURL(/dashboard/);
+  await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 });
   await page.goto("/dashboard/workspaces/reminders/projects");
   await page.getByRole("link",{name:/Reminder project/}).filter({visible:true}).first().click();
   await page.getByRole("button",{name:"Reminder browser task",exact:true}).click();
   const drawer=page.getByRole("dialog",{name:"Task",exact:true});
   const reminders=drawer.getByRole("region",{name:"Reminders",exact:true});
+  await expect(drawer).toBeVisible();
+  const desktopDrawer=await drawer.boundingBox();
+  expect(desktopDrawer.width).toBeGreaterThanOrEqual(640);
+  expect(desktopDrawer.x+desktopDrawer.width).toBeCloseTo(1440);
   await expect(reminders).toBeHidden();
   await expect(drawer.getByRole("button",{name:/^Comments/})).toHaveAttribute("aria-pressed","true");
   await drawer.getByRole("button",{name:"Reminders",exact:true}).click();
@@ -84,6 +89,7 @@ test("private reminders support timezone-aware CRUD, due date changes, mobile an
   await expect(drawer.getByText(message,{exact:true})).toBeVisible();
   await expect(input).toHaveValue("");
   await page.setViewportSize({width:320,height:740});
+  await expect.poll(()=>drawer.evaluate(panel=>panel.getBoundingClientRect().width)).toBe(320);
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   for (const name of ["Reminders","Details"]) {
     await drawer.getByRole("button",{name,exact:true}).click();

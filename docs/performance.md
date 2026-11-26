@@ -1,5 +1,31 @@
 # Measured performance review
 
+## Database and cache audit
+
+This review uses disposable PostgreSQL 17 fixtures and checks the same endpoint responses and access scopes before and after changes. The detailed SQL probes measure result-set bytes separately from the JSON response. Existing query-budget tests cover single-item and full-page reads.
+
+| Area | Result |
+| --- | --- |
+| N+1 and serializers | Related rows are joined or prefetched according to the data each serializer accesses. Query budgets cover task comment counts, timeline rows, the dashboard, notifications and chat. The Django Debug Toolbar SQL panel ran against temporary benchmark fixtures as a separate diagnostic. |
+| Heavy projections | Dashboard result sets fell from 213,946 to 7,362 bytes. Calendar timeline result sets fell from 2,520,954 to 26,454 bytes. Inbox rows fell from 173,271 to 5,656 bytes and chat message rows from 159,480 to 6,089 bytes. The clients receive the same response fields. |
+| Aggregation | On 10,000 tasks and 40,000 comments, the default task paginator count went from a 24.66 ms to a 1.47 ms median. Its 20-row data query went from 77.71 ms to 0.31 ms over seven PostgreSQL probes. Comment counts come from the database for rows on the requested page. Report overview uses five queries for a project and four for a workspace, down from seven and six respectively. |
+| Pagination | Session and direct conversation inventories use 20 per page by default, with a maximum of 100. Existing clients requesting a bare array receive up to 100 records, `X-Total-Count`, and a `Link` header when another page exists. The workload report returns one grouped row per assignee, and unread counts and overview arrays retain their scoped summary contracts. |
+| Indexes and migrations | The measured paths use existing indexes. Schema validation and migration drift checks cover the updated app. |
+| Slow-query diagnostics | `benchmark_reads` reports the maximum observed execution duration, SQL shape repetition within one request and the number of executions above the configured threshold across all samples. `--explain` summarizes the longest execution per slow SELECT shape. The output contains counts and selected plan attributes. |
+| Redis, sessions and TTLs | Redis supplies live-event transport, the shared throttle cache and Celery. The Redis cache defaults to 300 seconds. Django sessions and the durable outbox use PostgreSQL. The public editorial and sitemap caches retain their explicit TTLs and recovery behavior below. Publishing, updating or unpublishing is reflected in the API immediately after commit. Cached public frontend reads refresh within their TTL. |
+| Worker scope | Email delivery and retryable file cleanup use Celery. Upload validation and avatar encoding return their result in the request. Reports use grouped SQL. The project ranking and CSV export apply explicit output limits. |
+| Deployment | Database backup scheduling and restoration policy, connection pool sizing, reverse-proxy compression and upload limits, and ASGI worker sizing belong in the deployment phase. Django's ASGI guidance places connection reuse in a pool and keeps `CONN_MAX_AGE=0`. [Django database documentation](https://docs.djangoproject.com/en/5.2/ref/databases/#persistent-connections) |
+
+Run the diagnostic from `config/` against a disposable migrated database:
+
+```sh
+python manage.py benchmark_reads --tasks 10000 --projects 10 --repeats 5 --extended --slow-query-ms 100 --explain
+```
+
+Repeated query shapes are leads to inspect. Distinct bound parameters can represent legitimate permission checks or aggregates. Query durations are local observations. The command rolls back fixture rows and refreshes the planner statistics for the tables it measured. [Django database instrumentation](https://docs.djangoproject.com/en/5.2/topics/db/instrumentation/)
+
+The 12-endpoint run while other local tests were active recorded two project-ranking executions at or above 100 ms, with a maximum of 141.81 ms. The captured plan aggregated task rows across all 10 projects. An isolated five-repeat run peaked at 23.16 ms on the ranking query and had zero SQL executions at or above 100 ms across the same endpoints.
+
 ## Dashboard and Tasks render profile
 
 The browser fixture seeds 240 assigned tasks across four statuses. The production React profiling build records render durations for the dashboard shell and its active page. The workflow opens the dashboard, navigates to the task board, opens a dialog and uses the keyboard to close it.
@@ -13,7 +39,7 @@ These local Chromium samples include navigation and dialog updates. The 18.5 ms 
 
 Measurements: local Docker Desktop / PostgreSQL 17, November 2026. Raw logs and JSON are kept locally in ignored `artifacts/`, never in the repository. Values are observations, not production SLAs. Read benchmarks use disposable fixtures with rollback and representative planner statistics.
 
-## Baseline and decisions
+## Earlier baseline measurements
 
 `docker compose exec backend python manage.py benchmark_reads --tasks 10000 --projects 10 --repeats 5 --explain`
 
@@ -25,7 +51,7 @@ Measurements: local Docker Desktop / PostgreSQL 17, November 2026. Raw logs and 
 | Project comparison | 28.68 | 3 |
 | Calendar, seven days | 28.82 | 4 |
 
-No slow plans were found in these measurements. Existing query-count regression tests remain enabled. There is no evidence here for another index, response cache, permission cache or query rewrite. No such changes were made.
+These measurements found no slow plans and supported the existing indexes and cache policy. The latest audit above uses larger payloads and additional endpoint fixtures.
 
 Idle container observations: backend approximately 193 MiB, PostgreSQL 88 MiB, worker 207 MiB, Beat 106 MiB, Redis 5.6 MiB. The frontend development server used approximately 2.2 GiB after extended development; this is not a production server measurement. Worker/Redis/PostgreSQL configuration was left unchanged: idle data does not justify tuning concurrency or memory limits.
 

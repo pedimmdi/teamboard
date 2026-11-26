@@ -1,4 +1,3 @@
-from django.utils import timezone
 from datetime import datetime, time, timedelta, timezone as dt_timezone
 
 from rest_framework.exceptions import ValidationError
@@ -40,7 +39,9 @@ def get_timeline_items(*, workspace_slug, user, start, end, project_id=None):
     events = events.filter(
         starts_at__lt=end,
         ends_at__gt=start,
-    ).order_by("starts_at", "id")
+    ).order_by("starts_at", "id").values(
+        "id", "project_id", "title", "starts_at", "ends_at", "all_day", "event_type",
+    )
 
     # Each due date covers the full UTC day. Match overlap with [start, end).
     start_utc = start.astimezone(dt_timezone.utc)
@@ -56,10 +57,9 @@ def get_timeline_items(*, workspace_slug, user, start, end, project_id=None):
         due_date__isnull=False,
         due_date__gte=first_day,
         due_date__lt=last_day_exclusive,
-    ).select_related(
-        "project",
-        "assignee",
-    ).order_by("due_date", "id")
+    ).order_by("due_date", "id").values(
+        "id", "project_id", "title", "due_date", "status", "priority",
+    )
 
     event_rows = list(
         events[:MAX_TIMELINE_ITEMS_PER_TYPE + 1]
@@ -83,36 +83,36 @@ def get_timeline_items(*, workspace_slug, user, start, end, project_id=None):
 
     for event in event_rows:
         items.append({
-            "id": str(event.pk),
+            "id": str(event["id"]),
             "item_type": "event",
-            "project": str(event.project_id),
-            "title": event.title,
-            "starts_at": event.starts_at,
-            "ends_at": event.ends_at,
-            "all_day": event.all_day,
-            "event_type": event.event_type,
+            "project": str(event["project_id"]),
+            "title": event["title"],
+            "starts_at": event["starts_at"],
+            "ends_at": event["ends_at"],
+            "all_day": event["all_day"],
+            "event_type": event["event_type"],
             "task_status": None,
             "task_priority": None,
         })
 
     for task in task_rows:
         due_at = datetime.combine(
-            task.due_date,
+            task["due_date"],
             time.min,
             tzinfo=dt_timezone.utc,
         )
 
         items.append({
-            "id": str(task.pk),
+            "id": str(task["id"]),
             "item_type": "task",
-            "project": str(task.project_id),
-            "title": task.title,
+            "project": str(task["project_id"]),
+            "title": task["title"],
             "starts_at": due_at,
             "ends_at": due_at + timedelta(days=1),
             "all_day": True,
             "event_type": None,
-            "task_status": task.status,
-            "task_priority": task.priority,
+            "task_status": task["status"],
+            "task_priority": task["priority"],
         })
 
     items.sort(

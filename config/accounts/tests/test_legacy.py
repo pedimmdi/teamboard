@@ -1,9 +1,11 @@
 import uuid
+from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.core import mail
 from django.test import TestCase, override_settings, TransactionTestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -11,7 +13,7 @@ from django.utils.http import urlsafe_base64_encode
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from unittest.mock import patch
-from django.db import close_old_connections, connections
+from django.db import close_old_connections, connection, connections
 from rest_framework import response, status
 from rest_framework.test import APITestCase, APIClient
 from urllib.parse import parse_qs, urlparse
@@ -1236,6 +1238,48 @@ class SessionManagementAPITests(APITestCase):
             response.status_code,
             status.HTTP_401_UNAUTHORIZED,
         )
+
+    def test_session_list_bounds_legacy_and_paginated_reads(self):
+        tokens = self.login()
+        self.authenticate_with(tokens["access"])
+        current_id = str(UserSession.objects.get(user=self.user).pk)
+
+        with CaptureQueriesContext(connection) as single:
+            initial = self.client.get(self.sessions_url, {"page": 1, "page_size": 100})
+        self.assertEqual(initial.data["count"], 1)
+
+        now = timezone.now()
+        sessions = UserSession.objects.bulk_create([
+            UserSession(
+                user=self.user,
+                last_seen_at=now + timedelta(seconds=index),
+                expires_at=now + timedelta(days=1),
+                refresh_token_jti=uuid.uuid4().hex,
+            )
+            for index in range(1, 103)
+        ])
+        newest_first = [str(session.pk) for session in reversed(sessions)] + [current_id]
+
+        with CaptureQueriesContext(connection) as many:
+            first_page = self.client.get(self.sessions_url, {"page": 1, "page_size": 500})
+        self.assertEqual(first_page.status_code, status.HTTP_200_OK)
+        self.assertEqual(first_page.data["count"], 103)
+        self.assertEqual([str(item["id"]) for item in first_page.data["results"]], newest_first[:100])
+        self.assertEqual(len(many), len(single))
+
+        legacy = self.client.get(self.sessions_url)
+        self.assertEqual(legacy.data, first_page.data["results"])
+        self.assertEqual(legacy["X-Total-Count"], "103")
+        continuation = legacy["Link"].split(">", 1)[0][1:]
+        self.assertEqual(parse_qs(urlparse(continuation).query), {"page": ["2"], "page_size": ["100"]})
+        last_page = self.client.get(continuation)
+        self.assertEqual([str(item["id"]) for item in last_page.data["results"]], newest_first[100:])
+        self.assertEqual([item["is_current"] for item in last_page.data["results"]], [False, False, True])
+
+        second_default_page = self.client.get(self.sessions_url, {"page": 2})
+        back = self.client.get(second_default_page.data["previous"])
+        self.assertEqual(back.data["count"], 103)
+        self.assertEqual([str(item["id"]) for item in back.data["results"]], newest_first[:20])
 
     def test_user_can_revoke_own_session(self):
         tokens = self.login()

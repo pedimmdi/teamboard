@@ -1,10 +1,11 @@
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from chats.models import ChatMessage
+from chats.models import ChatAttachment, ChatMessage, Conversation
 from projects.models import Project, ProjectMembership
 from workspaces.models import Workspace, WorkspaceMembership
 
@@ -126,6 +127,56 @@ class ChatAPITests(TestCase):
         response = self.client.get(self.direct_url)
         self.assertEqual(len(response.data), 1)
 
+    def test_direct_listing_has_a_bounded_legacy_page_and_includes_former_members(self):
+        recipients = User.objects.bulk_create([
+            User(email=f"recipient-{index}@example.com") for index in range(101)
+        ])
+        WorkspaceMembership.objects.bulk_create([
+            WorkspaceMembership(workspace=self.workspace, user=recipient)
+            for recipient in recipients
+        ])
+        conversations = Conversation.objects.bulk_create([
+            Conversation(
+                workspace=self.workspace,
+                type=Conversation.Type.DIRECT,
+                direct_user_low=self.owner,
+                direct_user_high=recipient,
+            )
+            for recipient in recipients
+        ])
+        Conversation.objects.create(
+            workspace=self.workspace,
+            type=Conversation.Type.DIRECT,
+            direct_user_low=self.member,
+            direct_user_high=self.admin,
+        )
+        former = conversations[0]
+        Conversation.objects.filter(pk=former.pk).update(updated_at=former.updated_at - timedelta(days=1))
+        WorkspaceMembership.objects.filter(workspace=self.workspace, user=recipients[0]).delete()
+
+        with self.assertNumQueries(3):
+            first = self.client.get(self.direct_url)
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first["X-Total-Count"], "101")
+        self.assertEqual(len(first.data), 100)
+        self.assertEqual(
+            {item["id"] for item in first.data},
+            {str(conversation.pk) for conversation in conversations[1:]},
+        )
+        next_url = first["Link"].split(">", 1)[0][1:]
+        self.assertIn("page_size=100", next_url)
+        second = self.client.get(next_url)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.data["count"], 101)
+        self.assertIsNone(second.data["next"])
+        self.assertEqual([item["id"] for item in second.data["results"]], [str(former.pk)])
+
+        second_default_page = self.client.get(self.direct_url, {"page": 2})
+        back = self.client.get(second_default_page.data["previous"])
+        self.assertEqual(back.data["count"], 101)
+        self.assertEqual(len(back.data["results"]), 20)
+
     def test_admin_cannot_access_others_direct(self):
         conversation_id = self.create_direct()
         self.client.force_authenticate(user=self.admin)
@@ -144,6 +195,33 @@ class ChatAPITests(TestCase):
             ).status_code,
             404,
         )
+
+    def test_message_page_projects_attachment_metadata_in_one_prefetch(self):
+        conversation_id = self.create_direct()
+        parent = ChatMessage.objects.create(
+            conversation_id=conversation_id, sender=self.owner, content="Parent reply body",
+        )
+        messages = ChatMessage.objects.bulk_create([
+            ChatMessage(conversation_id=conversation_id, sender=self.member, reply_to=parent, content=f"Reply {index}")
+            for index in range(8)
+        ])
+        ChatAttachment.objects.bulk_create([
+            ChatAttachment(message=message, filename="notice.txt", size=5, content_type="text/plain", storage_key=f"test/{message.pk}")
+            for message in messages
+        ])
+
+        with self.assertNumQueries(5) as queries:
+            response = self.client.get(self.messages_url(conversation_id), {"page_size": 5})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 9)
+        self.assertEqual(len(response.data["results"]), 5)
+        for message in response.data["results"]:
+            self.assertEqual(message["reply_to"], str(parent.pk))
+            self.assertEqual(message["sender_id"], self.member.pk)
+            self.assertEqual(message["attachments"][0]["filename"], "notice.txt")
+            self.assertEqual(message["attachments"][0]["size"], 5)
+        self.assertNotIn('"storage_key"', queries.captured_queries[-1]["sql"])
 
     def test_send_reply_edit_delete(self):
         conversation_id = self.create_direct()

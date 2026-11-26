@@ -5,7 +5,7 @@ from django.db.models import Count, F, Q
 from django.utils import timezone
 
 from calendars.models import CalendarEvent
-from notifications.access import get_accessible_notifications
+from notifications.access import get_accessible_notifications, with_notification_display_fields
 from projects.access import get_accessible_workspace_project_ids
 from projects.models import Project
 from tasks.models import Task, TaskReminder
@@ -36,6 +36,7 @@ def _task_section(queryset, count, *, completed=False):
     items = list(
         queryset
         .select_related("project", "assignee")
+        .only("id", "title", "status", "priority", "due_date", "created_at", "project__name", "assignee__email")
         .order_by(*ordering)[:PREVIEW_LIMIT]
     )
 
@@ -82,6 +83,7 @@ def _reminder_section(*, project_ids, user, now, until):
         "items": list(
             reminders
             .select_related("task", "task__project")
+            .only("id", "kind", "run_at", "timezone", "task__title", "task__project__name")
             .order_by("run_at", "pk")[:PREVIEW_LIMIT]
         ),
     }
@@ -104,6 +106,7 @@ def _calendar_section(*, project_ids, now, until):
         "items": list(
             events
             .select_related("project")
+            .only("id", "title", "event_type", "starts_at", "ends_at", "all_day", "project__name")
             .order_by("starts_at", "pk")[:PREVIEW_LIMIT]
         ),
     }
@@ -130,15 +133,7 @@ def _notification_section(*, workspace, user):
     )
 
     items = list(
-        notifications
-        .select_related(
-            "workspace",
-            "project",
-            "task",
-            "actor",
-            "actor__profile",
-        )
-        .order_by("-created_at", "-pk")[:PREVIEW_LIMIT]
+        with_notification_display_fields(notifications).order_by("-created_at", "-pk")[:PREVIEW_LIMIT]
     )
 
     return {

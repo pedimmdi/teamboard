@@ -5,10 +5,11 @@ import { localizeAccountMessage } from "@/lib/account-message";
 import { useEffect, useState } from "react";
 
 import {
+  ApiError,
   getSessions,
   revokeOtherSessions,
   revokeSession,
-  UserSession,
+  type PaginatedSessions,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { regionalLocale } from "@/lib/locale";
@@ -153,10 +154,12 @@ function formatRelativeTime(dateString: string, locale: ReturnType<typeof useLoc
 }
 
 export default function SessionsPage() {
-  const { locale, t } = useLocale();
+  const { locale, t, formatNumber } = useLocale();
   const { accessToken, isAuthenticated, isLoading } = useAuth();
 
-  const [sessions, setSessions] = useState<UserSession[]>([]);
+  const [loadedPage, setLoadedPage] = useState<{ number: number; data: PaginatedSessions } | null>(null);
+  const [page, setPage] = useState(1);
+  const [revision, setRevision] = useState(0);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [isRevokingOthers, setIsRevokingOthers] = useState(false);
@@ -174,13 +177,17 @@ export default function SessionsPage() {
       setErrorMessage("");
 
       try {
-        const data = await getSessions(accessToken);
+        const data = await getSessions(accessToken, page);
 
         if (!cancelled) {
-          setSessions(data);
+          setLoadedPage({ number: page, data });
         }
       } catch (error) {
         if (!cancelled) {
+          if (page > 1 && error instanceof ApiError && error.status === 404) {
+            setPage(1);
+            return;
+          }
           setErrorMessage(
             error instanceof Error
               ? error.message
@@ -199,11 +206,19 @@ export default function SessionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, isAuthenticated, isLoading, t]);
+  }, [accessToken, isAuthenticated, isLoading, page, revision, t]);
 
   if (isLoading || !isAuthenticated || !accessToken) {
     return null;
   }
+
+  const sessionPage = loadedPage?.data;
+  const displayedPage = loadedPage?.number ?? 1;
+
+  const loadPage = (nextPage: number) => {
+    setPage(nextPage);
+    setRevision((current) => current + 1);
+  };
 
   const handleRevoke = async (sessionId: string) => {
     setRevokingId(sessionId);
@@ -211,9 +226,8 @@ export default function SessionsPage() {
 
     try {
       await revokeSession(accessToken, sessionId);
-      setSessions((current) =>
-        current.filter((session) => session.id !== sessionId),
-      );
+      const emptiedPage = sessionPage?.results.length === 1 && displayedPage > 1;
+      loadPage(emptiedPage ? displayedPage - 1 : displayedPage);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -231,9 +245,7 @@ export default function SessionsPage() {
 
     try {
       await revokeOtherSessions(accessToken);
-
-      const data = await getSessions(accessToken);
-      setSessions(data);
+      loadPage(1);
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -245,7 +257,9 @@ export default function SessionsPage() {
     }
   };
 
-  const otherSessions = sessions.filter((session) => !session.is_current);
+  const sessions = sessionPage?.results ?? [];
+  const hasOtherSessions = (sessionPage?.count ?? 0) > 1 || sessions.some((session) => !session.is_current);
+  const busy = isLoadingSessions || isRevokingOthers || revokingId !== null;
 
   return (
     <section className={styles.page}>
@@ -260,7 +274,7 @@ export default function SessionsPage() {
             type="button"
             className={styles.dangerButton}
             onClick={handleRevokeOthers}
-            disabled={isRevokingOthers || otherSessions.length === 0}
+            disabled={busy || !hasOtherSessions}
           >
             {isRevokingOthers
               ? t("Signing out...", "در حال خروج…")
@@ -269,7 +283,14 @@ export default function SessionsPage() {
         </header>
 
         {errorMessage && (
-          <p className={styles.errorMessage}>{localizeAccountMessage(locale, errorMessage, "عملیات نشست انجام نشد. دوباره تلاش کنید.")}</p>
+          <div>
+            <p role="alert" className={styles.errorMessage}>
+              {localizeAccountMessage(locale, errorMessage, "عملیات نشست انجام نشد. دوباره تلاش کنید.")}
+            </p>
+            <button type="button" className={styles.secondaryButton} disabled={busy} onClick={() => loadPage(page)}>
+              {t("Reload sessions", "بارگیری دوبارهٔ نشست‌ها")}
+            </button>
+          </div>
         )}
 
         <div className={styles.sessionsList}>
@@ -319,7 +340,7 @@ export default function SessionsPage() {
                       type="button"
                       className={styles.dangerButton}
                       onClick={() => handleRevoke(session.id)}
-                      disabled={revokingId === session.id}
+                      disabled={busy}
                     >
                       {revokingId === session.id ? t("Revoking...", "در حال پایان دادن…") : t("Revoke", "پایان دادن به نشست")}
                     </button>
@@ -329,6 +350,20 @@ export default function SessionsPage() {
             })
           )}
         </div>
+
+        {(sessionPage?.previous || sessionPage?.next) && (
+          <nav className={styles.sessionsPagination} aria-label={t("Session pages", "صفحه‌های نشست‌ها")}>
+            <button type="button" className={styles.secondaryButton}
+              disabled={busy || !sessionPage.previous} onClick={() => loadPage(displayedPage - 1)}>
+              {t("Previous page", "صفحهٔ قبل")}
+            </button>
+            <span aria-live="polite">{t(`Page ${formatNumber(displayedPage)}`, `صفحهٔ ${formatNumber(displayedPage)}`)}</span>
+            <button type="button" className={styles.secondaryButton}
+              disabled={busy || !sessionPage.next} onClick={() => loadPage(displayedPage + 1)}>
+              {t("Next page", "صفحهٔ بعد")}
+            </button>
+          </nav>
+        )}
 
         <p className={styles.sessionHint}>
           {t("Revoking a session signs that device out immediately.", "پایان دادن به نشست بلافاصله آن دستگاه را از حسابتان خارج می‌کند.")}

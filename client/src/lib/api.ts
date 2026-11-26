@@ -437,9 +437,16 @@ export type RevokeOtherSessionsResponse = {
   revoked_count: number;
 };
 
-export function getSessions(token: string) {
-  return apiFetch<UserSession[]>(
-    "/api/v1/accounts/sessions/",
+export type PaginatedSessions = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: UserSession[];
+};
+
+export function getSessions(token: string, page: number) {
+  return apiFetch<PaginatedSessions>(
+    `/api/v1/accounts/sessions/?page=${page}`,
     {
       method: "GET",
       token,
@@ -1417,8 +1424,21 @@ function chatsPath(slug: string, conversation?: string) {
 export function getProjectChat(token: string, slug: string, project: string) {
   return apiFetch<ChatConversation>(`${projectsPath(slug, project)}chat/`, { token });
 }
-export function getDirectChats(token: string, slug: string) {
-  return apiFetch<ChatConversation[]>(`${chatsPath(slug)}direct/`, { token });
+type PaginatedDirectChats = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: ChatConversation[];
+};
+export function getDirectChats(token: string, slug: string): Promise<ChatConversation[]>;
+export function getDirectChats(token: string, slug: string, page: number): Promise<PaginatedDirectChats>;
+export function getDirectChats(token: string, slug: string, page?: number) {
+  const path = `${chatsPath(slug)}direct/`;
+  if (page === undefined) return apiFetch<ChatConversation[]>(path, { token });
+  return apiFetch<PaginatedDirectChats>(
+    `${path}?${new URLSearchParams({ page: String(page), page_size: "100" })}`,
+    { token },
+  );
 }
 export function startDirectChat(token: string, slug: string, recipient: number) {
   return apiFetch<ChatConversation>(`${chatsPath(slug)}direct/`, {

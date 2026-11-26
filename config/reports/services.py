@@ -6,6 +6,27 @@ from tasks.models import Task
 from workspaces.models import WorkspaceMembership
 
 
+def _task_overview(tasks, today):
+    completed = Q(status=Task.Status.DONE)
+    counts = tasks.aggregate(
+        total_tasks=Count("pk"),
+        completed_tasks=Count("pk", filter=completed),
+        overdue_tasks=Count("pk", filter=Q(due_date__lt=today) & ~completed),
+        unassigned_tasks=Count("pk", filter=Q(assignee__isnull=True)),
+        **{f"status_{value}": Count("pk", filter=Q(status=value)) for value in Task.Status.values},
+        **{f"priority_{value}": Count("pk", filter=Q(priority=value)) for value in Task.Priority.values},
+    )
+    status_distribution = {value: counts.pop(f"status_{value}") for value in Task.Status.values}
+    priority_distribution = {value: counts.pop(f"priority_{value}") for value in Task.Priority.values}
+    total, done = counts["total_tasks"], counts["completed_tasks"]
+    summary = {
+        **counts,
+        "active_tasks": total - done,
+        "completion_rate": round(done * 100 / total, 2) if total else 0.0,
+    }
+    return summary, status_distribution, priority_distribution
+
+
 def get_project_report(*, project, today=None):
     """
     Calculate current project analytics.
@@ -18,45 +39,7 @@ def get_project_report(*, project, today=None):
 
     tasks = Task.objects.filter(project=project)
 
-    stats = tasks.aggregate(
-        total_tasks=Count("pk"),
-        completed_tasks=Count(
-            "pk",
-            filter=Q(status=Task.Status.DONE),
-        ),
-        overdue_tasks=Count(
-            "pk",
-            filter=(
-                Q(due_date__lt=today)
-                & ~Q(status=Task.Status.DONE)
-            ),
-        ),
-        unassigned_tasks=Count(
-            "pk",
-            filter=Q(assignee__isnull=True),
-        ),
-    )
-
-    total = stats["total_tasks"]
-    completed = stats["completed_tasks"]
-
-    status_counts = {
-        value: 0 for value in Task.Status.values
-    }
-
-    for row in tasks.values("status").annotate(
-        count=Count("pk")
-    ):
-        status_counts[row["status"]] = row["count"]
-
-    priority_counts = {
-        value: 0 for value in Task.Priority.values
-    }
-
-    for row in tasks.values("priority").annotate(
-        count=Count("pk")
-    ):
-        priority_counts[row["priority"]] = row["count"]
+    summary, status_counts, priority_counts = _task_overview(tasks, today)
 
     workload_counts = {
         row["assignee_id"]: row
@@ -81,21 +64,21 @@ def get_project_report(*, project, today=None):
     memberships = (
         ProjectMembership.objects
         .filter(project=project)
-        .select_related("user")
         .order_by("joined_at", "pk")
+        .values("user_id", "user__email", "role")
     )
 
     workload = []
 
     for membership in memberships:
         counts = workload_counts.get(
-            membership.user_id, {}
+            membership["user_id"], {}
         )
 
         workload.append({
-            "user_id": membership.user_id,
-            "user_email": membership.user.email,
-            "role": membership.role,
+            "user_id": membership["user_id"],
+            "user_email": membership["user__email"],
+            "role": membership["role"],
             "total_tasks": counts.get(
                 "total_tasks", 0
             ),
@@ -111,14 +94,7 @@ def get_project_report(*, project, today=None):
         "project_id": project.pk,
         "project_name": project.name,
         "as_of": today,
-        "summary": {
-            **stats,
-            "active_tasks": total - completed,
-            "completion_rate": (
-                round(completed * 100 / total, 2)
-                if total else 0.0
-            ),
-        },
+        "summary": summary,
         "status_distribution": status_counts,
         "priority_distribution": priority_counts,
         "member_workload": workload,
@@ -155,45 +131,7 @@ def get_workspace_report(*, workspace, user, today=None):
         project_id__in=project_ids,
     )
 
-    stats = tasks.aggregate(
-        total_tasks=Count("pk"),
-        completed_tasks=Count(
-            "pk",
-            filter=Q(status=Task.Status.DONE),
-        ),
-        overdue_tasks=Count(
-            "pk",
-            filter=(
-                Q(due_date__lt=today)
-                & ~Q(status=Task.Status.DONE)
-            ),
-        ),
-        unassigned_tasks=Count(
-            "pk",
-            filter=Q(assignee__isnull=True),
-        ),
-    )
-
-    total = stats["total_tasks"]
-    completed = stats["completed_tasks"]
-
-    status_distribution = {
-        value: 0 for value in Task.Status.values
-    }
-
-    for row in tasks.values("status").annotate(
-        count=Count("pk")
-    ):
-        status_distribution[row["status"]] = row["count"]
-
-    priority_distribution = {
-        value: 0 for value in Task.Priority.values
-    }
-
-    for row in tasks.values("priority").annotate(
-        count=Count("pk")
-    ):
-        priority_distribution[row["priority"]] = row["count"]
+    summary, status_distribution, priority_distribution = _task_overview(tasks, today)
 
     project_rows = list(
         projects.annotate(
@@ -246,14 +184,7 @@ def get_workspace_report(*, workspace, user, today=None):
         "workspace_name": workspace.name,
         "as_of": today,
         "total_projects": len(project_summaries),
-        "summary": {
-            **stats,
-            "active_tasks": total - completed,
-            "completion_rate": (
-                round(completed * 100 / total, 2)
-                if total else 0.0
-            ),
-        },
+        "summary": summary,
         "status_distribution": status_distribution,
         "priority_distribution": priority_distribution,
         "projects": project_summaries,

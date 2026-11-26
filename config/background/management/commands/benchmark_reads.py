@@ -1,6 +1,8 @@
 """Reproducible read benchmarks on disposable, rolled-back fixtures."""
 import json
+from collections import Counter
 from datetime import timedelta
+from math import isfinite
 from statistics import median
 from time import perf_counter
 from uuid import uuid4
@@ -9,7 +11,6 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 from django.test import override_settings
-from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -18,10 +19,34 @@ from tasks.models import Task
 from workspaces.models import Workspace, WorkspaceMembership
 
 
+class QueryTimings:
+    def __init__(self, slow_ms, slow_selects):
+        self.shapes = Counter()
+        self.slow_count = 0
+        self.max_ms = 0.0
+        self.slow_ms = slow_ms
+        self.slow_selects = slow_selects
+
+    def __call__(self, execute, sql, params, many, context):
+        start = perf_counter()
+        result = execute(sql, params, many, context)
+        elapsed = (perf_counter() - start) * 1000
+        self.shapes[sql] += 1
+        self.max_ms = max(self.max_ms, elapsed)
+        if elapsed >= self.slow_ms:
+            self.slow_count += 1
+            if self.slow_selects is not None and not many and sql.lstrip().upper().startswith("SELECT"):
+                previous = self.slow_selects.get(sql)
+                if previous is None or elapsed > previous[0]:
+                    self.slow_selects[sql] = (elapsed, params)
+        return result
+
+
 class Command(BaseCommand):
     help = "Benchmark unchanged authenticated read endpoints using temporary PostgreSQL fixtures; all fixture rows roll back."
     def add_arguments(self, parser):
         parser.add_argument("--explain", action="store_true")
+        parser.add_argument("--slow-query-ms", type=float, default=100, help="Report SQL executions at or above this duration in milliseconds.")
         parser.add_argument("--extended", action="store_true", help="Include tasks, dashboard, comments, chat and notification reads.")
         parser.add_argument("--tasks", type=int, default=1000)
         parser.add_argument("--projects", type=int, default=10)
@@ -29,8 +54,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         count, project_count, repeats = options["tasks"], options["projects"], options["repeats"]
+        slow_ms = options["slow_query_ms"]
         if not 1 <= count <= 20000 or not 1 <= project_count <= 100 or not 1 <= repeats <= 20:
             raise CommandError("Use 1–20000 tasks, 1–100 projects and 1–20 repeats.")
+        if not isfinite(slow_ms) or slow_ms < 0:
+            raise CommandError("Use a finite, nonnegative --slow-query-ms value.")
         with transaction.atomic(), override_settings(ALLOWED_HOSTS=["testserver"]):
             actor = get_user_model().objects.create_user(email=f"benchmark-{uuid4().hex}@example.invalid")
             workspace = Workspace.objects.create(name="Temporary benchmark")
@@ -88,25 +116,33 @@ class Command(BaseCommand):
                 "calendar_timeline_7d": (base + "calendar/timeline/", {"start": start.isoformat(), "end": (start + timedelta(days=7)).isoformat()}),
             }
             paths.update(extended_paths)
-            result = {"fixture_tasks": count, "fixture_projects": project_count, "repeats": repeats, "cache": "disabled", "endpoints": {}}
+            result = {"fixture_tasks": count, "fixture_projects": project_count, "repeats": repeats,
+                      "cache": "disabled", "slow_query_threshold_ms": slow_ms, "endpoints": {}}
             for name, (path, query) in paths.items():
-                timings, queries = [], []
+                timings, samples = [], []
+                slow_selects = {} if options["explain"] else None
                 for _ in range(repeats):
-                    with CaptureQueriesContext(connection) as captured:
+                    sample = QueryTimings(slow_ms, slow_selects)
+                    with connection.execute_wrapper(sample):
                         begin = perf_counter()
                         response = client.get(path, query)
                         timings.append((perf_counter() - begin) * 1000)
                     if response.status_code != 200:
                         raise CommandError(f"{name} returned {response.status_code}; benchmark aborted")
-                    queries.append(len(captured))
-                result["endpoints"][name] = {"median_ms": round(median(timings), 2), "max_ms": round(max(timings), 2), "queries": max(queries)}
-                if options["explain"]:
+                    samples.append(sample)
+                result["endpoints"][name] = {
+                    "median_ms": round(median(timings), 2),
+                    "max_ms": round(max(timings), 2),
+                    "queries": max(sample.shapes.total() for sample in samples),
+                    "max_repeated_query_shape": max(max(sample.shapes.values(), default=0) for sample in samples),
+                    "max_query_ms": round(max(sample.max_ms for sample in samples), 2),
+                    "slow_queries": sum(sample.slow_count for sample in samples),
+                }
+                if slow_selects is not None:
                     slow = []
-                    for query in captured:
-                        if float(query["time"]) < 0.05 or not query["sql"].lstrip().upper().startswith("SELECT"):
-                            continue
+                    for sql, (_, params) in slow_selects.items():
                         with connection.cursor() as cursor:
-                            cursor.execute("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + query["sql"])
+                            cursor.execute("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + sql, params)
                             plan = cursor.fetchone()[0][0]
                         nodes = []
                         def summarize(node):

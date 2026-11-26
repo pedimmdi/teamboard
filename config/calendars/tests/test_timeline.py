@@ -520,6 +520,14 @@ class CalendarTimelineTests(TestCase):
 
         self.assertLessEqual(
             len(queries),
-            15,
+            5,
             f"Timeline executed {len(queries)} queries.",
         )
+        item_reads = [
+            query["sql"] for query in queries
+            if 'FROM "tasks_task"' in query["sql"] or 'FROM "calendars_calendarevent"' in query["sql"]
+        ]
+        self.assertEqual(len(item_reads), 2)
+        for sql in item_reads:
+            self.assertNotIn('"description"', sql)
+            self.assertNotIn('JOIN "accounts_user"', sql)

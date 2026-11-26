@@ -125,6 +125,7 @@ test("sign in, create workspace, project and task, then discuss the task", async
     document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("navigation", { name: "Dashboard" })
     .getByRole("link", { name: "Calendar" }).click();
+  await expect(page).toHaveURL(`/dashboard/workspaces/${createdWorkspace.slug}/calendar`);
   await calendar.getByRole("button", { name: "New event" }).click();
   const workspaceEvent = page.getByRole("dialog", { name: "New event" });
   await workspaceEvent.getByLabel("Project").selectOption({ label: project });
@@ -141,6 +142,7 @@ test("sign in, create workspace, project and task, then discuss the task", async
   const readOnlyEvent = page.getByRole("dialog", { name: "Calendar review", exact: true });
   await expect(readOnlyEvent.getByText(/All day/)).toBeVisible();
   await readOnlyEvent.getByRole("link", { name: "Open project calendar" }).click();
+  await expect(page).toHaveURL(/\/projects\/[^/]+\/calendar$/);
 
   await calendar.getByRole("button", { name: "Next month" }).click();
   await expect(agenda.getByText("No items for this day.")).toBeVisible();

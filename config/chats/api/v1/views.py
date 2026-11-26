@@ -20,9 +20,11 @@ from chats.services import (
     update_chat_message,
     delete_chat_message,
     get_chat_messages,
+    message_response_queryset,
 )
 from chats.storage import chat_attachment_storage
 from chats.unread import get_unread_chats, mark_chat_read
+from config.api_pagination import LegacyArrayPagination
 from .serializers import ChatReadSerializer, ChatUnreadSerializer
 from workspaces.models import WorkspaceMembership
 from .pagination import ChatMessagePagination
@@ -58,9 +60,10 @@ class ProjectChatView(generics.GenericAPIView):
         )
 
 
-class DirectChatListCreateView(generics.GenericAPIView):
+class DirectChatListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ConversationSerializer
+    pagination_class = LegacyArrayPagination
 
     def get_throttles(self):
         if self.request.method == "POST":
@@ -71,26 +74,27 @@ class DirectChatListCreateView(generics.GenericAPIView):
     @extend_schema(
         tags=["Chats"],
         summary="List own direct conversations",
+        description=(
+            "Pass page or page_size for a paginated object. Requests without those parameters "
+            "return an array of up to 100 conversations, X-Total-Count, and a Link to the next "
+            "page when more results exist."
+        ),
         responses={200: ConversationSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
         workspace = get_chat_workspace(
-            workspace_slug=kwargs["slug"],
-            actor=request.user,
+            workspace_slug=self.kwargs["slug"],
+            actor=self.request.user,
         )
-        conversations = Conversation.objects.filter(
-            Q(direct_user_low=request.user)
-            | Q(direct_user_high=request.user),
+        return Conversation.objects.filter(
+            Q(direct_user_low=self.request.user)
+            | Q(direct_user_high=self.request.user),
             workspace=workspace,
             type=Conversation.Type.DIRECT,
         ).order_by("-updated_at", "-id")
-
-        return Response(
-            ConversationSerializer(
-                conversations,
-                many=True,
-            ).data
-        )
 
     @extend_schema(
         tags=["Chats"],
@@ -190,9 +194,7 @@ class ChatMessageListCreateView(generics.GenericAPIView):
             **serializer.validated_data,
         )
 
-        message = ChatMessage.objects.prefetch_related(
-            "attachments",
-        ).get(pk=message.pk)
+        message = message_response_queryset().get(pk=message.pk)
 
         return Response(
             ChatMessageSerializer(message).data,

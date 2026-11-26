@@ -315,6 +315,23 @@ paths:
   /api/v1/accounts/sessions/:
     get:
       operationId: v1_accounts_sessions_list
+      description: Lists the authenticated user's active sessions newest first. Pass
+        page or page_size for the paginated object. Requests without those parameters
+        return a legacy array of up to 100 sessions, X-Total-Count, and a Link to
+        page 2 when more results exist. The Link preserves the 100-session page size.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
       tags:
       - v1
       security:
@@ -324,9 +341,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserSession'
+                $ref: '#/components/schemas/PaginatedUserSessionList'
           description: ''
   /api/v1/accounts/sessions/{session_id}/:
     delete:
@@ -1108,8 +1123,23 @@ paths:
   /api/v1/workspaces/{slug}/chats/direct/:
     get:
       operationId: v1_workspaces_chats_direct_list
+      description: Pass page or page_size for a paginated object. Requests without
+        those parameters return an array of up to 100 conversations, X-Total-Count,
+        and a Link to the next page when more results exist.
       summary: List own direct conversations
       parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
       - in: path
         name: slug
         schema:
@@ -1124,9 +1154,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Conversation'
+                $ref: '#/components/schemas/PaginatedConversationList'
           description: ''
     post:
       operationId: v1_workspaces_chats_direct_create
@@ -4490,6 +4518,33 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Comment'
+    PaginatedConversationList:
+      oneOf:
+      - type: object
+        required:
+        - count
+        - results
+        properties:
+          count:
+            type: integer
+            example: 123
+          next:
+            type: string
+            nullable: true
+            format: uri
+            example: http://api.example.org/accounts/?page=4
+          previous:
+            type: string
+            nullable: true
+            format: uri
+            example: http://api.example.org/accounts/?page=2
+          results:
+            type: array
+            items:
+              $ref: '#/components/schemas/Conversation'
+      - type: array
+        items:
+          $ref: '#/components/schemas/Conversation'
     PaginatedNotificationList:
       type: object
       required:
@@ -4645,6 +4700,33 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Task'
+    PaginatedUserSessionList:
+      oneOf:
+      - type: object
+        required:
+        - count
+        - results
+        properties:
+          count:
+            type: integer
+            example: 123
+          next:
+            type: string
+            nullable: true
+            format: uri
+            example: http://api.example.org/accounts/?page=4
+          previous:
+            type: string
+            nullable: true
+            format: uri
+            example: http://api.example.org/accounts/?page=2
+          results:
+            type: array
+            items:
+              $ref: '#/components/schemas/UserSession'
+      - type: array
+        items:
+          $ref: '#/components/schemas/UserSession'
     PaginatedWorkspace:
       type: object
       properties:

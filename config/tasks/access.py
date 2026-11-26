@@ -1,6 +1,8 @@
-from django.db.models import Count
+from django.db.models import Count, OuterRef, Subquery
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 
+from comments.models import Comment
 from projects.access import (
     get_workspace_project_membership_or_404,
 )
@@ -80,11 +82,22 @@ def get_accessible_project_tasks(
         user=user,
     )
 
-    return Task.objects.filter(
-        project_id=project_id,
-    ).select_related(
-        "assignee",
-        "assignee__profile",
-        "created_by",
-        "created_by__profile",
-    ).annotate(comment_count=Count("comments"))
+    # Keep comment aggregation out of the paginator's total count. The page
+    # query can use the comment FK index for each task it returns.
+    comment_counts = (
+        Comment.objects.filter(task_id=OuterRef("pk"))
+        .order_by()
+        .values("task_id")
+        .annotate(total=Count("pk"))
+        .values("total")
+    )
+    return (
+        Task.objects.filter(project_id=project_id)
+        .select_related("assignee__profile", "created_by__profile")
+        .only(
+            "project_id", "title", "description", "status", "priority", "due_date", "position",
+            "created_at", "updated_at", "completed_at", "assignee__email", "assignee__profile__avatar",
+            "created_by__email", "created_by__profile__avatar",
+        )
+        .annotate(comment_count=Coalesce(Subquery(comment_counts), 0))
+    )

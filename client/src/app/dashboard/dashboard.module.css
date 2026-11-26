@@ -42,6 +42,7 @@
 }
 
 .signOutError {
+  flex-basis: 100%;
   margin-block: 4px;
   color: var(--danger);
   font-size: 0.8125rem;
@@ -141,9 +142,15 @@
   padding-block-start: 18px;
 }
 
-.signOutButton {
-  padding-top: 8px;
-  padding-bottom: 8px;
+.sessionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sessionActions > :is(.navItem, .signOutButton) {
+  width: auto;
+  flex: 1 0 auto;
 }
 
 .userSummary {
@@ -423,8 +430,7 @@
   line-height: 20px;
 }
 
-.field input:focus,
-.passwordInput:focus-within {
+.field input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
@@ -586,48 +592,6 @@
   gap: 16px;
 }
 
-.passwordInput {
-  min-height: 44px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
-}
-
-.passwordInput input {
-  flex: 1;
-  min-width: 0;
-  height: 42px;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--foreground);
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.visibilityButton {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.visibilityButton svg {
-  width: 20px;
-  height: 20px;
-}
-
 .requirements {
   display: flex;
   flex-direction: column;
@@ -667,6 +631,14 @@
 .sessionsList {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.sessionsPagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
   gap: 12px;
 }
 
@@ -780,11 +752,12 @@
 @media (max-width: 767px) {
   .mobileAccountNav {
     display: flex;
+    flex-wrap: wrap;
     gap: 4px;
     padding: 12px 16px 0;
   }
 
-  .mobileAccountNav .navItem {
+  .mobileAccountNav > .navItem {
     flex: 1;
     min-width: 0;
     justify-content: center;
@@ -792,19 +765,16 @@
     font-size: 12px;
   }
 
-  .mobileAccountNav .navIcon {
+  .mobileAccountNav > .navItem .navIcon {
     display: none;
   }
 
-  .mobileAccountNav .signOutButton {
-    width: 36px;
-    flex: 0 0 36px;
-    padding: 8px;
+  .mobileAccountNav .sessionActions {
+    flex-basis: 100%;
   }
 
-  .mobileAccountNav .signOutButton svg {
-    width: 20px;
-    height: 20px;
+  .mobileAccountNav .sessionActions > :is(.navItem, .signOutButton) {
+    justify-content: center;
   }
   .dashboard {
     min-height: 100dvh;
@@ -1001,14 +971,12 @@
 }
 
 .field input,
-.passwordInput,
 .readonlyField {
   border-color: var(--border);
   border-radius: 7px;
 }
 
-.field input::placeholder,
-.passwordInput input::placeholder {
+.field input::placeholder {
   color: var(--muted);
 }
 

@@ -56,7 +56,7 @@ def get_accessible_notifications(user):
 
     active_invitation = (
         WorkspaceInvitation.objects
-        .annotate(
+        .alias(
             invitation_id_text=Cast(
                 "id",
                 output_field=CharField(),
@@ -123,7 +123,7 @@ def get_accessible_notifications(user):
 
     return (
         Notification.objects.filter(recipient=user)
-        .annotate(
+        .alias(
             invitation_id_text=KeyTextTransform(
                 "invitation_id",
                 "payload",
@@ -151,4 +151,11 @@ def get_accessible_notifications(user):
             )
         )
         .order_by("-created_at", "-id")
+    )
+
+
+def with_notification_display_fields(queryset):
+    return queryset.select_related("actor", "workspace", "project", "task").only(
+        "id", "event_type", "payload", "created_at", "read_at", "actor__id",
+        "workspace__slug", "workspace__name", "project__name", "task__title",
     )

@@ -35,6 +35,8 @@ test("chat client authenticates REST, sends replies and attachments, and keeps J
   ]);
   await api.editChatMessage("token", "work", "conversation", "message", "Changed");
   await api.deleteChatMessage("token", "work", "conversation", "message");
+  await api.getDirectChats("token", "a/b");
+  await api.getDirectChats("token", "a/b", 2);
   assert.equal(calls[0][0], "https://api.example.com/api/v1/workspaces/work/projects/project/chat/");
   assert.equal(JSON.parse(calls[1][1].body).recipient_id, 2);
   assert.match(calls[2][0], /page=2$/);
@@ -42,6 +44,8 @@ test("chat client authenticates REST, sends replies and attachments, and keeps J
   assert.equal(calls[3][1].body.get("attachments").name, "notes.txt");
   assert.equal(calls[4][1].method, "PATCH");
   assert.equal(calls[5][1].method, "DELETE");
+  assert.match(calls[6][0], /workspaces\/a%2Fb\/chats\/direct\/$/);
+  assert.match(calls[7][0], /workspaces\/a%2Fb\/chats\/direct\/\?page=2&page_size=100$/);
   for (const [, options] of calls) assert.equal(options.headers.Authorization, "Bearer token");
   assert.equal(api.chatWebSocketUrl("work", "conversation"), "wss://api.example.com/ws/chats/work/conversation/");
 });
