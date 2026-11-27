@@ -11,6 +11,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from projects.models import Project, ProjectMembership
 from projects.services import (
     create_project,
+    update_project,
     add_project_member,
     change_project_member_role,
     remove_project_member,
@@ -195,65 +196,10 @@ class ProjectDetailView(generics.GenericAPIView):
         )
         serializer.is_valid(raise_exception=True)
 
-        try:
-            with transaction.atomic():
-                workspace = get_object_or_404(
-                    Workspace.objects.select_for_update(),
-                    slug=self.kwargs["slug"],
-                )
-
-                membership = self.get_project_membership(
-                    roles={ProjectMembership.Role.MANAGER},
-                )
-
-                project = get_object_or_404(
-                    Project.objects.select_for_update(),
-                    pk=membership.project_id,
-                    workspace=workspace,
-                )
-
-                self.get_project_membership(
-                    roles={ProjectMembership.Role.MANAGER},
-                )
-
-                changes = serializer.validated_data
-
-                if "name" in changes:
-                    name = changes["name"]
-
-                    duplicate_exists = Project.objects.filter(
-                        workspace=workspace,
-                        name__iexact=name,
-                    ).exclude(pk=project.pk).exists()
-
-                    if duplicate_exists:
-                        raise ValidationError({
-                            "name": (
-                                "A project with this name "
-                                "already exists."
-                            )
-                        })
-
-                    project.name = name
-
-                if "description" in changes:
-                    project.description = changes["description"]
-
-                if "avatar" in changes:
-                    project.avatar = changes["avatar"]
-
-                project.save()
-
-        except IntegrityError as exc:
-            if (
-                getattr(getattr(exc.__cause__, "diag", None), "constraint_name", None)
-                != "unique_project_name_per_workspace"
-            ):
-                raise
-
-            raise ValidationError({
-                "name": "A project with this name already exists."
-            }) from exc
+        project = update_project(
+            workspace_slug=self.kwargs["slug"], project_id=self.kwargs["project_id"],
+            actor=request.user, changes=serializer.validated_data,
+        )
 
         return Response(
             ProjectSerializer(

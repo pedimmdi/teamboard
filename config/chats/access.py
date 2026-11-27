@@ -1,9 +1,13 @@
 
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
 
-from projects.access import get_workspace_project_membership_or_404
+from projects.access import (
+    get_accessible_workspace_project_ids,
+    get_workspace_project_membership_or_404,
+)
 from workspaces.access import get_membership_or_404
 from workspaces.models import WorkspaceMembership
 
@@ -33,6 +37,16 @@ def get_project_chat_access(*, workspace_slug, project_id, actor):
         user=actor,
     )
     return access.project
+
+
+def get_accessible_chats(*, workspace_slug, actor):
+    workspace = get_chat_workspace(workspace_slug=workspace_slug, actor=actor)
+    projects = get_accessible_workspace_project_ids(workspace_slug=workspace_slug, user=actor)
+    return Conversation.objects.filter(workspace=workspace).filter(
+        Q(type=Conversation.Type.PROJECT, project_id__in=projects)
+        | Q(type=Conversation.Type.DIRECT, direct_user_low=actor)
+        | Q(type=Conversation.Type.DIRECT, direct_user_high=actor)
+    )
 
 
 def get_conversation_or_404(*, workspace_slug, conversation_id, actor):

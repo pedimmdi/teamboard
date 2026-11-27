@@ -8,11 +8,25 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from .models import WorkspaceInvitation, WorkspaceMembership
+from .models import Workspace, WorkspaceInvitation, WorkspaceMembership, generate_workspace_slug
 from notifications.events import notify_workspace_invited
 
 
 INVITATION_EXPIRY_DAYS = 7
+
+
+def create_workspace(*, actor, **fields):
+    for _ in range(5):
+        slug = generate_workspace_slug()
+        try:
+            with transaction.atomic():
+                workspace = Workspace.objects.create(slug=slug, **fields)
+                WorkspaceMembership.objects.create(workspace=workspace, user=actor, role=WorkspaceMembership.Role.OWNER)
+            return workspace
+        except IntegrityError:
+            if not Workspace.objects.filter(slug=slug).exists():
+                raise
+    raise ValidationError({"name": "Could not create an workspace. Please try again."})
 
 
 def hash_invitation_token(token):

@@ -38,7 +38,7 @@ from .serializers import (
     PaginatedWorkspaceMembershipSerializer,
     PaginatedWorkspaceInvitationSerializer,
 )
-from workspaces.access import get_membership_or_404
+from workspaces.access import get_accessible_workspaces, get_membership_or_404
 from .pagination import WorkspacePageNumberPagination
 from notifications.events import notify_workspace_role_changed
 
@@ -85,9 +85,7 @@ class WorkspaceListCreateView(generics.ListCreateAPIView):
         )
 
         return (
-            Workspace.objects.filter(
-                memberships__user=self.request.user,
-            )
+            get_accessible_workspaces(self.request.user)
             .prefetch_related(
                 Prefetch(
                     "memberships",

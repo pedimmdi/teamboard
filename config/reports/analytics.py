@@ -87,7 +87,7 @@ def history_report(projects, filters, user, today):
     }
 
 
-def workload_rows(tasks, today):
+def workload_rows(tasks, today, *, start=0, limit=None):
     active = ~Q(status=Task.Status.DONE)
     rows = tasks.order_by().values("assignee_id").annotate(
         total_tasks=Count("pk"),
@@ -95,7 +95,8 @@ def workload_rows(tasks, today):
         overdue_tasks=Count("pk", filter=active & Q(due_date__lt=today)),
         due_soon_tasks=Count("pk", filter=active & Q(due_date__range=(today, today + timedelta(days=7)))),
     ).order_by("assignee_id")
-    for row in rows:
+    end = None if limit is None else start + limit
+    for row in rows[start:end]:
         total, completed = row["total_tasks"], row["completed_tasks"]
         yield {
             **row, "assignee": row["assignee_id"], "active_tasks": total - completed,

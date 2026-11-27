@@ -78,8 +78,10 @@ test("sitemap uses the last complete snapshot when a later page fails and restor
   const read = sitemap.default;
   const locationList = (data) => Array.from(data, ({ url }) => new URL(url).pathname);
   const core = await read();
-  assert.equal(core.length, 12);
+  assert.equal(core.length, 14);
   assert.ok(locationList(core).includes("/fa/contact"));
+  assert.ok(locationList(core).includes("/mcp"));
+  assert.ok(locationList(core).includes("/fa/mcp"));
   await read();
   assert.equal(refreshes, 1);
 

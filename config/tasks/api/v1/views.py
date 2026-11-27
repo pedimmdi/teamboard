@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q, Case, When, Value, IntegerField, F
+from django.db.models import Case, When, Value, IntegerField, F
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -26,6 +26,7 @@ from tasks.services import (
     move_task,
 )
 from tasks.models import Task
+from tasks.queries import filter_tasks
 from .serializers import (
     TaskSerializer,
     TaskCreateSerializer,
@@ -172,6 +173,7 @@ class TaskListCreateView(generics.GenericAPIView):
         due_before = request.query_params.get("due_before")
         overdue = request.query_params.get("overdue")
 
+        statuses = None
         if task_status is not None:
             statuses = [
                 value.strip()
@@ -186,20 +188,13 @@ class TaskListCreateView(generics.GenericAPIView):
                     "status": "Invalid task status."
                 })
 
-            queryset = queryset.filter(
-                status__in=statuses,
-            )
-
         if priority is not None:
             if priority not in Task.Priority.values:
                 raise ValidationError({
                     "priority": "Invalid task priority."
                 })
 
-            queryset = queryset.filter(
-                priority=priority,
-            )
-
+        assignee_id = None
         if assignee is not None:
             if assignee == "me":
                 assignee_id = request.user.pk
@@ -218,10 +213,7 @@ class TaskListCreateView(generics.GenericAPIView):
                         "assignee": "Invalid user ID."
                     })
 
-            queryset = queryset.filter(
-                assignee_id=assignee_id,
-            )
-
+        parsed_date = None
         if due_before is not None:
             date_field = serializers.DateField()
 
@@ -234,10 +226,7 @@ class TaskListCreateView(generics.GenericAPIView):
                     )
                 })
 
-            queryset = queryset.filter(
-                due_date__lt=parsed_date,
-            )
-
+        is_overdue = False
         if overdue is not None:
             overdue_value = overdue.lower()
 
@@ -246,12 +235,7 @@ class TaskListCreateView(generics.GenericAPIView):
                     "overdue": "Must be 'true' or 'false'."
                 })
 
-            if overdue_value == "true":
-                queryset = queryset.filter(
-                    due_date__lt=timezone.localdate(),
-                ).exclude(
-                    status=Task.Status.DONE,
-                )
+            is_overdue = overdue_value == "true"
 
         # Searching
         search = request.query_params.get("search")
@@ -259,19 +243,20 @@ class TaskListCreateView(generics.GenericAPIView):
         if search is not None:
             search = search.strip()
 
-            if search:
-                if len(search) > 200:
-                    raise ValidationError({
-                        "search": (
-                            "Search query cannot exceed "
-                            "200 characters."
-                        )
-                    })
+            if len(search) > 200:
+                raise ValidationError({
+                    "search": "Search query cannot exceed 200 characters."
+                })
 
-                queryset = queryset.filter(
-                    Q(title__icontains=search)
-                    | Q(description__icontains=search)
-                )
+        queryset = filter_tasks(
+            queryset,
+            statuses=statuses,
+            priority=priority,
+            assignee_id=assignee_id,
+            due_before=parsed_date,
+            overdue_before=timezone.localdate() if is_overdue else None,
+            search=search,
+        )
 
         # Ordering
         ordering = request.query_params.get(

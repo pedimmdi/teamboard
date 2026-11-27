@@ -17,7 +17,7 @@ function localizedEntries(path: string, hasTranslation = true, lastModified?: st
   }));
 }
 
-const coreEntries = ["/", "/about", "/contact", "/blog", "/privacy", "/terms"].flatMap((path) => localizedEntries(path));
+const coreEntries = ["/", "/about", "/contact", "/blog", "/mcp", "/privacy", "/terms"].flatMap((path) => localizedEntries(path));
 
 const articleEntries = createSitemapReader(async () => {
   const signal = AbortSignal.timeout(10_000);

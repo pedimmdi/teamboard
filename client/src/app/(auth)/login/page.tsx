@@ -3,6 +3,7 @@
 
 import { useLocale } from "@/lib/preferences";
 import { localizeAccountMessage } from "@/lib/account-message";
+import { getAiConsentReturn } from "@/lib/ai-consent";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -35,6 +36,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
+      const ai = getAiConsentReturn(window.location.hash);
+      if (ai) {
+        window.location.replace(ai);
+        return;
+      }
       const next = getSafeInvitationReturn(new URLSearchParams(window.location.search).get("next")) ?? readInvitationReturn();
       router.replace(next ?? "/dashboard");
     }
@@ -49,8 +55,12 @@ export default function LoginPage() {
       const data = await login(email.trim(), password);
       const user = await getCurrentUser(data.access);
 
+      const ai = getAiConsentReturn(window.location.hash);
+      if (ai) {
+        window.location.replace(ai);
+        return;
+      }
       setTokens(data.access, user);
-
       const params = new URLSearchParams(window.location.search);
       const returnPath =
         getSafeInvitationReturn(params.get("next")) ??

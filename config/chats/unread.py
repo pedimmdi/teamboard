@@ -3,25 +3,24 @@ from django.db import transaction
 from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404
 
-from chats.access import get_chat_workspace, get_conversation_or_404
-from chats.models import ChatMessage, Conversation, ConversationParticipant
-from projects.access import get_accessible_workspace_project_ids
+from chats.access import get_accessible_chats, get_conversation_or_404
+from chats.models import ChatMessage, ConversationParticipant
 
 
-def get_unread_chats(*, workspace_slug, actor):
-    workspace = get_chat_workspace(workspace_slug=workspace_slug, actor=actor)
-    projects = get_accessible_workspace_project_ids(workspace_slug=workspace_slug, user=actor)
-    accessible = Conversation.objects.filter(workspace=workspace).filter(
-        Q(type="project", project_id__in=projects)
-        | Q(type="direct", direct_user_low=actor)
-        | Q(type="direct", direct_user_high=actor)
-    )
+def get_unread_chat_messages(*, workspace_slug, actor):
+    accessible = get_accessible_chats(workspace_slug=workspace_slug, actor=actor)
     cursor = ConversationParticipant.objects.filter(conversation_id=OuterRef("conversation_id"), user=actor)
-    rows = (
+    return (
         ChatMessage.objects.filter(conversation__in=accessible, deleted_at__isnull=True)
         .exclude(sender=actor)
         .annotate(read_at=Subquery(cursor.values("last_read_at")[:1]), read_key=Subquery(cursor.values("last_read_key")[:1]))
         .filter(Q(read_at__isnull=True) | Q(created_at__gt=F("read_at")) | Q(created_at=F("read_at"), id__gt=F("read_key")))
+    )
+
+
+def get_unread_chats(*, workspace_slug, actor):
+    rows = (
+        get_unread_chat_messages(workspace_slug=workspace_slug, actor=actor)
         .order_by()
         .values("conversation_id", "conversation__project_id", "conversation__type", "conversation__direct_user_low_id", "conversation__direct_user_high_id")
         .annotate(unread_count=Count("id"))

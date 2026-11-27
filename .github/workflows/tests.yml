@@ -44,7 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt -r requirements-ci.txt
+          python -m pip install -r requirements-mcp.txt -r requirements-ci.txt
 
       - name: Validate backend production deployment
         run: APP_ENV_FILE=.env.example docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.production.yml config --quiet
@@ -73,6 +73,9 @@ jobs:
           python manage.py makemigrations --check --dry-run
           python manage.py spectacular --validate --fail-on-warn --file /tmp/schema.yml
           python -m coverage run -m pytest -v
+          python manage.py check --settings=config.mcp_local_settings
+          python manage.py makemigrations --check --dry-run --settings=config.mcp_local_settings
+          python -m pytest -q ai_integrations/tests --ds=config.mcp_local_settings
 
       - name: Check coverage of core backend apps
         working-directory: config
@@ -149,7 +152,7 @@ jobs:
         run: python -m pip install -r requirements-ci.txt
 
       - name: Audit Python dependencies
-        run: python -m pip_audit -r requirements.txt -r requirements-ci.txt --format=json --output=artifacts/python-audit.json
+        run: python -m pip_audit -r requirements-mcp.txt -r requirements-ci.txt --format=json --output=artifacts/python-audit.json
 
       - name: Audit npm dependencies
         if: ${{ !cancelled() }}
@@ -209,12 +212,14 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: client/package-lock.json
-      - run: python -m pip install -r requirements.txt
+      - run: python -m pip install -r requirements-mcp.txt
       - run: npm ci
         working-directory: client
       - run: npx playwright install --with-deps chromium
         working-directory: client
       - run: npm run test:e2e
+        working-directory: client
+      - run: npx playwright test --config playwright.mcp.config.mjs
         working-directory: client
       - uses: actions/upload-artifact@v4
         if: failure()

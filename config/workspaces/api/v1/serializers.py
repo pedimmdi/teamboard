@@ -1,4 +1,3 @@
-from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -8,8 +7,8 @@ from workspaces.models import (
     Workspace,
     WorkspaceMembership,
     WorkspaceInvitation,
-    generate_workspace_slug,
 )
+from workspaces.services import create_workspace
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
@@ -56,35 +55,7 @@ class WorkspaceSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        user = self.context["request"].user
-
-        # Retry only when the randomly generated slug collides.
-        for _ in range(5):
-            slug = generate_workspace_slug()
-
-            try:
-                with transaction.atomic():
-                    workspace = Workspace.objects.create(
-                        slug=slug,
-                        **validated_data,
-                    )
-                    WorkspaceMembership.objects.create(
-                        workspace=workspace,
-                        user=user,
-                        role=WorkspaceMembership.Role.OWNER,
-                    )
-
-                return workspace
-
-            except IntegrityError:
-                if Workspace.objects.filter(slug=slug).exists():
-                    continue
-
-                raise
-
-        raise ValidationError({
-            "name": "Could not create an workspace. Please try again."
-        })
+        return create_workspace(actor=self.context["request"].user, **validated_data)
 
 
 class WorkspaceInvitationCreateSerializer(serializers.Serializer):

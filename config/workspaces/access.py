@@ -5,6 +5,10 @@ from rest_framework.exceptions import PermissionDenied
 from workspaces.models import Workspace, WorkspaceMembership
 
 
+def get_accessible_workspaces(user):
+    return Workspace.objects.filter(memberships__user=user)
+
+
 def get_membership_or_404(
     slug,
     user,

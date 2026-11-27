@@ -1,0 +1,61 @@
+.panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel h1, .panel p, .details dd {
+  margin: 0;
+}
+
+.details {
+  display: grid;
+  gap: .35rem;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin: 0;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.details dt {
+  color: var(--muted);
+  font-size: .875rem;
+}
+
+.details dd + dt {
+  margin-block-start: .55rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+}
+
+.primary, .secondary {
+  display: inline-flex;
+  justify-content: center;
+  padding: .65rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primary {
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.secondary {
+  color: var(--foreground);
+  background: var(--surface);
+}
+
+.primary:disabled, .secondary:disabled {
+  cursor: wait;
+  opacity: .65;
+}

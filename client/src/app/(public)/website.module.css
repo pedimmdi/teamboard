@@ -121,6 +121,26 @@
 .site:dir(rtl) .arrow { transform: scaleX(-1); }
 .actions { flex-wrap: wrap; margin-block-start: 1.75rem; }
 
+.mcpActions, .mcpUrl { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; margin-block: 1rem; }
+.mcpUrl code { overflow-wrap: anywhere; }
+.mcpGroup { margin-block: clamp(2rem, 4vw, 4rem); }
+.mcpGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: 1rem; margin-block-start: 1rem; }
+.mcpCard {
+  display: grid;
+  align-content: start;
+  gap: .65rem;
+  padding: clamp(1rem, 3vw, 1.65rem);
+  border: 1px solid var(--border);
+  border-radius: .9rem;
+  background: var(--site-subtle);
+}
+.mcpCard a, .mcpGroup > .mcpActions a { color: var(--primary); text-underline-offset: .2em; text-decoration: underline; }
+.mcpCard ol { display: grid; gap: .6rem; padding-inline-start: 1.3rem; list-style: decimal; line-height: 1.6; }
+.mcpCard:where(details) { display: block; margin-block: .55rem; }
+.mcpCard summary { cursor: pointer; font-weight: 680; }
+.mcpCard summary:focus-visible { outline: 2px solid var(--primary); outline-offset: .25rem; }
+.mcpCard[open] p { margin-block-start: .5rem; }
+
 .hero {
   overflow: hidden;
   background: linear-gradient(115deg, var(--surface) 18%, var(--site-subtle) 105%);
@@ -413,7 +433,7 @@
 
 @media (max-width: 670px) {
   .headerActions { flex-basis: 100%; justify-content: space-between; border-block-start: 1px solid var(--border); padding-block-start: .45rem; }
-  .nav { margin-inline-start: auto; margin-inline-end: 0; }
+  .nav { margin-inline-start: auto; margin-inline-end: 0; flex-wrap: wrap; }
   .heroInner, .contact { grid-template-columns: 1fr; }
   .heroInner { padding-block-start: 2.4rem; gap: 2rem; }
   .hero h1 { max-width: 15ch; }

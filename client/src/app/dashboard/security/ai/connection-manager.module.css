@@ -1,0 +1,15 @@
+.list { display: grid; gap: .75rem; padding: 0; list-style: none; }
+.row, .actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+.row { justify-content: space-between; padding-block: .8rem; border-block-end: 1px solid var(--border); overflow-wrap: anywhere; }
+.row p, .row time { color: var(--text-secondary); }
+.actions { margin-block-start: 1rem; }
+.row button, .actions button {
+  min-block-size: 2.75rem;
+  padding: .45rem .8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: .65rem;
+  background: var(--surface);
+  color: var(--foreground);
+}
+.row button:hover, .actions button:hover { border-color: var(--primary); color: var(--primary); }
+.row button:focus-visible, .actions button:focus-visible { outline: 2px solid var(--primary); outline-offset: .2rem; }

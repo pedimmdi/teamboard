@@ -6,7 +6,7 @@ from tasks.models import Task
 from workspaces.models import WorkspaceMembership
 
 
-def _task_overview(tasks, today):
+def get_task_overview(tasks, today):
     completed = Q(status=Task.Status.DONE)
     counts = tasks.aggregate(
         total_tasks=Count("pk"),
@@ -39,7 +39,7 @@ def get_project_report(*, project, today=None):
 
     tasks = Task.objects.filter(project=project)
 
-    summary, status_counts, priority_counts = _task_overview(tasks, today)
+    summary, status_counts, priority_counts = get_task_overview(tasks, today)
 
     workload_counts = {
         row["assignee_id"]: row
@@ -131,7 +131,7 @@ def get_workspace_report(*, workspace, user, today=None):
         project_id__in=project_ids,
     )
 
-    summary, status_distribution, priority_distribution = _task_overview(tasks, today)
+    summary, status_distribution, priority_distribution = get_task_overview(tasks, today)
 
     project_rows = list(
         projects.annotate(

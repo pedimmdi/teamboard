@@ -4,6 +4,8 @@ TeamBoard is a bilingual project workspace for planning work, tracking tasks, an
 
 See [architecture and configuration](docs/architecture.md) for the request flow, API conventions and environment variable reference.
 
+See the [MCP guide](docs/mcp-local.md) for the optional integration, its read and write permissions, local setup, HTTPS configuration and test commands.
+
 ## What you can do
 
 - **Browse the public website** in English at `/` or Persian at `/fa`. Both versions include About, Contact, Blog, Privacy and Terms. The header offers **Open dashboard** when you are signed in. Signing out returns you to the home page in your selected language.

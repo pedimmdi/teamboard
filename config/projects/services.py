@@ -1,9 +1,9 @@
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError, PermissionDenied
 
 from projects.models import Project, ProjectMembership
-from projects.access import get_project_membership_or_404
+from projects.access import get_project_membership_or_404, get_workspace_project_membership_or_404
 from workspaces.models import Workspace, WorkspaceMembership
 from notifications.events import (
     notify_project_member_added,
@@ -79,6 +79,34 @@ def create_project(*, workspace, created_by, name, description=""):
     )
 
     return project
+
+
+def update_project(*, workspace_slug, project_id, actor, changes):
+    manager = {ProjectMembership.Role.MANAGER}
+    duplicate = {"name": "A project with this name already exists."}
+    try:
+        with transaction.atomic():
+            workspace = get_object_or_404(Workspace.objects.select_for_update(), slug=workspace_slug)
+            get_workspace_project_membership_or_404(
+                workspace_slug=workspace_slug, project_id=project_id, user=actor, roles=manager,
+            )
+            project = get_object_or_404(Project.objects.select_for_update(), pk=project_id, workspace=workspace)
+            get_workspace_project_membership_or_404(
+                workspace_slug=workspace_slug, project_id=project_id, user=actor, roles=manager,
+            )
+            if "name" in changes and Project.objects.filter(
+                workspace=workspace, name__iexact=changes["name"],
+            ).exclude(pk=project.pk).exists():
+                raise ValidationError(duplicate)
+            for field in ("name", "description", "avatar"):
+                if field in changes:
+                    setattr(project, field, changes[field])
+            project.save()
+            return project
+    except IntegrityError as error:
+        if getattr(getattr(error.__cause__, "diag", None), "constraint_name", None) != "unique_project_name_per_workspace":
+            raise
+        raise ValidationError(duplicate) from error
 
 
 @transaction.atomic
